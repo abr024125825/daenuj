@@ -191,11 +191,11 @@ export function CertificatesPage() {
                           <Button 
                             size="sm" 
                             variant="outline"
-                            onClick={() => {
+                            onClick={async () => {
                               const volunteerName = cert.volunteer?.application 
                                 ? `${cert.volunteer.application.first_name} ${cert.volunteer.application.father_name || ''} ${cert.volunteer.application.family_name}`
                                 : 'Volunteer';
-                              generateCertificatePDF({
+                              await generateCertificatePDF({
                                 volunteerName,
                                 opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
                                 hours: cert.hours,

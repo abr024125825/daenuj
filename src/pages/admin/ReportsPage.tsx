@@ -54,10 +54,10 @@ export function ReportsPage() {
     );
   }
 
-  const exportReportPDF = () => {
+  const exportReportPDF = async () => {
     if (!stats) return;
     
-    generateReportPDF({
+    await generateReportPDF({
       stats: {
         totalVolunteers: stats.totalVolunteers || 0,
         activeVolunteers: stats.activeVolunteers || 0,
