@@ -32,7 +32,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Calendar, MapPin, Users, QrCode, Eye, Send, Loader2, 
-  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, RotateCcw
+  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, RotateCcw, UserCheckIcon, UsersRound
 } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
 import { useFaculties } from '@/hooks/useFaculties';
@@ -82,7 +82,7 @@ export function OpportunitiesPage() {
   });
 
   // Get registrations for selected opportunity
-  const { registrations, approveRegistration, rejectRegistration, manualCheckIn } = useOpportunityRegistrations(selectedOpportunity?.id);
+  const { registrations, approveRegistration, rejectRegistration, manualCheckIn, bulkCheckIn, checkedInVolunteerIds } = useOpportunityRegistrations(selectedOpportunity?.id);
 
   const handleCreate = async () => {
     if (!formData.title || !formData.description || !formData.date || !formData.start_time || !formData.end_time || !formData.location) {
@@ -525,43 +525,74 @@ export function OpportunitiesPage() {
               {/* Approved */}
               {registrations?.filter((r: any) => r.status === 'approved').length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-sm font-medium text-muted-foreground">Approved ({registrations?.filter((r: any) => r.status === 'approved').length})</p>
-                  {registrations?.filter((r: any) => r.status === 'approved').map((reg: any) => (
-                    <div key={reg.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-500/5 border-green-500/20">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
-                          <span className="text-xs font-medium text-green-600">
-                            {reg.volunteer?.application?.first_name?.[0]}{reg.volunteer?.application?.family_name?.[0]}
-                          </span>
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-muted-foreground">
+                      Approved ({registrations?.filter((r: any) => r.status === 'approved').length})
+                      {' • '}
+                      <span className="text-green-600">
+                        {registrations?.filter((r: any) => r.status === 'approved' && checkedInVolunteerIds.has(r.volunteer?.id)).length} checked in
+                      </span>
+                    </p>
+                    {registrations?.filter((r: any) => r.status === 'approved' && !checkedInVolunteerIds.has(r.volunteer?.id)).length > 0 && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => bulkCheckIn.mutate(selectedOpportunity?.id)}
+                        disabled={bulkCheckIn.isPending}
+                      >
+                        <UsersRound className="h-4 w-4 mr-2" />
+                        Check In All ({registrations?.filter((r: any) => r.status === 'approved' && !checkedInVolunteerIds.has(r.volunteer?.id)).length})
+                      </Button>
+                    )}
+                  </div>
+                  {registrations?.filter((r: any) => r.status === 'approved').map((reg: any) => {
+                    const isCheckedIn = checkedInVolunteerIds.has(reg.volunteer?.id);
+                    return (
+                      <div key={reg.id} className={`flex items-center justify-between p-3 border rounded-lg ${isCheckedIn ? 'bg-green-500/10 border-green-500/30' : 'bg-green-500/5 border-green-500/20'}`}>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCheckedIn ? 'bg-green-500 text-white' : 'bg-green-500/20'}`}>
+                            {isCheckedIn ? (
+                              <CheckCircle className="h-4 w-4" />
+                            ) : (
+                              <span className="text-xs font-medium text-green-600">
+                                {reg.volunteer?.application?.first_name?.[0]}{reg.volunteer?.application?.family_name?.[0]}
+                              </span>
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium text-sm">
+                              {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
+                              {isCheckedIn && <span className="ml-2 text-xs text-green-600 font-normal">(Checked In)</span>}
+                            </p>
+                            <p className="text-xs text-muted-foreground">{reg.volunteer?.application?.university_id}</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">
-                            {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">{reg.volunteer?.application?.university_id}</p>
+                        <div className="flex items-center gap-2">
+                          <Badge variant={isCheckedIn ? "default" : "secondary"} className={isCheckedIn ? "bg-green-500" : ""}>
+                            {isCheckedIn ? 'checked in' : 'approved'}
+                          </Badge>
+                          {!isCheckedIn && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => manualCheckIn.mutate({
+                                opportunityId: selectedOpportunity?.id,
+                                volunteerId: reg.volunteer?.id,
+                                registrationId: reg.id,
+                              })}
+                              disabled={manualCheckIn.isPending}
+                              title="Manual Check-in"
+                            >
+                              <UserCheck className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
+                          <Button size="sm" variant="ghost" onClick={() => handleRejectRegistration(reg.id)}>
+                            <XCircle className="h-4 w-4 text-destructive" />
+                          </Button>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="default">approved</Badge>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => manualCheckIn.mutate({
-                            opportunityId: selectedOpportunity?.id,
-                            volunteerId: reg.volunteer?.id,
-                            registrationId: reg.id,
-                          })}
-                          disabled={manualCheckIn.isPending}
-                          title="Manual Check-in"
-                        >
-                          <UserCheck className="h-4 w-4 text-primary" />
-                        </Button>
-                        <Button size="sm" variant="ghost" onClick={() => handleRejectRegistration(reg.id)}>
-                          <XCircle className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
 
