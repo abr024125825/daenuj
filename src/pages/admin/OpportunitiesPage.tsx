@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Select,
@@ -28,18 +29,42 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Plus, Calendar, MapPin, Users, QrCode, Eye, Send, Loader2 } from 'lucide-react';
-import { useOpportunities } from '@/hooks/useOpportunities';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { 
+  Plus, Calendar, MapPin, Users, QrCode, Eye, Send, Loader2, 
+  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck
+} from 'lucide-react';
+import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
 import { useFaculties } from '@/hooks/useFaculties';
 import { format } from 'date-fns';
 import { QRCodeSVG } from 'qrcode.react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
 
 export function OpportunitiesPage() {
-  const { opportunities, isLoading, createOpportunity, publishOpportunity, generateQRCode, closeQRCode } = useOpportunities();
+  const { 
+    opportunities, 
+    isLoading, 
+    createOpportunity, 
+    updateOpportunity,
+    publishOpportunity, 
+    generateQRCode, 
+    closeQRCode 
+  } = useOpportunities();
   const { data: faculties } = useFaculties();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [qrDialogOpen, setQrDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [registrationsDialogOpen, setRegistrationsDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -51,6 +76,9 @@ export function OpportunitiesPage() {
     faculty_restriction: '',
   });
 
+  // Get registrations for selected opportunity
+  const { registrations, approveRegistration } = useOpportunityRegistrations(selectedOpportunity?.id);
+
   const handleCreate = async () => {
     await createOpportunity.mutateAsync({
       ...formData,
@@ -58,6 +86,74 @@ export function OpportunitiesPage() {
       faculty_restriction: formData.faculty_restriction || null,
     });
     setCreateDialogOpen(false);
+    resetForm();
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedOpportunity) return;
+    await updateOpportunity.mutateAsync({
+      id: selectedOpportunity.id,
+      ...formData,
+      required_volunteers: Number(formData.required_volunteers),
+      faculty_restriction: formData.faculty_restriction || null,
+    });
+    setEditDialogOpen(false);
+    setSelectedOpportunity(null);
+    resetForm();
+  };
+
+  const handleDelete = async () => {
+    if (!selectedOpportunity) return;
+    try {
+      const { error } = await supabase
+        .from('opportunities')
+        .delete()
+        .eq('id', selectedOpportunity.id);
+      
+      if (error) throw error;
+      
+      toast({ title: 'Success', description: 'Opportunity deleted successfully' });
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
+      setDeleteDialogOpen(false);
+      setSelectedOpportunity(null);
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleCompleteOpportunity = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('opportunities')
+        .update({ status: 'completed' })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      toast({ title: 'Success', description: 'Opportunity marked as completed' });
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleRejectRegistration = async (registrationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('opportunity_registrations')
+        .update({ status: 'rejected' })
+        .eq('id', registrationId);
+      
+      if (error) throw error;
+      
+      toast({ title: 'Success', description: 'Registration rejected' });
+      queryClient.invalidateQueries({ queryKey: ['opportunity-registrations'] });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const resetForm = () => {
     setFormData({
       title: '',
       description: '',
@@ -70,9 +166,39 @@ export function OpportunitiesPage() {
     });
   };
 
+  const openEditDialog = (opp: any) => {
+    setSelectedOpportunity(opp);
+    setFormData({
+      title: opp.title,
+      description: opp.description,
+      date: opp.date,
+      start_time: opp.start_time,
+      end_time: opp.end_time,
+      location: opp.location,
+      required_volunteers: opp.required_volunteers,
+      faculty_restriction: opp.faculty_restriction || '',
+    });
+    setEditDialogOpen(true);
+  };
+
+  const openDetailsDialog = (opp: any) => {
+    setSelectedOpportunity(opp);
+    setDetailsDialogOpen(true);
+  };
+
+  const openRegistrationsDialog = (opp: any) => {
+    setSelectedOpportunity(opp);
+    setRegistrationsDialogOpen(true);
+  };
+
   const handleShowQR = (opp: any) => {
     setSelectedOpportunity(opp);
     setQrDialogOpen(true);
+  };
+
+  const openDeleteDialog = (opp: any) => {
+    setSelectedOpportunity(opp);
+    setDeleteDialogOpen(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -83,6 +209,11 @@ export function OpportunitiesPage() {
       default: return 'secondary';
     }
   };
+
+  const filteredOpportunities = opportunities?.filter((opp: any) =>
+    opp.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    opp.location.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (isLoading) {
     return (
@@ -102,118 +233,83 @@ export function OpportunitiesPage() {
             <h2 className="text-2xl font-display font-bold">Manage Opportunities</h2>
             <p className="text-muted-foreground">Create and manage volunteering opportunities</p>
           </div>
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2">
-                <Plus className="h-4 w-4" />
-                Create Opportunity
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Create New Opportunity</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Blood Donation Campaign"
-                  />
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Opportunity
+          </Button>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-muted">
+                  <Calendar className="h-5 w-5 text-muted-foreground" />
                 </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    placeholder="Describe the opportunity..."
-                    rows={3}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="date">Date</Label>
-                    <Input
-                      id="date"
-                      type="date"
-                      value={formData.date}
-                      onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="start_time">Start Time</Label>
-                    <Input
-                      id="start_time"
-                      type="time"
-                      value={formData.start_time}
-                      onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="end_time">End Time</Label>
-                    <Input
-                      id="end_time"
-                      type="time"
-                      value={formData.end_time}
-                      onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="location">Location</Label>
-                    <Input
-                      id="location"
-                      value={formData.location}
-                      onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                      placeholder="Main Campus Building A"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="required_volunteers">Required Volunteers</Label>
-                    <Input
-                      id="required_volunteers"
-                      type="number"
-                      min={1}
-                      value={formData.required_volunteers}
-                      onChange={(e) => setFormData({ ...formData, required_volunteers: Number(e.target.value) })}
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="faculty_restriction">Faculty Restriction (Optional)</Label>
-                  <Select
-                    value={formData.faculty_restriction}
-                    onValueChange={(value) => setFormData({ ...formData, faculty_restriction: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Open to all faculties" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="">Open to all faculties</SelectItem>
-                      {faculties?.map((faculty) => (
-                        <SelectItem key={faculty.id} value={faculty.id}>
-                          {faculty.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div>
+                  <p className="text-2xl font-bold">{opportunities?.length || 0}</p>
+                  <p className="text-sm text-muted-foreground">Total</p>
                 </div>
               </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>
-                  Cancel
-                </Button>
-                <Button onClick={handleCreate} disabled={createOpportunity.isPending}>
-                  {createOpportunity.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                  Create
-                </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-yellow-500/10">
+                  <Clock className="h-5 w-5 text-yellow-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {opportunities?.filter((o: any) => o.status === 'draft').length || 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Draft</p>
+                </div>
               </div>
-            </DialogContent>
-          </Dialog>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Send className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {opportunities?.filter((o: any) => o.status === 'published').length || 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Published</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/10">
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold">
+                    {opportunities?.filter((o: any) => o.status === 'completed').length || 0}
+                  </p>
+                  <p className="text-sm text-muted-foreground">Completed</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Search */}
+        <div className="flex items-center gap-4">
+          <div className="relative flex-1 max-w-sm">
+            <Input
+              placeholder="Search opportunities..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
         </div>
 
         <Card>
@@ -230,7 +326,7 @@ export function OpportunitiesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {opportunities?.map((opp: any) => (
+                {filteredOpportunities?.map((opp: any) => (
                   <TableRow key={opp.id}>
                     <TableCell>
                       <div>
@@ -254,16 +350,21 @@ export function OpportunitiesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1 text-sm">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="gap-1 text-sm"
+                        onClick={() => openRegistrationsDialog(opp)}
+                      >
                         <Users className="h-4 w-4 text-muted-foreground" />
                         {opp.registrations?.[0]?.count || 0}/{opp.required_volunteers}
-                      </div>
+                      </Button>
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusColor(opp.status)}>{opp.status}</Badge>
                     </TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         {opp.status === 'draft' && (
                           <Button
                             size="sm"
@@ -271,8 +372,7 @@ export function OpportunitiesPage() {
                             onClick={() => publishOpportunity.mutate(opp.id)}
                             disabled={publishOpportunity.isPending}
                           >
-                            <Send className="h-4 w-4 mr-1" />
-                            Publish
+                            <Send className="h-4 w-4" />
                           </Button>
                         )}
                         {opp.status === 'published' && (
@@ -284,8 +384,7 @@ export function OpportunitiesPage() {
                                 onClick={() => generateQRCode.mutate(opp.id)}
                                 disabled={generateQRCode.isPending}
                               >
-                                <QrCode className="h-4 w-4 mr-1" />
-                                Generate QR
+                                <QrCode className="h-4 w-4" />
                               </Button>
                             ) : (
                               <Button
@@ -293,20 +392,34 @@ export function OpportunitiesPage() {
                                 variant="outline"
                                 onClick={() => handleShowQR(opp)}
                               >
-                                <QrCode className="h-4 w-4 mr-1" />
-                                Show QR
+                                <QrCode className="h-4 w-4" />
                               </Button>
                             )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCompleteOpportunity(opp.id)}
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                            </Button>
                           </>
                         )}
-                        <Button size="sm" variant="ghost">
+                        <Button size="sm" variant="ghost" onClick={() => openDetailsDialog(opp)}>
                           <Eye className="h-4 w-4" />
                         </Button>
+                        <Button size="sm" variant="ghost" onClick={() => openEditDialog(opp)}>
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        {opp.status === 'draft' && (
+                          <Button size="sm" variant="ghost" onClick={() => openDeleteDialog(opp)}>
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
                 ))}
-                {(!opportunities || opportunities.length === 0) && (
+                {(!filteredOpportunities || filteredOpportunities.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                       No opportunities yet. Create your first one!
@@ -317,6 +430,180 @@ export function OpportunitiesPage() {
             </Table>
           </CardContent>
         </Card>
+
+        {/* Create Dialog */}
+        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Create New Opportunity</DialogTitle>
+            </DialogHeader>
+            <OpportunityForm 
+              formData={formData} 
+              setFormData={setFormData} 
+              faculties={faculties}
+              onSubmit={handleCreate}
+              isSubmitting={createOpportunity.isPending}
+              submitLabel="Create"
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Dialog */}
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Opportunity</DialogTitle>
+            </DialogHeader>
+            <OpportunityForm 
+              formData={formData} 
+              setFormData={setFormData} 
+              faculties={faculties}
+              onSubmit={handleUpdate}
+              isSubmitting={updateOpportunity.isPending}
+              submitLabel="Save Changes"
+            />
+          </DialogContent>
+        </Dialog>
+
+        {/* Details Dialog */}
+        <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Opportunity Details</DialogTitle>
+            </DialogHeader>
+            {selectedOpportunity && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Badge variant={getStatusColor(selectedOpportunity.status)}>
+                    {selectedOpportunity.status}
+                  </Badge>
+                  <span className="text-sm text-muted-foreground">
+                    Created: {format(new Date(selectedOpportunity.created_at), 'MMM dd, yyyy')}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="text-xl font-semibold">{selectedOpportunity.title}</h3>
+                  <p className="text-muted-foreground mt-2">{selectedOpportunity.description}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Date</p>
+                      <p className="font-medium">{format(new Date(selectedOpportunity.date), 'EEEE, MMMM dd, yyyy')}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Time</p>
+                      <p className="font-medium">{selectedOpportunity.start_time} - {selectedOpportunity.end_time}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Location</p>
+                      <p className="font-medium">{selectedOpportunity.location}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-muted-foreground" />
+                    <div>
+                      <p className="text-sm text-muted-foreground">Volunteers</p>
+                      <p className="font-medium">
+                        {selectedOpportunity.registrations?.[0]?.count || 0} / {selectedOpportunity.required_volunteers}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                {selectedOpportunity.faculty && (
+                  <Badge variant="outline">{selectedOpportunity.faculty.name} only</Badge>
+                )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Registrations Dialog */}
+        <Dialog open={registrationsDialogOpen} onOpenChange={setRegistrationsDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Registrations - {selectedOpportunity?.title}</DialogTitle>
+              <DialogDescription>
+                Manage volunteer registrations for this opportunity
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 max-h-96 overflow-y-auto">
+              {registrations?.map((reg: any) => (
+                <div key={reg.id} className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-sm font-medium text-primary">
+                        {reg.volunteer?.application?.first_name?.[0]}{reg.volunteer?.application?.family_name?.[0]}
+                      </span>
+                    </div>
+                    <div>
+                      <p className="font-medium">
+                        {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {reg.volunteer?.application?.university_id}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={reg.status === 'approved' ? 'default' : reg.status === 'rejected' ? 'destructive' : 'secondary'}>
+                      {reg.status}
+                    </Badge>
+                    {reg.status === 'pending' && (
+                      <>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => approveRegistration.mutate(reg.id)}
+                          disabled={approveRegistration.isPending}
+                        >
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleRejectRegistration(reg.id)}
+                        >
+                          <XCircle className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {(!registrations || registrations.length === 0) && (
+                <p className="text-center text-muted-foreground py-8">No registrations yet</p>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Delete Opportunity</DialogTitle>
+              <DialogDescription>
+                Are you sure you want to delete "{selectedOpportunity?.title}"? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDelete}>
+                Delete
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* QR Code Dialog */}
         <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
@@ -363,5 +650,120 @@ export function OpportunitiesPage() {
         </Dialog>
       </div>
     </DashboardLayout>
+  );
+}
+
+function OpportunityForm({ 
+  formData, 
+  setFormData, 
+  faculties, 
+  onSubmit, 
+  isSubmitting, 
+  submitLabel 
+}: {
+  formData: any;
+  setFormData: (data: any) => void;
+  faculties: any;
+  onSubmit: () => void;
+  isSubmitting: boolean;
+  submitLabel: string;
+}) {
+  return (
+    <div className="grid gap-4 py-4">
+      <div className="grid gap-2">
+        <Label htmlFor="title">Title</Label>
+        <Input
+          id="title"
+          value={formData.title}
+          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          placeholder="Blood Donation Campaign"
+        />
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea
+          id="description"
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          placeholder="Describe the opportunity..."
+          rows={3}
+        />
+      </div>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="date">Date</Label>
+          <Input
+            id="date"
+            type="date"
+            value={formData.date}
+            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="start_time">Start Time</Label>
+          <Input
+            id="start_time"
+            type="time"
+            value={formData.start_time}
+            onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="end_time">End Time</Label>
+          <Input
+            id="end_time"
+            type="time"
+            value={formData.end_time}
+            onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}
+          />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="location">Location</Label>
+          <Input
+            id="location"
+            value={formData.location}
+            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+            placeholder="Main Campus Building A"
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="required_volunteers">Required Volunteers</Label>
+          <Input
+            id="required_volunteers"
+            type="number"
+            min={1}
+            value={formData.required_volunteers}
+            onChange={(e) => setFormData({ ...formData, required_volunteers: Number(e.target.value) })}
+          />
+        </div>
+      </div>
+      <div className="grid gap-2">
+        <Label htmlFor="faculty_restriction">Faculty Restriction (Optional)</Label>
+        <Select
+          value={formData.faculty_restriction}
+          onValueChange={(value) => setFormData({ ...formData, faculty_restriction: value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Open to all faculties" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Open to all faculties</SelectItem>
+            {faculties?.map((faculty: any) => (
+              <SelectItem key={faculty.id} value={faculty.id}>
+                {faculty.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="flex justify-end gap-2 pt-4">
+        <Button onClick={onSubmit} disabled={isSubmitting}>
+          {isSubmitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+          {submitLabel}
+        </Button>
+      </div>
+    </div>
   );
 }
