@@ -17,8 +17,10 @@ import {
   Download,
   Target,
   Activity,
+  FileText,
 } from 'lucide-react';
 import { useReportsData } from '@/hooks/useReports';
+import { generateReportPDF } from '@/lib/generateReportPDF';
 import {
   BarChart,
   Bar,
@@ -52,25 +54,27 @@ export function ReportsPage() {
     );
   }
 
-  const exportReport = () => {
-    const reportData = {
-      generatedAt: new Date().toISOString(),
-      stats,
-      monthlyData,
-      facultyBreakdown,
-      topVolunteers: topVolunteers?.map((v: any) => ({
-        name: `${v.application?.first_name} ${v.application?.family_name}`,
-        hours: v.total_hours,
-        opportunities: v.opportunities_completed,
-      })),
-    };
+  const exportReportPDF = () => {
+    if (!stats) return;
     
-    const blob = new Blob([JSON.stringify(reportData, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `volunteer-report-${new Date().toISOString().split('T')[0]}.json`;
-    a.click();
+    generateReportPDF({
+      stats: {
+        totalVolunteers: stats.totalVolunteers || 0,
+        activeVolunteers: stats.activeVolunteers || 0,
+        totalHours: stats.totalHours || 0,
+        totalOpportunities: stats.totalOpportunities || 0,
+        completedOpportunities: stats.completedOpportunities || 0,
+        totalCertificates: stats.totalCertificates || 0,
+        totalAttendance: stats.totalAttendance || 0,
+      },
+      monthlyData: monthlyData || [],
+      facultyBreakdown: facultyBreakdown || [],
+      topVolunteers: topVolunteers?.map((v: any) => ({
+        name: `${v.application?.first_name || ''} ${v.application?.family_name || ''}`,
+        hours: v.total_hours || 0,
+        opportunities: v.opportunities_completed || 0,
+      })) || [],
+    });
   };
 
   // Calculate engagement rate
@@ -96,9 +100,9 @@ export function ReportsPage() {
             <h2 className="text-2xl font-display font-bold">Reports & Analytics</h2>
             <p className="text-muted-foreground">Comprehensive overview of volunteer program performance</p>
           </div>
-          <Button onClick={exportReport} variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export Report
+          <Button onClick={exportReportPDF} variant="default" className="gap-2">
+            <FileText className="h-4 w-4" />
+            Export PDF Report
           </Button>
         </div>
 
