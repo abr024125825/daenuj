@@ -19,8 +19,7 @@ export function useOpportunities() {
         .select(`
           *,
           faculty:faculties(id, name),
-          registrations:opportunity_registrations(count),
-          supervisor:profiles!opportunities_supervisor_id_fkey(user_id, first_name, last_name, email)
+          registrations:opportunity_registrations(count)
         `)
         .order('date', { ascending: true });
       
@@ -250,27 +249,6 @@ export function useOpportunityRegistrations(opportunityId?: string) {
     enabled: !!opportunityId,
   });
 
-  // Fetch attendance records for this opportunity
-  const { data: attendance } = useQuery({
-    queryKey: ['attendance', opportunityId],
-    queryFn: async () => {
-      if (!opportunityId) return [];
-      const { data, error } = await supabase
-        .from('attendance')
-        .select('volunteer_id, check_out_time')
-        .eq('opportunity_id', opportunityId);
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!opportunityId,
-  });
-
-  const checkedInVolunteerIds = new Set(attendance?.map(a => a.volunteer_id) || []);
-  const checkedOutVolunteerIds = new Set(
-    attendance?.filter(a => a.check_out_time !== null).map(a => a.volunteer_id) || []
-  );
-
   const registerForOpportunity = useMutation({
     mutationFn: async ({ opportunityId, volunteerId }: { opportunityId: string; volunteerId: string }) => {
       // Check if opportunity is full
@@ -437,66 +415,6 @@ export function useOpportunityRegistrations(opportunityId?: string) {
     },
   });
 
-  const bulkCheckIn = useMutation({
-    mutationFn: async (opportunityId: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      // Get all approved registrations that haven't checked in
-      const approvedRegs = registrations?.filter((r: any) => 
-        r.status === 'approved' && !checkedInVolunteerIds.has(r.volunteer?.id)
-      ) || [];
-
-      if (approvedRegs.length === 0) throw new Error('No volunteers to check in');
-
-      // Insert attendance for all
-      const attendanceRecords = approvedRegs.map((reg: any) => ({
-        opportunity_id: opportunityId,
-        volunteer_id: reg.volunteer?.id,
-        registration_id: reg.id,
-        check_in_method: 'bulk_manual',
-        recorded_by: user?.id,
-      }));
-
-      const { data, error } = await supabase
-        .from('attendance')
-        .insert(attendanceRecords)
-        .select();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['opportunity-registrations'] });
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      toast({ title: 'Success', description: `${data.length} volunteers checked in` });
-    },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
-
-  const checkOut = useMutation({
-    mutationFn: async ({ opportunityId, volunteerId }: { opportunityId: string; volunteerId: string }) => {
-      const { data, error } = await supabase
-        .from('attendance')
-        .update({ check_out_time: new Date().toISOString() })
-        .eq('opportunity_id', opportunityId)
-        .eq('volunteer_id', volunteerId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['attendance'] });
-      toast({ title: 'Success', description: 'Volunteer checked out' });
-    },
-    onError: (error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    },
-  });
-
   return {
     registrations,
     isLoading,
@@ -504,10 +422,6 @@ export function useOpportunityRegistrations(opportunityId?: string) {
     approveRegistration,
     rejectRegistration,
     manualCheckIn,
-    bulkCheckIn,
-    checkOut,
-    checkedInVolunteerIds,
-    checkedOutVolunteerIds,
   };
 }
 

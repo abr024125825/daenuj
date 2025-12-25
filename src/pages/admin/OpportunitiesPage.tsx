@@ -32,10 +32,9 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Calendar, MapPin, Users, QrCode, Eye, Send, Loader2, 
-  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, RotateCcw, UsersRound, LogOut
+  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, RotateCcw
 } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
-import { useSupervisors } from '@/hooks/useSupervisors';
 import { useFaculties } from '@/hooks/useFaculties';
 import { format } from 'date-fns';
 import { QRCodeSVG } from 'qrcode.react';
@@ -57,7 +56,6 @@ export function OpportunitiesPage() {
     reopenQRCode
   } = useOpportunities();
   const { data: faculties } = useFaculties();
-  const { supervisors } = useSupervisors();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -81,11 +79,10 @@ export function OpportunitiesPage() {
     location: '',
     required_volunteers: 1,
     faculty_restriction: '',
-    supervisor_id: '',
   });
 
   // Get registrations for selected opportunity
-  const { registrations, approveRegistration, rejectRegistration, manualCheckIn, bulkCheckIn, checkOut, checkedInVolunteerIds, checkedOutVolunteerIds } = useOpportunityRegistrations(selectedOpportunity?.id);
+  const { registrations, approveRegistration, rejectRegistration, manualCheckIn } = useOpportunityRegistrations(selectedOpportunity?.id);
 
   const handleCreate = async () => {
     if (!formData.title || !formData.description || !formData.date || !formData.start_time || !formData.end_time || !formData.location) {
@@ -96,7 +93,6 @@ export function OpportunitiesPage() {
       ...formData,
       required_volunteers: Number(formData.required_volunteers),
       faculty_restriction: formData.faculty_restriction || null,
-      supervisor_id: formData.supervisor_id || null,
     });
     setCreateDialogOpen(false);
     resetForm();
@@ -109,7 +105,6 @@ export function OpportunitiesPage() {
       ...formData,
       required_volunteers: Number(formData.required_volunteers),
       faculty_restriction: formData.faculty_restriction || null,
-      supervisor_id: formData.supervisor_id || null,
     });
     setEditDialogOpen(false);
     setSelectedOpportunity(null);
@@ -141,7 +136,6 @@ export function OpportunitiesPage() {
       location: '',
       required_volunteers: 1,
       faculty_restriction: '',
-      supervisor_id: '',
     });
   };
 
@@ -156,7 +150,6 @@ export function OpportunitiesPage() {
       location: opp.location,
       required_volunteers: opp.required_volunteers,
       faculty_restriction: opp.faculty_restriction || '',
-      supervisor_id: opp.supervisor_id || '',
     });
     setEditDialogOpen(true);
   };
@@ -429,7 +422,6 @@ export function OpportunitiesPage() {
               formData={formData} 
               setFormData={setFormData} 
               faculties={faculties}
-              supervisors={supervisors}
               onSubmit={handleCreate}
               isSubmitting={createOpportunity.isPending}
               submitLabel="Create"
@@ -447,7 +439,6 @@ export function OpportunitiesPage() {
               formData={formData} 
               setFormData={setFormData} 
               faculties={faculties}
-              supervisors={supervisors}
               onSubmit={handleUpdate}
               isSubmitting={updateOpportunity.isPending}
               submitLabel="Save Changes"
@@ -534,107 +525,43 @@ export function OpportunitiesPage() {
               {/* Approved */}
               {registrations?.filter((r: any) => r.status === 'approved').length > 0 && (
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-muted-foreground">
-                      Approved ({registrations?.filter((r: any) => r.status === 'approved').length})
-                      {' • '}
-                      <span className="text-green-600">
-                        {registrations?.filter((r: any) => r.status === 'approved' && checkedInVolunteerIds.has(r.volunteer?.id)).length} checked in
-                      </span>
-                    </p>
-                    {registrations?.filter((r: any) => r.status === 'approved' && !checkedInVolunteerIds.has(r.volunteer?.id)).length > 0 && (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => bulkCheckIn.mutate(selectedOpportunity?.id)}
-                        disabled={bulkCheckIn.isPending}
-                      >
-                        <UsersRound className="h-4 w-4 mr-2" />
-                        Check In All ({registrations?.filter((r: any) => r.status === 'approved' && !checkedInVolunteerIds.has(r.volunteer?.id)).length})
-                      </Button>
-                    )}
-                  </div>
-                  {registrations?.filter((r: any) => r.status === 'approved').map((reg: any) => {
-                    const isCheckedIn = checkedInVolunteerIds.has(reg.volunteer?.id);
-                    const isCheckedOut = checkedOutVolunteerIds.has(reg.volunteer?.id);
-                    return (
-                      <div key={reg.id} className={`flex items-center justify-between p-3 border rounded-lg ${
-                        isCheckedOut 
-                          ? 'bg-muted/50 border-muted-foreground/20' 
-                          : isCheckedIn 
-                            ? 'bg-green-500/10 border-green-500/30' 
-                            : 'bg-green-500/5 border-green-500/20'
-                      }`}>
-                        <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                            isCheckedOut 
-                              ? 'bg-muted text-muted-foreground' 
-                              : isCheckedIn 
-                                ? 'bg-green-500 text-white' 
-                                : 'bg-green-500/20'
-                          }`}>
-                            {isCheckedOut ? (
-                              <LogOut className="h-4 w-4" />
-                            ) : isCheckedIn ? (
-                              <CheckCircle className="h-4 w-4" />
-                            ) : (
-                              <span className="text-xs font-medium text-green-600">
-                                {reg.volunteer?.application?.first_name?.[0]}{reg.volunteer?.application?.family_name?.[0]}
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <p className="font-medium text-sm">
-                              {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
-                              {isCheckedOut && <span className="ml-2 text-xs text-muted-foreground font-normal">(Left Early)</span>}
-                              {isCheckedIn && !isCheckedOut && <span className="ml-2 text-xs text-green-600 font-normal">(Checked In)</span>}
-                            </p>
-                            <p className="text-xs text-muted-foreground">{reg.volunteer?.application?.university_id}</p>
-                          </div>
+                  <p className="text-sm font-medium text-muted-foreground">Approved ({registrations?.filter((r: any) => r.status === 'approved').length})</p>
+                  {registrations?.filter((r: any) => r.status === 'approved').map((reg: any) => (
+                    <div key={reg.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-500/5 border-green-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <span className="text-xs font-medium text-green-600">
+                            {reg.volunteer?.application?.first_name?.[0]}{reg.volunteer?.application?.family_name?.[0]}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Badge 
-                            variant={isCheckedOut ? "outline" : isCheckedIn ? "default" : "secondary"} 
-                            className={isCheckedOut ? "text-muted-foreground" : isCheckedIn ? "bg-green-500" : ""}
-                          >
-                            {isCheckedOut ? 'checked out' : isCheckedIn ? 'checked in' : 'approved'}
-                          </Badge>
-                          {!isCheckedIn && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => manualCheckIn.mutate({
-                                opportunityId: selectedOpportunity?.id,
-                                volunteerId: reg.volunteer?.id,
-                                registrationId: reg.id,
-                              })}
-                              disabled={manualCheckIn.isPending}
-                              title="Manual Check-in"
-                            >
-                              <UserCheck className="h-4 w-4 text-primary" />
-                            </Button>
-                          )}
-                          {isCheckedIn && !isCheckedOut && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => checkOut.mutate({
-                                opportunityId: selectedOpportunity?.id,
-                                volunteerId: reg.volunteer?.id,
-                              })}
-                              disabled={checkOut.isPending}
-                              title="Check Out (Left Early)"
-                            >
-                              <LogOut className="h-4 w-4 text-orange-500" />
-                            </Button>
-                          )}
-                          <Button size="sm" variant="ghost" onClick={() => handleRejectRegistration(reg.id)}>
-                            <XCircle className="h-4 w-4 text-destructive" />
-                          </Button>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{reg.volunteer?.application?.university_id}</p>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className="flex items-center gap-2">
+                        <Badge variant="default">approved</Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => manualCheckIn.mutate({
+                            opportunityId: selectedOpportunity?.id,
+                            volunteerId: reg.volunteer?.id,
+                            registrationId: reg.id,
+                          })}
+                          disabled={manualCheckIn.isPending}
+                          title="Manual Check-in"
+                        >
+                          <UserCheck className="h-4 w-4 text-primary" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleRejectRegistration(reg.id)}>
+                          <XCircle className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
 
@@ -874,8 +801,7 @@ export function OpportunitiesPage() {
 function OpportunityForm({ 
   formData, 
   setFormData, 
-  faculties,
-  supervisors,
+  faculties, 
   onSubmit, 
   isSubmitting, 
   submitLabel 
@@ -883,7 +809,6 @@ function OpportunityForm({
   formData: any;
   setFormData: (data: any) => void;
   faculties: any;
-  supervisors?: any[];
   onSubmit: () => void;
   isSubmitting: boolean;
   submitLabel: string;
@@ -959,45 +884,24 @@ function OpportunityForm({
           />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="grid gap-2">
-          <Label htmlFor="faculty_restriction">Faculty Restriction (Optional)</Label>
-          <Select
-            value={formData.faculty_restriction || "all"}
-            onValueChange={(value) => setFormData({ ...formData, faculty_restriction: value === "all" ? "" : value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Open to all faculties" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Open to all faculties</SelectItem>
-              {faculties?.map((faculty: any) => (
-                <SelectItem key={faculty.id} value={faculty.id}>
-                  {faculty.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="supervisor">Assign Supervisor (Optional)</Label>
-          <Select
-            value={formData.supervisor_id || "none"}
-            onValueChange={(value) => setFormData({ ...formData, supervisor_id: value === "none" ? "" : value })}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="No supervisor assigned" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No supervisor assigned</SelectItem>
-              {supervisors?.map((supervisor: any) => (
-                <SelectItem key={supervisor.user_id} value={supervisor.user_id}>
-                  {supervisor.first_name} {supervisor.last_name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+      <div className="grid gap-2">
+        <Label htmlFor="faculty_restriction">Faculty Restriction (Optional)</Label>
+        <Select
+          value={formData.faculty_restriction || "all"}
+          onValueChange={(value) => setFormData({ ...formData, faculty_restriction: value === "all" ? "" : value })}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Open to all faculties" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Open to all faculties</SelectItem>
+            {faculties?.map((faculty: any) => (
+              <SelectItem key={faculty.id} value={faculty.id}>
+                {faculty.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
       <div className="flex justify-end gap-2 pt-4">
         <Button onClick={onSubmit} disabled={isSubmitting}>
