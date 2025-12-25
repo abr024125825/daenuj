@@ -32,7 +32,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Calendar, MapPin, Users, QrCode, Eye, Send, Loader2, 
-  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, Copy
+  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, Copy, RotateCcw
 } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
 import { useFaculties } from '@/hooks/useFaculties';
@@ -52,7 +52,8 @@ export function OpportunitiesPage() {
     publishOpportunity, 
     completeOpportunity,
     generateQRCode, 
-    closeQRCode 
+    closeQRCode,
+    reopenQRCode
   } = useOpportunities();
   const { data: faculties } = useFaculties();
   const { toast } = useToast();
@@ -64,6 +65,8 @@ export function OpportunitiesPage() {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [registrationsDialogOpen, setRegistrationsDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [reopenDialogOpen, setReopenDialogOpen] = useState(false);
+  const [reopenReason, setReopenReason] = useState('');
   const [selectedOpportunity, setSelectedOpportunity] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   
@@ -579,6 +582,52 @@ export function OpportunitiesPage() {
           </DialogContent>
         </Dialog>
 
+        {/* Reopen QR Code Dialog */}
+        <Dialog open={reopenDialogOpen} onOpenChange={setReopenDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reopen Check-in</DialogTitle>
+              <DialogDescription>
+                Please provide a reason for reopening the check-in for "{selectedOpportunity?.title}"
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="reopen-reason">Reason</Label>
+                <Textarea
+                  id="reopen-reason"
+                  value={reopenReason}
+                  onChange={(e) => setReopenReason(e.target.value)}
+                  placeholder="e.g., Extended event hours, late arrivals, etc."
+                  rows={3}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => {
+                  setReopenDialogOpen(false);
+                  setReopenReason('');
+                }}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={() => {
+                    if (selectedOpportunity && reopenReason.trim()) {
+                      reopenQRCode.mutate({ id: selectedOpportunity.id, reason: reopenReason.trim() });
+                      setReopenDialogOpen(false);
+                      setReopenReason('');
+                      setQrDialogOpen(false);
+                    }
+                  }}
+                  disabled={!reopenReason.trim() || reopenQRCode.isPending}
+                >
+                  {reopenQRCode.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Reopen
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* QR Code Dialog */}
         <Dialog open={qrDialogOpen} onOpenChange={setQrDialogOpen}>
           <DialogContent>
@@ -634,7 +683,7 @@ export function OpportunitiesPage() {
                     <Badge variant="secondary">Closed</Badge>
                   )}
                 </div>
-                {selectedOpportunity.qr_code_active && (
+                {selectedOpportunity.qr_code_active ? (
                   <Button
                     variant="destructive"
                     onClick={() => {
@@ -644,6 +693,22 @@ export function OpportunitiesPage() {
                   >
                     Close Check-in
                   </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setReopenDialogOpen(true);
+                    }}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Reopen Check-in
+                  </Button>
+                )}
+                {selectedOpportunity.qr_reopen_reason && (
+                  <div className="w-full p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
+                    <p className="text-xs text-muted-foreground mb-1">Last Reopen Reason:</p>
+                    <p className="text-sm">{selectedOpportunity.qr_reopen_reason}</p>
+                  </div>
                 )}
               </div>
             )}
