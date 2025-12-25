@@ -375,12 +375,53 @@ export function useOpportunityRegistrations(opportunityId?: string) {
     },
   });
 
+  const manualCheckIn = useMutation({
+    mutationFn: async ({ opportunityId, volunteerId, registrationId }: { opportunityId: string; volunteerId: string; registrationId: string }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Check if already checked in
+      const { data: existingAttendance } = await supabase
+        .from('attendance')
+        .select('id')
+        .eq('opportunity_id', opportunityId)
+        .eq('volunteer_id', volunteerId)
+        .single();
+
+      if (existingAttendance) throw new Error('Already checked in');
+
+      // Record attendance
+      const { data, error } = await supabase
+        .from('attendance')
+        .insert({
+          opportunity_id: opportunityId,
+          volunteer_id: volunteerId,
+          registration_id: registrationId,
+          check_in_method: 'manual',
+          recorded_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opportunity-registrations'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      toast({ title: 'Success', description: 'Volunteer checked in manually' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     registrations,
     isLoading,
     registerForOpportunity,
     approveRegistration,
     rejectRegistration,
+    manualCheckIn,
   };
 }
 
