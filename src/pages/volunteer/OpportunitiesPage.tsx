@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
   DialogContent,
@@ -11,12 +12,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Calendar, MapPin, Users, Clock, Search, Loader2, QrCode, CheckCircle } from 'lucide-react';
+import { Calendar, MapPin, Users, Clock, Search, Loader2, QrCode, CheckCircle, Keyboard } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations, useMyRegistrations, useAttendance } from '@/hooks/useOpportunities';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
+import { QRCodeScanner } from '@/components/QRCodeScanner';
 
 export function VolunteerOpportunitiesPage() {
   const { opportunities, isLoading } = useOpportunities();
@@ -27,6 +29,7 @@ export function VolunteerOpportunitiesPage() {
   const [selectedOpportunity, setSelectedOpportunity] = useState<any>(null);
   const [checkInDialogOpen, setCheckInDialogOpen] = useState(false);
   const [qrToken, setQrToken] = useState('');
+  const [checkInMethod, setCheckInMethod] = useState<'scan' | 'manual'>('scan');
 
   // Get volunteer record
   const { data: volunteer } = useQuery({
@@ -71,10 +74,17 @@ export function VolunteerOpportunitiesPage() {
     });
   };
 
-  const handleCheckIn = async () => {
-    await checkIn.mutateAsync({ token: qrToken });
+  const handleCheckIn = async (token?: string) => {
+    const tokenToUse = token || qrToken;
+    if (!tokenToUse) return;
+    
+    await checkIn.mutateAsync({ token: tokenToUse });
     setCheckInDialogOpen(false);
     setQrToken('');
+  };
+
+  const handleQRScan = (result: string) => {
+    handleCheckIn(result);
   };
 
   if (isLoading) {
@@ -105,7 +115,7 @@ export function VolunteerOpportunitiesPage() {
                 className="pl-9"
               />
             </div>
-            <Button variant="outline" onClick={() => setCheckInDialogOpen(true)}>
+            <Button onClick={() => setCheckInDialogOpen(true)}>
               <QrCode className="h-4 w-4 mr-2" />
               Check In
             </Button>
@@ -204,28 +214,43 @@ export function VolunteerOpportunitiesPage() {
 
         {/* Check-in Dialog */}
         <Dialog open={checkInDialogOpen} onOpenChange={setCheckInDialogOpen}>
-          <DialogContent>
+          <DialogContent className="sm:max-w-md">
             <DialogHeader>
-              <DialogTitle>Check In with QR Code</DialogTitle>
+              <DialogTitle>Check In to Opportunity</DialogTitle>
               <DialogDescription>
-                Enter the QR code token from the opportunity administrator to check in
+                Scan the QR code or enter the token manually to check in
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <Input
-                placeholder="Enter QR code token..."
-                value={qrToken}
-                onChange={(e) => setQrToken(e.target.value)}
-              />
-              <Button
-                className="w-full"
-                onClick={handleCheckIn}
-                disabled={!qrToken || checkIn.isPending}
-              >
-                {checkIn.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Check In
-              </Button>
-            </div>
+            <Tabs value={checkInMethod} onValueChange={(v) => setCheckInMethod(v as 'scan' | 'manual')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="scan" className="gap-2">
+                  <QrCode className="h-4 w-4" />
+                  Scan QR
+                </TabsTrigger>
+                <TabsTrigger value="manual" className="gap-2">
+                  <Keyboard className="h-4 w-4" />
+                  Manual
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="scan" className="mt-4">
+                <QRCodeScanner onScan={handleQRScan} />
+              </TabsContent>
+              <TabsContent value="manual" className="mt-4 space-y-4">
+                <Input
+                  placeholder="Enter QR code token..."
+                  value={qrToken}
+                  onChange={(e) => setQrToken(e.target.value)}
+                />
+                <Button
+                  className="w-full"
+                  onClick={() => handleCheckIn()}
+                  disabled={!qrToken || checkIn.isPending}
+                >
+                  {checkIn.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Check In
+                </Button>
+              </TabsContent>
+            </Tabs>
           </DialogContent>
         </Dialog>
       </div>

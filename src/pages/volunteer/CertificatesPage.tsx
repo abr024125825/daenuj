@@ -5,11 +5,47 @@ import { Badge } from '@/components/ui/badge';
 import { Award, Download, Calendar, MapPin, Clock, Loader2 } from 'lucide-react';
 import { useMyCertificates } from '@/hooks/useCertificates';
 import { format } from 'date-fns';
+import { generateCertificatePDF } from '@/lib/generateCertificatePDF';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 
 export function VolunteerCertificatesPage() {
   const { certificates, isLoading } = useMyCertificates();
+  const { user } = useAuth();
+
+  // Get volunteer application data for name
+  const { data: volunteerData } = useQuery({
+    queryKey: ['my-volunteer-application', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('volunteer_applications')
+        .select('first_name, father_name, family_name')
+        .eq('user_id', user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const totalHours = certificates?.reduce((sum: number, cert: any) => sum + Number(cert.hours), 0) || 0;
+
+  const handleDownload = (cert: any) => {
+    const volunteerName = volunteerData 
+      ? `${volunteerData.first_name} ${volunteerData.father_name} ${volunteerData.family_name}`
+      : 'Volunteer';
+
+    generateCertificatePDF({
+      volunteerName,
+      opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
+      hours: cert.hours,
+      certificateNumber: cert.certificate_number,
+      issuedAt: format(new Date(cert.issued_at), 'MMMM dd, yyyy'),
+      opportunityDate: format(new Date(cert.opportunity?.date), 'MMMM dd, yyyy'),
+      location: cert.opportunity?.location || '',
+    });
+  };
 
   if (isLoading) {
     return (
@@ -90,7 +126,11 @@ export function VolunteerCertificatesPage() {
                     Issued on {format(new Date(cert.issued_at), 'MMM dd, yyyy')}
                   </div>
                 </div>
-                <Button variant="outline" className="w-full gap-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full gap-2"
+                  onClick={() => handleDownload(cert)}
+                >
                   <Download className="h-4 w-4" />
                   Download Certificate
                 </Button>
