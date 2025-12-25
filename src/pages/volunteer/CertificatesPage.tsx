@@ -41,8 +41,8 @@ export function VolunteerCertificatesPage() {
       opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
       hours: cert.hours,
       certificateNumber: cert.certificate_number,
-      issuedAt: format(new Date(cert.issued_at), 'MMMM dd, yyyy'),
-      opportunityDate: format(new Date(cert.opportunity?.date), 'MMMM dd, yyyy'),
+      issuedAt: cert.issued_at ? format(new Date(cert.issued_at), 'MMMM dd, yyyy') : 'N/A',
+      opportunityDate: cert.opportunity?.date ? format(new Date(cert.opportunity.date), 'MMMM dd, yyyy') : 'N/A',
       location: cert.opportunity?.location || '',
     });
   };
@@ -83,7 +83,9 @@ export function VolunteerCertificatesPage() {
               </div>
               <div>
                 <p className="text-3xl font-bold">
-                  {certificates?.length ? format(new Date(certificates[0].issued_at), 'MMM yyyy') : '-'}
+                  {certificates?.length && certificates[0]?.issued_at 
+                    ? format(new Date(certificates[0].issued_at), 'MMM yyyy') 
+                    : '-'}
                 </p>
                 <p className="text-sm text-primary-foreground/70">Latest</p>
               </div>
@@ -115,15 +117,19 @@ export function VolunteerCertificatesPage() {
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
-                    {format(new Date(cert.opportunity?.date), 'EEEE, MMMM dd, yyyy')}
+                    {cert.opportunity?.date 
+                      ? format(new Date(cert.opportunity.date), 'EEEE, MMMM dd, yyyy')
+                      : 'Date not available'}
                   </div>
                   <div className="flex items-center gap-2">
                     <MapPin className="h-4 w-4" />
-                    {cert.opportunity?.location}
+                    {cert.opportunity?.location || 'Location not available'}
                   </div>
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4" />
-                    Issued on {format(new Date(cert.issued_at), 'MMM dd, yyyy')}
+                    Issued on {cert.issued_at 
+                      ? format(new Date(cert.issued_at), 'MMM dd, yyyy')
+                      : 'N/A'}
                   </div>
                 </div>
                 <Button 
