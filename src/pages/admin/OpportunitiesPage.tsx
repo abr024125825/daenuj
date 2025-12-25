@@ -48,6 +48,7 @@ export function OpportunitiesPage() {
     isLoading, 
     createOpportunity, 
     updateOpportunity,
+    deleteOpportunity,
     publishOpportunity, 
     generateQRCode, 
     closeQRCode 
@@ -80,6 +81,10 @@ export function OpportunitiesPage() {
   const { registrations, approveRegistration } = useOpportunityRegistrations(selectedOpportunity?.id);
 
   const handleCreate = async () => {
+    if (!formData.title || !formData.description || !formData.date || !formData.start_time || !formData.end_time || !formData.location) {
+      toast({ title: 'Error', description: 'Please fill in all required fields', variant: 'destructive' });
+      return;
+    }
     await createOpportunity.mutateAsync({
       ...formData,
       required_volunteers: Number(formData.required_volunteers),
@@ -104,21 +109,9 @@ export function OpportunitiesPage() {
 
   const handleDelete = async () => {
     if (!selectedOpportunity) return;
-    try {
-      const { error } = await supabase
-        .from('opportunities')
-        .delete()
-        .eq('id', selectedOpportunity.id);
-      
-      if (error) throw error;
-      
-      toast({ title: 'Success', description: 'Opportunity deleted successfully' });
-      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
-      setDeleteDialogOpen(false);
-      setSelectedOpportunity(null);
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    }
+    await deleteOpportunity.mutateAsync(selectedOpportunity.id);
+    setDeleteDialogOpen(false);
+    setSelectedOpportunity(null);
   };
 
   const handleCompleteOpportunity = async (id: string) => {
