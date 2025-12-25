@@ -9,7 +9,11 @@ import Dashboard from "./pages/Dashboard";
 import { ApplicationsPage } from "./pages/admin/ApplicationsPage";
 import { OpportunitiesRouter } from "./components/routing/OpportunitiesRouter";
 import { CertificatesRouter } from "./components/routing/CertificatesRouter";
+import { EvaluationsRouter } from "./components/routing/EvaluationsRouter";
+import { TrainingRouter } from "./components/routing/TrainingRouter";
 import { SettingsPage } from "./pages/admin/SettingsPage";
+import { VolunteersPage } from "./pages/admin/VolunteersPage";
+import { ReportsPage } from "./pages/admin/ReportsPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import NotFound from "./pages/NotFound";
 
@@ -28,6 +32,10 @@ const App = () => (
             <Route path="/dashboard/applications" element={<ApplicationsPage />} />
             <Route path="/dashboard/opportunities" element={<OpportunitiesRouter />} />
             <Route path="/dashboard/certificates" element={<CertificatesRouter />} />
+            <Route path="/dashboard/evaluations" element={<EvaluationsRouter />} />
+            <Route path="/dashboard/training" element={<TrainingRouter />} />
+            <Route path="/dashboard/volunteers" element={<VolunteersPage />} />
+            <Route path="/dashboard/reports" element={<ReportsPage />} />
             <Route path="/dashboard/settings" element={<SettingsPage />} />
             <Route path="/dashboard/notifications" element={<NotificationsPage />} />
             <Route path="*" element={<NotFound />} />
