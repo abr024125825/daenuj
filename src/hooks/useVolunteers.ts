@@ -1,6 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-
+import { useToast } from '@/hooks/use-toast';
 export function useVolunteers() {
   const { data: volunteers, isLoading } = useQuery({
     queryKey: ['volunteers-list'],
@@ -105,4 +105,27 @@ export function useVolunteerDetails(volunteerId?: string) {
   });
 
   return { volunteer, attendanceHistory, certificates, isLoading };
+}
+
+export function useToggleVolunteerActive() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ volunteerId, isActive }: { volunteerId: string; isActive: boolean }) => {
+      const { error } = await supabase
+        .from('volunteers')
+        .update({ is_active: isActive })
+        .eq('id', volunteerId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['volunteers-list'] });
+      toast({ title: 'Success', description: 'Volunteer status updated' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
 }
