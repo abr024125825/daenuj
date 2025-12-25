@@ -63,7 +63,7 @@ const defaultTemplateHtml = `
 `;
 
 export function CertificatesPage() {
-  const { certificates, isLoading, issueCertificate } = useCertificates();
+  const { certificates, isLoading, issueCertificate, deleteCertificate } = useCertificates();
   const { templates, createTemplate, updateTemplate, deleteTemplate } = useCertificateTemplates();
   const { opportunities } = useOpportunities();
   const [searchQuery, setSearchQuery] = useState('');
@@ -71,6 +71,8 @@ export function CertificatesPage() {
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
   const [editTemplateDialogOpen, setEditTemplateDialogOpen] = useState(false);
   const [deleteTemplateDialogOpen, setDeleteTemplateDialogOpen] = useState(false);
+  const [deleteCertDialogOpen, setDeleteCertDialogOpen] = useState(false);
+  const [certToDelete, setCertToDelete] = useState<any>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState('');
   const [selectedVolunteer, setSelectedVolunteer] = useState('');
   const [hours, setHours] = useState('');
@@ -147,6 +149,17 @@ export function CertificatesPage() {
     await deleteTemplate.mutateAsync(templateToDelete.id);
     setDeleteTemplateDialogOpen(false);
     setTemplateToDelete(null);
+  };
+
+  const handleDeleteCertificate = async () => {
+    if (!certToDelete) return;
+    await deleteCertificate.mutateAsync({
+      id: certToDelete.id,
+      volunteerId: certToDelete.volunteer?.id,
+      hours: certToDelete.hours,
+    });
+    setDeleteCertDialogOpen(false);
+    setCertToDelete(null);
   };
 
   const openEditDialog = (template: any) => {
@@ -255,27 +268,38 @@ export function CertificatesPage() {
                           {cert.issued_at ? format(new Date(cert.issued_at), 'MMM dd, yyyy') : 'N/A'}
                         </TableCell>
                         <TableCell>
-                          <Button 
-                            size="sm" 
-                            variant="outline"
-                            onClick={async () => {
-                              const volunteerName = cert.volunteer?.application 
-                                ? `${cert.volunteer.application.first_name} ${cert.volunteer.application.father_name || ''} ${cert.volunteer.application.family_name}`
-                                : 'Volunteer';
-                              await generateCertificatePDF({
-                                volunteerName,
-                                opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
-                                hours: cert.hours,
-                                certificateNumber: cert.certificate_number,
-                                issuedAt: cert.issued_at ? format(new Date(cert.issued_at), 'MMMM dd, yyyy') : 'N/A',
-                                opportunityDate: cert.opportunity?.date ? format(new Date(cert.opportunity.date), 'MMMM dd, yyyy') : 'N/A',
-                                location: cert.opportunity?.location || '',
-                              });
-                            }}
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            Download
-                          </Button>
+                          <div className="flex items-center gap-1">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={async () => {
+                                const volunteerName = cert.volunteer?.application 
+                                  ? `${cert.volunteer.application.first_name} ${cert.volunteer.application.father_name || ''} ${cert.volunteer.application.family_name}`
+                                  : 'Volunteer';
+                                await generateCertificatePDF({
+                                  volunteerName,
+                                  opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
+                                  hours: cert.hours,
+                                  certificateNumber: cert.certificate_number,
+                                  issuedAt: cert.issued_at ? format(new Date(cert.issued_at), 'MMMM dd, yyyy') : 'N/A',
+                                  opportunityDate: cert.opportunity?.date ? format(new Date(cert.opportunity.date), 'MMMM dd, yyyy') : 'N/A',
+                                  location: cert.opportunity?.location || '',
+                                });
+                              }}
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => {
+                                setCertToDelete(cert);
+                                setDeleteCertDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -539,6 +563,28 @@ export function CertificatesPage() {
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
                 {deleteTemplate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Delete Certificate Dialog */}
+        <AlertDialog open={deleteCertDialogOpen} onOpenChange={setDeleteCertDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Certificate</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete certificate "{certToDelete?.certificate_number}"? 
+                This will also deduct {certToDelete?.hours} hours from the volunteer's total.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteCertificate}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteCertificate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

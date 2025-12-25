@@ -32,7 +32,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Calendar, MapPin, Users, QrCode, Eye, Send, Loader2, 
-  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, Copy, RotateCcw
+  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, RotateCcw
 } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
 import { useFaculties } from '@/hooks/useFaculties';
@@ -522,49 +522,128 @@ export function OpportunitiesPage() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 max-h-96 overflow-y-auto">
-              {registrations?.map((reg: any) => (
-                <div key={reg.id} className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                      <span className="text-sm font-medium text-primary">
-                        {reg.volunteer?.application?.first_name?.[0]}{reg.volunteer?.application?.family_name?.[0]}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-medium">
-                        {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        {reg.volunteer?.application?.university_id}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant={reg.status === 'approved' ? 'default' : reg.status === 'rejected' ? 'destructive' : 'secondary'}>
-                      {reg.status}
-                    </Badge>
-                    {reg.status === 'pending' && (
-                      <>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => approveRegistration.mutate(reg.id)}
-                          disabled={approveRegistration.isPending}
-                        >
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleRejectRegistration(reg.id)}
-                        >
+              {/* Approved */}
+              {registrations?.filter((r: any) => r.status === 'approved').length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Approved ({registrations?.filter((r: any) => r.status === 'approved').length})</p>
+                  {registrations?.filter((r: any) => r.status === 'approved').map((reg: any) => (
+                    <div key={reg.id} className="flex items-center justify-between p-3 border rounded-lg bg-green-500/5 border-green-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center">
+                          <span className="text-xs font-medium text-green-600">
+                            {reg.volunteer?.application?.first_name?.[0]}{reg.volunteer?.application?.family_name?.[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{reg.volunteer?.application?.university_id}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="default">approved</Badge>
+                        <Button size="sm" variant="ghost" onClick={() => handleRejectRegistration(reg.id)}>
                           <XCircle className="h-4 w-4 text-destructive" />
                         </Button>
-                      </>
-                    )}
-                  </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+
+              {/* Pending */}
+              {registrations?.filter((r: any) => r.status === 'pending').length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Pending ({registrations?.filter((r: any) => r.status === 'pending').length})</p>
+                  {registrations?.filter((r: any) => r.status === 'pending').map((reg: any) => (
+                    <div key={reg.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                          <span className="text-xs font-medium text-primary">
+                            {reg.volunteer?.application?.first_name?.[0]}{reg.volunteer?.application?.family_name?.[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{reg.volunteer?.application?.university_id}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">pending</Badge>
+                        <Button size="sm" variant="outline" onClick={() => approveRegistration.mutate(reg.id)} disabled={approveRegistration.isPending}>
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => handleRejectRegistration(reg.id)}>
+                          <XCircle className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Waitlisted */}
+              {registrations?.filter((r: any) => r.status === 'waitlisted').length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    Waiting List ({registrations?.filter((r: any) => r.status === 'waitlisted').length})
+                  </p>
+                  {registrations?.filter((r: any) => r.status === 'waitlisted').map((reg: any, index: number) => (
+                    <div key={reg.id} className="flex items-center justify-between p-3 border rounded-lg bg-yellow-500/5 border-yellow-500/20">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                          <span className="text-xs font-bold text-yellow-600">#{index + 1}</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{reg.volunteer?.application?.university_id}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-yellow-600 border-yellow-500">waitlisted</Badge>
+                        <Button size="sm" variant="outline" onClick={() => approveRegistration.mutate(reg.id)} disabled={approveRegistration.isPending}>
+                          <CheckCircle className="h-4 w-4 text-green-500" />
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => handleRejectRegistration(reg.id)}>
+                          <XCircle className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Rejected */}
+              {registrations?.filter((r: any) => r.status === 'rejected').length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">Rejected ({registrations?.filter((r: any) => r.status === 'rejected').length})</p>
+                  {registrations?.filter((r: any) => r.status === 'rejected').map((reg: any) => (
+                    <div key={reg.id} className="flex items-center justify-between p-3 border rounded-lg opacity-60">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {reg.volunteer?.application?.first_name?.[0]}{reg.volunteer?.application?.family_name?.[0]}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">{reg.volunteer?.application?.university_id}</p>
+                        </div>
+                      </div>
+                      <Badge variant="destructive">rejected</Badge>
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {(!registrations || registrations.length === 0) && (
                 <p className="text-center text-muted-foreground py-8">No registrations yet</p>
               )}
@@ -656,32 +735,9 @@ export function OpportunitiesPage() {
                     level="H"
                   />
                 </div>
-                
-                {/* Token Display with Copy Button */}
-                <div className="w-full p-3 bg-muted rounded-lg">
-                  <p className="text-xs text-muted-foreground mb-1">Manual Token:</p>
-                  <div className="flex items-center gap-2">
-                    <code className="flex-1 text-sm font-mono bg-background p-2 rounded border overflow-x-auto">
-                      {selectedOpportunity.qr_code_token}
-                    </code>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => {
-                        navigator.clipboard.writeText(selectedOpportunity.qr_code_token);
-                        toast({
-                          title: 'Copied!',
-                          description: 'Token copied to clipboard',
-                        });
-                      }}
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
 
                 <p className="text-center text-sm text-muted-foreground">
-                  Volunteers can scan this QR code or enter the token manually
+                  Volunteers can scan this QR code to check in
                 </p>
                 <div className="flex items-center gap-2">
                   {selectedOpportunity.qr_code_active ? (
