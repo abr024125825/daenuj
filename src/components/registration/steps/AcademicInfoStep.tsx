@@ -2,20 +2,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { RegistrationData } from '../RegistrationWizard';
-import { FACULTIES, ACADEMIC_YEARS } from '@/types';
+import { Faculty, Major } from '@/hooks/useFaculties';
 import { GraduationCap } from 'lucide-react';
-import { useMemo } from 'react';
+
+const ACADEMIC_YEARS = [
+  'First Year',
+  'Second Year',
+  'Third Year',
+  'Fourth Year',
+  'Fifth Year',
+  'Graduate Student',
+];
 
 interface AcademicInfoStepProps {
   data: RegistrationData;
   onChange: (data: Partial<RegistrationData>) => void;
+  faculties: Faculty[];
+  majors: Major[];
 }
 
-export function AcademicInfoStep({ data, onChange }: AcademicInfoStepProps) {
-  const selectedFaculty = useMemo(() => {
-    return FACULTIES.find(f => f.name === data.faculty);
-  }, [data.faculty]);
-
+export function AcademicInfoStep({ data, onChange, faculties, majors }: AcademicInfoStepProps) {
   return (
     <div className="space-y-6">
       <div className="text-center mb-8">
@@ -41,15 +47,15 @@ export function AcademicInfoStep({ data, onChange }: AcademicInfoStepProps) {
       <div className="space-y-2">
         <Label htmlFor="faculty">Faculty *</Label>
         <Select
-          value={data.faculty}
-          onValueChange={(value) => onChange({ faculty: value, major: '' })}
+          value={data.facultyId}
+          onValueChange={(value) => onChange({ facultyId: value, majorId: '' })}
         >
           <SelectTrigger className="h-11">
             <SelectValue placeholder="Select your faculty" />
           </SelectTrigger>
           <SelectContent>
-            {FACULTIES.map((faculty) => (
-              <SelectItem key={faculty.id} value={faculty.name}>
+            {faculties.map((faculty) => (
+              <SelectItem key={faculty.id} value={faculty.id}>
                 {faculty.name}
               </SelectItem>
             ))}
@@ -60,17 +66,17 @@ export function AcademicInfoStep({ data, onChange }: AcademicInfoStepProps) {
       <div className="space-y-2">
         <Label htmlFor="major">Major *</Label>
         <Select
-          value={data.major}
-          onValueChange={(value) => onChange({ major: value })}
-          disabled={!data.faculty}
+          value={data.majorId}
+          onValueChange={(value) => onChange({ majorId: value })}
+          disabled={!data.facultyId}
         >
           <SelectTrigger className="h-11">
-            <SelectValue placeholder={data.faculty ? "Select your major" : "Select faculty first"} />
+            <SelectValue placeholder={data.facultyId ? "Select your major" : "Select faculty first"} />
           </SelectTrigger>
           <SelectContent>
-            {selectedFaculty?.majors.map((major) => (
-              <SelectItem key={major} value={major}>
-                {major}
+            {majors.map((major) => (
+              <SelectItem key={major.id} value={major.id}>
+                {major.name}
               </SelectItem>
             ))}
           </SelectContent>

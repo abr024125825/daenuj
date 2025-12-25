@@ -57,12 +57,12 @@ const volunteerNavItems: NavItem[] = [
 ];
 
 export function DashboardLayout({ children, title }: DashboardLayoutProps) {
-  const { user, logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const navItems = user?.role === 'admin' || user?.role === 'supervisor' ? adminNavItems : volunteerNavItems;
+  const navItems = profile?.role === 'admin' || profile?.role === 'supervisor' ? adminNavItems : volunteerNavItems;
 
   const handleLogout = () => {
     logout();
@@ -131,14 +131,14 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
                 <span className="text-primary font-semibold">
-                  {user?.firstName?.[0]}{user?.lastName?.[0]}
+                  {profile?.first_name?.[0]}{profile?.last_name?.[0]}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-foreground truncate">
-                  {user?.firstName} {user?.lastName}
+                  {profile?.first_name} {profile?.last_name}
                 </p>
-                <p className="text-xs text-muted-foreground capitalize">{user?.role}</p>
+                <p className="text-xs text-muted-foreground capitalize">{profile?.role}</p>
               </div>
             </div>
             <Button
