@@ -7,9 +7,10 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import { ApplicationsPage } from "./pages/admin/ApplicationsPage";
-import { OpportunitiesPage } from "./pages/admin/OpportunitiesPage";
-import { VolunteerOpportunitiesPage } from "./pages/volunteer/OpportunitiesPage";
 import { OpportunitiesRouter } from "./components/routing/OpportunitiesRouter";
+import { CertificatesRouter } from "./components/routing/CertificatesRouter";
+import { SettingsPage } from "./pages/admin/SettingsPage";
+import { NotificationsPage } from "./pages/NotificationsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,9 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/applications" element={<ApplicationsPage />} />
             <Route path="/dashboard/opportunities" element={<OpportunitiesRouter />} />
+            <Route path="/dashboard/certificates" element={<CertificatesRouter />} />
+            <Route path="/dashboard/settings" element={<SettingsPage />} />
+            <Route path="/dashboard/notifications" element={<NotificationsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
