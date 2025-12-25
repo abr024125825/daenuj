@@ -51,7 +51,12 @@ export function VolunteerEvaluationsPage() {
 
   const openFeedbackDialog = (opp: any) => {
     setSelectedOpportunity(opp);
-    setRatings({});
+    // Initialize all ratings with default value of 3
+    const initialRatings: { [key: string]: number } = {};
+    feedbackCategories.forEach(cat => {
+      initialRatings[cat.id] = 3;
+    });
+    setRatings(initialRatings);
     setComments('');
     setFeedbackDialogOpen(true);
   };

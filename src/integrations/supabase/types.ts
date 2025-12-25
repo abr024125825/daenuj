@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           check_in_method: string | null
           check_in_time: string
+          check_out_time: string | null
           id: string
           manual_token: string | null
           opportunity_id: string
@@ -28,6 +29,7 @@ export type Database = {
         Insert: {
           check_in_method?: string | null
           check_in_time?: string
+          check_out_time?: string | null
           id?: string
           manual_token?: string | null
           opportunity_id: string
@@ -38,6 +40,7 @@ export type Database = {
         Update: {
           check_in_method?: string | null
           check_in_time?: string
+          check_out_time?: string | null
           id?: string
           manual_token?: string | null
           opportunity_id?: string
@@ -300,6 +303,7 @@ export type Database = {
           required_volunteers: number
           start_time: string
           status: Database["public"]["Enums"]["opportunity_status"]
+          supervisor_id: string | null
           title: string
           updated_at: string
         }
@@ -320,6 +324,7 @@ export type Database = {
           required_volunteers?: number
           start_time: string
           status?: Database["public"]["Enums"]["opportunity_status"]
+          supervisor_id?: string | null
           title: string
           updated_at?: string
         }
@@ -340,6 +345,7 @@ export type Database = {
           required_volunteers?: number
           start_time?: string
           status?: Database["public"]["Enums"]["opportunity_status"]
+          supervisor_id?: string | null
           title?: string
           updated_at?: string
         }
