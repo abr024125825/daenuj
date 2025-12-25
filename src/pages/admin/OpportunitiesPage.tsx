@@ -32,7 +32,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Calendar, MapPin, Users, QrCode, Eye, Send, Loader2, 
-  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck
+  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, Copy
 } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
 import { useFaculties } from '@/hooks/useFaculties';
@@ -578,6 +578,9 @@ export function OpportunitiesPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Attendance QR Code</DialogTitle>
+              <DialogDescription>
+                Volunteers can scan this QR code or use the token to check in
+              </DialogDescription>
             </DialogHeader>
             {selectedOpportunity && (
               <div className="flex flex-col items-center gap-4 py-4">
@@ -588,8 +591,32 @@ export function OpportunitiesPage() {
                     level="H"
                   />
                 </div>
+                
+                {/* Token Display with Copy Button */}
+                <div className="w-full p-3 bg-muted rounded-lg">
+                  <p className="text-xs text-muted-foreground mb-1">Manual Token:</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-sm font-mono bg-background p-2 rounded border overflow-x-auto">
+                      {selectedOpportunity.qr_code_token}
+                    </code>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        navigator.clipboard.writeText(selectedOpportunity.qr_code_token);
+                        toast({
+                          title: 'Copied!',
+                          description: 'Token copied to clipboard',
+                        });
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+
                 <p className="text-center text-sm text-muted-foreground">
-                  Volunteers can scan this QR code to check in
+                  Volunteers can scan this QR code or enter the token manually
                 </p>
                 <div className="flex items-center gap-2">
                   {selectedOpportunity.qr_code_active ? (
