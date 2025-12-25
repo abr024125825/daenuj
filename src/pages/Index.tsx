@@ -1,13 +1,11 @@
-import { useState } from 'react';
 import { Logo } from '@/components/Logo';
 import { LoginForm } from '@/components/auth/LoginForm';
-import { RegistrationWizard } from '@/components/registration/RegistrationWizard';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UserPlus, Heart, Users, Award, ArrowRight } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
-  const [showRegistration, setShowRegistration] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen gradient-hero">
@@ -52,7 +50,7 @@ const Index = () => {
                   <Button
                     variant="hero"
                     size="xl"
-                    onClick={() => setShowRegistration(true)}
+                    onClick={() => navigate('/register')}
                     className="gap-2"
                   >
                     <UserPlus className="h-5 w-5" />
@@ -140,7 +138,7 @@ const Index = () => {
             <Button
               variant="secondary"
               size="xl"
-              onClick={() => setShowRegistration(true)}
+              onClick={() => navigate('/register')}
               className="gap-2"
             >
               <UserPlus className="h-5 w-5" />
@@ -161,19 +159,6 @@ const Index = () => {
           </div>
         </footer>
       </main>
-
-      {/* Registration Dialog */}
-      <Dialog open={showRegistration} onOpenChange={setShowRegistration}>
-        <DialogContent className="max-w-4xl h-[90vh] p-0 overflow-hidden">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle className="flex items-center gap-3">
-              <Logo size="sm" showText={false} />
-              <span>Volunteer Registration</span>
-            </DialogTitle>
-          </DialogHeader>
-          <RegistrationWizard onClose={() => setShowRegistration(false)} />
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
