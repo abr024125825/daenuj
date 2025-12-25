@@ -51,10 +51,10 @@ export function SettingsPage() {
 
   const filteredUsers = users?.filter(
     (u: any) =>
-      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.last_name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+      (u.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (u.first_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
+      (u.last_name?.toLowerCase() || '').includes(searchQuery.toLowerCase())
+  ) || [];
 
   const handleCreateUser = async () => {
     if (!newUserEmail || !newUserPassword || !newUserFirstName || !newUserLastName) {
@@ -109,7 +109,7 @@ export function SettingsPage() {
         resetCreateUserForm();
       }
     } catch (error: any) {
-      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setIsCreatingUser(false);
     }
