@@ -1,8 +1,8 @@
 import { Logo } from '@/components/Logo';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Heart, Users, Award, ArrowRight } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { UserPlus, Heart, Users, Award, ArrowRight, Shield } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -88,6 +88,15 @@ const Index = () => {
                     <p className="text-muted-foreground mt-2">Sign in to your account</p>
                   </div>
                   <LoginForm />
+                  <div className="mt-6 pt-4 border-t border-border text-center">
+                    <Link 
+                      to="/supervisor-login" 
+                      className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors"
+                    >
+                      <Shield className="h-4 w-4" />
+                      بوابة المشرفين
+                    </Link>
+                  </div>
                 </div>
               </div>
             </div>

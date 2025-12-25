@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Users, Shield, Settings, Search, Loader2, UserCog } from 'lucide-react';
+import { Users, Shield, Settings, Search, Loader2, UserCog, UserPlus } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,10 +41,13 @@ export function SettingsPage() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [seederDialogOpen, setSeederDialogOpen] = useState(false);
-  const [seederEmail, setSeederEmail] = useState('');
-  const [seederPassword, setSeederPassword] = useState('');
-  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserPassword, setNewUserPassword] = useState('');
+  const [newUserFirstName, setNewUserFirstName] = useState('');
+  const [newUserLastName, setNewUserLastName] = useState('');
+  const [newUserRole, setNewUserRole] = useState<'admin' | 'supervisor' | 'volunteer'>('volunteer');
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
 
   const filteredUsers = users?.filter(
     (u: any) =>
@@ -53,22 +56,22 @@ export function SettingsPage() {
       u.last_name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleCreateAdmin = async () => {
-    if (!seederEmail || !seederPassword) {
-      toast({ title: 'Error', description: 'Please fill in all fields', variant: 'destructive' });
+  const handleCreateUser = async () => {
+    if (!newUserEmail || !newUserPassword || !newUserFirstName || !newUserLastName) {
+      toast({ title: 'خطأ', description: 'يرجى ملء جميع الحقول', variant: 'destructive' });
       return;
     }
 
-    setIsCreatingAdmin(true);
+    setIsCreatingUser(true);
     try {
       // Create the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: seederEmail,
-        password: seederPassword,
+        email: newUserEmail,
+        password: newUserPassword,
         options: {
           data: {
-            first_name: 'Admin',
-            last_name: 'User',
+            first_name: newUserFirstName,
+            last_name: newUserLastName,
           },
         },
       });
@@ -79,31 +82,45 @@ export function SettingsPage() {
         // Wait a moment for the trigger to create the profile
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Update the user's role to admin
+        // Update the user's role
         const { error: roleError } = await supabase
           .from('user_roles')
-          .update({ role: 'admin' })
+          .update({ role: newUserRole })
           .eq('user_id', authData.user.id);
 
         if (roleError) throw roleError;
 
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ role: 'admin' })
+          .update({ 
+            role: newUserRole,
+            first_name: newUserFirstName,
+            last_name: newUserLastName,
+          })
           .eq('user_id', authData.user.id);
 
         if (profileError) throw profileError;
 
-        toast({ title: 'Success', description: 'Admin user created successfully' });
-        setSeederDialogOpen(false);
-        setSeederEmail('');
-        setSeederPassword('');
+        toast({ 
+          title: 'تم بنجاح', 
+          description: `تم إنشاء حساب ${newUserRole === 'admin' ? 'المدير' : newUserRole === 'supervisor' ? 'المشرف' : 'المتطوع'} بنجاح` 
+        });
+        setCreateUserDialogOpen(false);
+        resetCreateUserForm();
       }
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
     } finally {
-      setIsCreatingAdmin(false);
+      setIsCreatingUser(false);
     }
+  };
+
+  const resetCreateUserForm = () => {
+    setNewUserEmail('');
+    setNewUserPassword('');
+    setNewUserFirstName('');
+    setNewUserLastName('');
+    setNewUserRole('volunteer');
   };
 
   const getRoleBadgeVariant = (role: string) => {
@@ -129,12 +146,12 @@ export function SettingsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-display font-bold">System Settings</h2>
-            <p className="text-muted-foreground">Manage users, roles, and system configuration</p>
+            <h2 className="text-2xl font-display font-bold">إعدادات النظام</h2>
+            <p className="text-muted-foreground">إدارة المستخدمين والأدوار وإعدادات النظام</p>
           </div>
-          <Button onClick={() => setSeederDialogOpen(true)}>
-            <Shield className="h-4 w-4 mr-2" />
-            Create Admin User
+          <Button onClick={() => setCreateUserDialogOpen(true)}>
+            <UserPlus className="h-4 w-4 mr-2" />
+            إنشاء مستخدم جديد
           </Button>
         </div>
 
@@ -285,43 +302,81 @@ export function SettingsPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Admin Seeder Dialog */}
-        <Dialog open={seederDialogOpen} onOpenChange={setSeederDialogOpen}>
+        {/* Create User Dialog */}
+        <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create Admin User</DialogTitle>
+              <DialogTitle>إنشاء مستخدم جديد</DialogTitle>
               <DialogDescription>
-                Create a new admin user with full system access
+                إنشاء حساب جديد مع اختيار الدور المناسب
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="new-user-first-name">الاسم الأول</Label>
+                  <Input
+                    id="new-user-first-name"
+                    value={newUserFirstName}
+                    onChange={(e) => setNewUserFirstName(e.target.value)}
+                    placeholder="أحمد"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="new-user-last-name">اسم العائلة</Label>
+                  <Input
+                    id="new-user-last-name"
+                    value={newUserLastName}
+                    onChange={(e) => setNewUserLastName(e.target.value)}
+                    placeholder="المشرف"
+                  />
+                </div>
+              </div>
               <div className="grid gap-2">
-                <Label htmlFor="admin-email">Email</Label>
+                <Label htmlFor="new-user-email">البريد الإلكتروني</Label>
                 <Input
-                  id="admin-email"
+                  id="new-user-email"
                   type="email"
-                  value={seederEmail}
-                  onChange={(e) => setSeederEmail(e.target.value)}
-                  placeholder="admin@university.edu"
+                  value={newUserEmail}
+                  onChange={(e) => setNewUserEmail(e.target.value)}
+                  placeholder="user@university.edu"
+                  dir="ltr"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="admin-password">Password</Label>
+                <Label htmlFor="new-user-password">كلمة المرور</Label>
                 <Input
-                  id="admin-password"
+                  id="new-user-password"
                   type="password"
-                  value={seederPassword}
-                  onChange={(e) => setSeederPassword(e.target.value)}
-                  placeholder="Secure password"
+                  value={newUserPassword}
+                  onChange={(e) => setNewUserPassword(e.target.value)}
+                  placeholder="كلمة مرور آمنة"
+                  dir="ltr"
                 />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="new-user-role">الدور</Label>
+                <Select
+                  value={newUserRole}
+                  onValueChange={(value) => setNewUserRole(value as any)}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="volunteer">متطوع</SelectItem>
+                    <SelectItem value="supervisor">مشرف</SelectItem>
+                    <SelectItem value="admin">مدير</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <Button
                 className="w-full"
-                onClick={handleCreateAdmin}
-                disabled={isCreatingAdmin}
+                onClick={handleCreateUser}
+                disabled={isCreatingUser}
               >
-                {isCreatingAdmin && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Create Admin
+                {isCreatingUser && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                إنشاء المستخدم
               </Button>
             </div>
           </DialogContent>
