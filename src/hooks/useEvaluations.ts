@@ -96,10 +96,62 @@ export function useEvaluations() {
     },
   });
 
+  const updateEvaluation = useMutation({
+    mutationFn: async ({
+      id,
+      ratings,
+      comments,
+    }: {
+      id: string;
+      ratings?: { category: string; score: number }[];
+      comments?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('evaluations')
+        .update({
+          ratings: ratings as unknown as Json,
+          comments,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['evaluations'] });
+      toast({ title: 'Success', description: 'Evaluation updated successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteEvaluation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('evaluations')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['evaluations'] });
+      toast({ title: 'Success', description: 'Evaluation deleted successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     evaluations,
     isLoading,
     createEvaluation,
+    updateEvaluation,
+    deleteEvaluation,
   };
 }
 
