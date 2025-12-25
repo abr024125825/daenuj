@@ -34,6 +34,7 @@ import { useOpportunities } from '@/hooks/useOpportunities';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { generateCertificatePDF } from '@/lib/generateCertificatePDF';
 
 export function CertificatesPage() {
   const { certificates, isLoading, issueCertificate } = useCertificates();
@@ -187,7 +188,24 @@ export function CertificatesPage() {
                           {format(new Date(cert.issued_at), 'MMM dd, yyyy')}
                         </TableCell>
                         <TableCell>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => {
+                              const volunteerName = cert.volunteer?.application 
+                                ? `${cert.volunteer.application.first_name} ${cert.volunteer.application.father_name || ''} ${cert.volunteer.application.family_name}`
+                                : 'Volunteer';
+                              generateCertificatePDF({
+                                volunteerName,
+                                opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
+                                hours: cert.hours,
+                                certificateNumber: cert.certificate_number,
+                                issuedAt: format(new Date(cert.issued_at), 'MMMM dd, yyyy'),
+                                opportunityDate: format(new Date(cert.opportunity?.date), 'MMMM dd, yyyy'),
+                                location: cert.opportunity?.location || '',
+                              });
+                            }}
+                          >
                             <Download className="h-4 w-4 mr-1" />
                             Download
                           </Button>
