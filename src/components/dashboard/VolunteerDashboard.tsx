@@ -181,7 +181,9 @@ export function VolunteerDashboard() {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
-                          {format(new Date(reg.opportunity?.date), 'MMM dd, yyyy')} at {reg.opportunity?.start_time}
+                          {reg.opportunity?.date 
+                            ? format(new Date(reg.opportunity.date), 'MMM dd, yyyy') 
+                            : 'TBD'} at {reg.opportunity?.start_time || 'TBD'}
                         </span>
                       </div>
                       <p className="text-sm text-muted-foreground mt-1">{reg.opportunity?.location}</p>
@@ -200,7 +202,9 @@ export function VolunteerDashboard() {
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span className="flex items-center gap-1">
                           <Clock className="h-4 w-4" />
-                          {format(new Date(reg.opportunity?.date), 'MMM dd, yyyy')}
+                          {reg.opportunity?.date 
+                            ? format(new Date(reg.opportunity.date), 'MMM dd, yyyy')
+                            : 'TBD'}
                         </span>
                       </div>
                     </div>

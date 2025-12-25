@@ -182,7 +182,7 @@ export function ApplicationsPage() {
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-muted-foreground hidden md:block">
-                            {format(new Date(app.created_at), 'MMM d, yyyy')}
+                            {app.created_at ? format(new Date(app.created_at), 'MMM d, yyyy') : ''}
                           </span>
                           {getStatusBadge(app.status)}
                         </div>
@@ -212,7 +212,9 @@ export function ApplicationsPage() {
               <div className="flex justify-between items-center">
                 {getStatusBadge(selectedApp.status)}
                 <span className="text-sm text-muted-foreground">
-                  Submitted: {format(new Date(selectedApp.created_at), 'MMMM d, yyyy')}
+                  Submitted: {selectedApp.created_at 
+                    ? format(new Date(selectedApp.created_at), 'MMMM d, yyyy')
+                    : 'N/A'}
                 </span>
               </div>
 

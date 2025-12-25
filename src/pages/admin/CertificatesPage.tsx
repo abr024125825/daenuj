@@ -185,7 +185,7 @@ export function CertificatesPage() {
                           <Badge variant="secondary">{cert.hours} hrs</Badge>
                         </TableCell>
                         <TableCell className="text-muted-foreground">
-                          {format(new Date(cert.issued_at), 'MMM dd, yyyy')}
+                          {cert.issued_at ? format(new Date(cert.issued_at), 'MMM dd, yyyy') : 'N/A'}
                         </TableCell>
                         <TableCell>
                           <Button 
@@ -200,8 +200,8 @@ export function CertificatesPage() {
                                 opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
                                 hours: cert.hours,
                                 certificateNumber: cert.certificate_number,
-                                issuedAt: format(new Date(cert.issued_at), 'MMMM dd, yyyy'),
-                                opportunityDate: format(new Date(cert.opportunity?.date), 'MMMM dd, yyyy'),
+                                issuedAt: cert.issued_at ? format(new Date(cert.issued_at), 'MMMM dd, yyyy') : 'N/A',
+                                opportunityDate: cert.opportunity?.date ? format(new Date(cert.opportunity.date), 'MMMM dd, yyyy') : 'N/A',
                                 location: cert.opportunity?.location || '',
                               });
                             }}
@@ -275,7 +275,7 @@ export function CertificatesPage() {
                   <SelectContent>
                     {completedOpportunities?.map((opp: any) => (
                       <SelectItem key={opp.id} value={opp.id}>
-                        {opp.title} - {format(new Date(opp.date), 'MMM dd, yyyy')}
+                        {opp.title} - {opp.date ? format(new Date(opp.date), 'MMM dd, yyyy') : 'No date'}
                       </SelectItem>
                     ))}
                   </SelectContent>

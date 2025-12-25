@@ -307,7 +307,7 @@ export function OpportunitiesPage() {
                     <TableCell>
                       <div className="flex items-center gap-1 text-sm">
                         <Calendar className="h-4 w-4 text-muted-foreground" />
-                        {format(new Date(opp.date), 'MMM dd, yyyy')}
+                        {opp.date ? format(new Date(opp.date), 'MMM dd, yyyy') : 'No date'}
                       </div>
                       <p className="text-sm text-muted-foreground">
                         {opp.start_time} - {opp.end_time}
@@ -446,7 +446,9 @@ export function OpportunitiesPage() {
                     {selectedOpportunity.status}
                   </Badge>
                   <span className="text-sm text-muted-foreground">
-                    Created: {format(new Date(selectedOpportunity.created_at), 'MMM dd, yyyy')}
+                    Created: {selectedOpportunity.created_at 
+                      ? format(new Date(selectedOpportunity.created_at), 'MMM dd, yyyy')
+                      : 'N/A'}
                   </span>
                 </div>
                 <div>
@@ -458,7 +460,11 @@ export function OpportunitiesPage() {
                     <Calendar className="h-5 w-5 text-muted-foreground" />
                     <div>
                       <p className="text-sm text-muted-foreground">Date</p>
-                      <p className="font-medium">{format(new Date(selectedOpportunity.date), 'EEEE, MMMM dd, yyyy')}</p>
+                      <p className="font-medium">
+                        {selectedOpportunity.date 
+                          ? format(new Date(selectedOpportunity.date), 'EEEE, MMMM dd, yyyy')
+                          : 'No date'}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
