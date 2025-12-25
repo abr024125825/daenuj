@@ -35,6 +35,7 @@ import {
   Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, RotateCcw, UsersRound, LogOut
 } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
+import { useSupervisors } from '@/hooks/useSupervisors';
 import { useFaculties } from '@/hooks/useFaculties';
 import { format } from 'date-fns';
 import { QRCodeSVG } from 'qrcode.react';
@@ -56,6 +57,7 @@ export function OpportunitiesPage() {
     reopenQRCode
   } = useOpportunities();
   const { data: faculties } = useFaculties();
+  const { supervisors } = useSupervisors();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -79,6 +81,7 @@ export function OpportunitiesPage() {
     location: '',
     required_volunteers: 1,
     faculty_restriction: '',
+    supervisor_id: '',
   });
 
   // Get registrations for selected opportunity
@@ -93,6 +96,7 @@ export function OpportunitiesPage() {
       ...formData,
       required_volunteers: Number(formData.required_volunteers),
       faculty_restriction: formData.faculty_restriction || null,
+      supervisor_id: formData.supervisor_id || null,
     });
     setCreateDialogOpen(false);
     resetForm();
@@ -105,6 +109,7 @@ export function OpportunitiesPage() {
       ...formData,
       required_volunteers: Number(formData.required_volunteers),
       faculty_restriction: formData.faculty_restriction || null,
+      supervisor_id: formData.supervisor_id || null,
     });
     setEditDialogOpen(false);
     setSelectedOpportunity(null);
@@ -136,6 +141,7 @@ export function OpportunitiesPage() {
       location: '',
       required_volunteers: 1,
       faculty_restriction: '',
+      supervisor_id: '',
     });
   };
 
@@ -150,6 +156,7 @@ export function OpportunitiesPage() {
       location: opp.location,
       required_volunteers: opp.required_volunteers,
       faculty_restriction: opp.faculty_restriction || '',
+      supervisor_id: opp.supervisor_id || '',
     });
     setEditDialogOpen(true);
   };
@@ -422,6 +429,7 @@ export function OpportunitiesPage() {
               formData={formData} 
               setFormData={setFormData} 
               faculties={faculties}
+              supervisors={supervisors}
               onSubmit={handleCreate}
               isSubmitting={createOpportunity.isPending}
               submitLabel="Create"
@@ -439,6 +447,7 @@ export function OpportunitiesPage() {
               formData={formData} 
               setFormData={setFormData} 
               faculties={faculties}
+              supervisors={supervisors}
               onSubmit={handleUpdate}
               isSubmitting={updateOpportunity.isPending}
               submitLabel="Save Changes"
@@ -865,7 +874,8 @@ export function OpportunitiesPage() {
 function OpportunityForm({ 
   formData, 
   setFormData, 
-  faculties, 
+  faculties,
+  supervisors,
   onSubmit, 
   isSubmitting, 
   submitLabel 
@@ -873,6 +883,7 @@ function OpportunityForm({
   formData: any;
   setFormData: (data: any) => void;
   faculties: any;
+  supervisors?: any[];
   onSubmit: () => void;
   isSubmitting: boolean;
   submitLabel: string;
@@ -948,24 +959,45 @@ function OpportunityForm({
           />
         </div>
       </div>
-      <div className="grid gap-2">
-        <Label htmlFor="faculty_restriction">Faculty Restriction (Optional)</Label>
-        <Select
-          value={formData.faculty_restriction || "all"}
-          onValueChange={(value) => setFormData({ ...formData, faculty_restriction: value === "all" ? "" : value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Open to all faculties" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Open to all faculties</SelectItem>
-            {faculties?.map((faculty: any) => (
-              <SelectItem key={faculty.id} value={faculty.id}>
-                {faculty.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="grid gap-2">
+          <Label htmlFor="faculty_restriction">Faculty Restriction (Optional)</Label>
+          <Select
+            value={formData.faculty_restriction || "all"}
+            onValueChange={(value) => setFormData({ ...formData, faculty_restriction: value === "all" ? "" : value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Open to all faculties" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Open to all faculties</SelectItem>
+              {faculties?.map((faculty: any) => (
+                <SelectItem key={faculty.id} value={faculty.id}>
+                  {faculty.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="supervisor">Assign Supervisor (Optional)</Label>
+          <Select
+            value={formData.supervisor_id || "none"}
+            onValueChange={(value) => setFormData({ ...formData, supervisor_id: value === "none" ? "" : value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="No supervisor assigned" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No supervisor assigned</SelectItem>
+              {supervisors?.map((supervisor: any) => (
+                <SelectItem key={supervisor.user_id} value={supervisor.user_id}>
+                  {supervisor.first_name} {supervisor.last_name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
       <div className="flex justify-end gap-2 pt-4">
         <Button onClick={onSubmit} disabled={isSubmitting}>
