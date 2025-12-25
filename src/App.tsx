@@ -7,6 +7,9 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import { ApplicationsPage } from "./pages/admin/ApplicationsPage";
+import { OpportunitiesPage } from "./pages/admin/OpportunitiesPage";
+import { VolunteerOpportunitiesPage } from "./pages/volunteer/OpportunitiesPage";
+import { OpportunitiesRouter } from "./components/routing/OpportunitiesRouter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +25,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/applications" element={<ApplicationsPage />} />
+            <Route path="/dashboard/opportunities" element={<OpportunitiesRouter />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
