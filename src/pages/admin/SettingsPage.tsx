@@ -183,7 +183,7 @@ export function SettingsPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredUsers?.map((u: any) => {
-                      const userRole = u.user_roles?.[0]?.role || u.role || 'volunteer';
+                      const userRole = u.role || 'volunteer';
                       const isCurrentUser = u.user_id === currentUser?.id;
 
                       return (
