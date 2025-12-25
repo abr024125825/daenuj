@@ -181,10 +181,47 @@ export function useCertificates() {
     },
   });
 
+  const deleteCertificate = useMutation({
+    mutationFn: async ({ id, volunteerId, hours }: { id: string; volunteerId: string; hours: number }) => {
+      const { error } = await supabase
+        .from('certificates')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+
+      // Deduct hours from volunteer
+      const { data: volunteer } = await supabase
+        .from('volunteers')
+        .select('total_hours, opportunities_completed')
+        .eq('id', volunteerId)
+        .single();
+
+      if (volunteer) {
+        await supabase
+          .from('volunteers')
+          .update({
+            total_hours: Math.max(0, (volunteer.total_hours || 0) - hours),
+            opportunities_completed: Math.max(0, (volunteer.opportunities_completed || 0) - 1),
+          })
+          .eq('id', volunteerId);
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['certificates'] });
+      queryClient.invalidateQueries({ queryKey: ['volunteers'] });
+      toast({ title: 'Success', description: 'Certificate deleted successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     certificates,
     isLoading,
     issueCertificate,
+    deleteCertificate,
   };
 }
 

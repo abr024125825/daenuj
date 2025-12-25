@@ -251,19 +251,43 @@ export function useOpportunityRegistrations(opportunityId?: string) {
 
   const registerForOpportunity = useMutation({
     mutationFn: async ({ opportunityId, volunteerId }: { opportunityId: string; volunteerId: string }) => {
+      // Check if opportunity is full
+      const { data: opportunity } = await supabase
+        .from('opportunities')
+        .select('required_volunteers')
+        .eq('id', opportunityId)
+        .single();
+
+      const { data: approvedCount } = await supabase
+        .from('opportunity_registrations')
+        .select('id', { count: 'exact' })
+        .eq('opportunity_id', opportunityId)
+        .eq('status', 'approved');
+
+      const isFull = (approvedCount?.length || 0) >= (opportunity?.required_volunteers || 0);
+
       const { data, error } = await supabase
         .from('opportunity_registrations')
-        .insert({ opportunity_id: opportunityId, volunteer_id: volunteerId })
+        .insert({ 
+          opportunity_id: opportunityId, 
+          volunteer_id: volunteerId,
+          status: isFull ? 'waitlisted' : 'pending'
+        })
         .select()
         .single();
       
       if (error) throw error;
-      return data;
+      return { ...data, isWaitlisted: isFull };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['opportunity-registrations'] });
       queryClient.invalidateQueries({ queryKey: ['my-registrations'] });
-      toast({ title: 'Success', description: 'Registration submitted' });
+      toast({ 
+        title: 'Success', 
+        description: data.isWaitlisted 
+          ? 'Added to waiting list - spots are full' 
+          : 'Registration submitted' 
+      });
     },
     onError: (error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -298,6 +322,15 @@ export function useOpportunityRegistrations(opportunityId?: string) {
 
   const rejectRegistration = useMutation({
     mutationFn: async (registrationId: string) => {
+      // First get the registration to know the opportunity
+      const { data: registration } = await supabase
+        .from('opportunity_registrations')
+        .select('opportunity_id, status')
+        .eq('id', registrationId)
+        .single();
+
+      const wasApproved = registration?.status === 'approved';
+
       const { data, error } = await supabase
         .from('opportunity_registrations')
         .update({ status: 'rejected' })
@@ -306,6 +339,31 @@ export function useOpportunityRegistrations(opportunityId?: string) {
         .single();
       
       if (error) throw error;
+
+      // If the rejected registration was approved, promote first waitlisted
+      if (wasApproved && registration?.opportunity_id) {
+        const { data: { user } } = await supabase.auth.getUser();
+        const { data: waitlisted } = await supabase
+          .from('opportunity_registrations')
+          .select('id')
+          .eq('opportunity_id', registration.opportunity_id)
+          .eq('status', 'waitlisted')
+          .order('registered_at', { ascending: true })
+          .limit(1)
+          .single();
+
+        if (waitlisted) {
+          await supabase
+            .from('opportunity_registrations')
+            .update({ 
+              status: 'approved',
+              approved_at: new Date().toISOString(),
+              approved_by: user?.id 
+            })
+            .eq('id', waitlisted.id);
+        }
+      }
+
       return data;
     },
     onSuccess: () => {
