@@ -50,6 +50,7 @@ export function OpportunitiesPage() {
     updateOpportunity,
     deleteOpportunity,
     publishOpportunity, 
+    completeOpportunity,
     generateQRCode, 
     closeQRCode 
   } = useOpportunities();
@@ -78,7 +79,7 @@ export function OpportunitiesPage() {
   });
 
   // Get registrations for selected opportunity
-  const { registrations, approveRegistration } = useOpportunityRegistrations(selectedOpportunity?.id);
+  const { registrations, approveRegistration, rejectRegistration } = useOpportunityRegistrations(selectedOpportunity?.id);
 
   const handleCreate = async () => {
     if (!formData.title || !formData.description || !formData.date || !formData.start_time || !formData.end_time || !formData.location) {
@@ -115,35 +116,11 @@ export function OpportunitiesPage() {
   };
 
   const handleCompleteOpportunity = async (id: string) => {
-    try {
-      const { error } = await supabase
-        .from('opportunities')
-        .update({ status: 'completed' })
-        .eq('id', id);
-      
-      if (error) throw error;
-      
-      toast({ title: 'Success', description: 'Opportunity marked as completed' });
-      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    }
+    await completeOpportunity.mutateAsync(id);
   };
 
   const handleRejectRegistration = async (registrationId: string) => {
-    try {
-      const { error } = await supabase
-        .from('opportunity_registrations')
-        .update({ status: 'rejected' })
-        .eq('id', registrationId);
-      
-      if (error) throw error;
-      
-      toast({ title: 'Success', description: 'Registration rejected' });
-      queryClient.invalidateQueries({ queryKey: ['opportunity-registrations'] });
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    }
+    await rejectRegistration.mutateAsync(registrationId);
   };
 
   const resetForm = () => {
@@ -403,11 +380,9 @@ export function OpportunitiesPage() {
                         <Button size="sm" variant="ghost" onClick={() => openEditDialog(opp)}>
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        {opp.status === 'draft' && (
-                          <Button size="sm" variant="ghost" onClick={() => openDeleteDialog(opp)}>
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
+                        <Button size="sm" variant="ghost" onClick={() => openDeleteDialog(opp)}>
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
                       </div>
                     </TableCell>
                   </TableRow>

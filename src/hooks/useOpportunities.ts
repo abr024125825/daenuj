@@ -159,6 +159,27 @@ export function useOpportunities() {
     },
   });
 
+  const completeOpportunity = useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await supabase
+        .from('opportunities')
+        .update({ status: 'completed' })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
+      toast({ title: 'Success', description: 'Opportunity marked as completed' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     opportunities,
     isLoading,
@@ -167,6 +188,7 @@ export function useOpportunities() {
     updateOpportunity,
     deleteOpportunity,
     publishOpportunity,
+    completeOpportunity,
     generateQRCode,
     closeQRCode,
   };
@@ -245,11 +267,33 @@ export function useOpportunityRegistrations(opportunityId?: string) {
     },
   });
 
+  const rejectRegistration = useMutation({
+    mutationFn: async (registrationId: string) => {
+      const { data, error } = await supabase
+        .from('opportunity_registrations')
+        .update({ status: 'rejected' })
+        .eq('id', registrationId)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opportunity-registrations'] });
+      toast({ title: 'Success', description: 'Registration rejected' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     registrations,
     isLoading,
     registerForOpportunity,
     approveRegistration,
+    rejectRegistration,
   };
 }
 

@@ -67,11 +67,71 @@ export function useTrainingCourses() {
     },
   });
 
+  const deleteCourse = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('training_courses')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['training-courses'] });
+      toast({ title: 'Success', description: 'Course deleted successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteContent = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('training_content')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['training-courses'] });
+      toast({ title: 'Success', description: 'Content deleted successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const updateCourse = useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; title?: string; description?: string; is_required?: boolean }) => {
+      const { data, error } = await supabase
+        .from('training_courses')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['training-courses'] });
+      toast({ title: 'Success', description: 'Course updated successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     courses,
     isLoading,
     createCourse,
     addContent,
+    deleteCourse,
+    deleteContent,
+    updateCourse,
   };
 }
 

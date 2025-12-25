@@ -314,12 +314,12 @@ export function CertificatesPage() {
 
               <div className="grid gap-2">
                 <Label>Template (Optional)</Label>
-                <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                <Select value={selectedTemplate || "default"} onValueChange={(v) => setSelectedTemplate(v === "default" ? "" : v)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Use default template" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Default Template</SelectItem>
+                    <SelectItem value="default">Default Template</SelectItem>
                     {templates?.map((template: any) => (
                       <SelectItem key={template.id} value={template.id}>
                         {template.name}
