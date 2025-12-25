@@ -141,6 +141,34 @@ export function useOpportunities() {
     },
   });
 
+  const reopenQRCode = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      const token = crypto.randomUUID();
+      const { data, error } = await supabase
+        .from('opportunities')
+        .update({ 
+          qr_code_active: true,
+          qr_code_token: token,
+          qr_reopen_reason: reason,
+          qr_closed_at: null,
+          qr_closed_by: null
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
+      toast({ title: 'Success', description: 'QR code reopened' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   const deleteOpportunity = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase
@@ -191,6 +219,7 @@ export function useOpportunities() {
     completeOpportunity,
     generateQRCode,
     closeQRCode,
+    reopenQRCode,
   };
 }
 

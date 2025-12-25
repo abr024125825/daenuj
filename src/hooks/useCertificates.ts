@@ -47,10 +47,51 @@ export function useCertificateTemplates() {
     },
   });
 
+  const updateTemplate = useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; name?: string; description?: string; template_html?: string; is_default?: boolean }) => {
+      const { data, error } = await supabase
+        .from('certificate_templates')
+        .update({ ...updates, updated_at: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['certificate-templates'] });
+      toast({ title: 'Success', description: 'Template updated successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteTemplate = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('certificate_templates')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['certificate-templates'] });
+      toast({ title: 'Success', description: 'Template deleted successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     templates,
     isLoading,
     createTemplate,
+    updateTemplate,
+    deleteTemplate,
   };
 }
 
