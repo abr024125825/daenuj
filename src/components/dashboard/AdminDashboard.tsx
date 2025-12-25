@@ -1,3 +1,4 @@
+import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from './DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,32 +11,74 @@ import {
   TrendingUp,
   Clock,
   ArrowRight,
-  CheckCircle,
-  AlertCircle,
   UserPlus,
+  Loader2,
 } from 'lucide-react';
-
-// Mock data
-const stats = [
-  { title: 'Total Volunteers', value: '248', change: '+12%', icon: Users, color: 'text-primary' },
-  { title: 'Pending Applications', value: '5', change: 'New', icon: ClipboardList, color: 'text-accent' },
-  { title: 'Active Opportunities', value: '8', change: '+3', icon: Calendar, color: 'text-info' },
-  { title: 'Certificates Issued', value: '1,234', change: '+45', icon: Award, color: 'text-warning' },
-];
-
-const pendingApplications = [
-  { id: 1, name: 'Ahmad Hassan', faculty: 'Engineering', date: '2024-01-15' },
-  { id: 2, name: 'Sara Ali', faculty: 'Medicine', date: '2024-01-14' },
-  { id: 3, name: 'Mohammed Khaled', faculty: 'Business', date: '2024-01-14' },
-];
-
-const upcomingOpportunities = [
-  { id: 1, title: 'Blood Donation Campaign', date: 'Jan 20, 2024', volunteers: 15, needed: 20 },
-  { id: 2, title: 'Campus Clean-up Day', date: 'Jan 22, 2024', volunteers: 8, needed: 10 },
-  { id: 3, title: 'Student Mentorship Program', date: 'Jan 25, 2024', volunteers: 5, needed: 8 },
-];
+import { useVolunteerApplications } from '@/hooks/useApplications';
+import { useOpportunities } from '@/hooks/useOpportunities';
+import { useVolunteers } from '@/hooks/useVolunteers';
+import { useCertificates } from '@/hooks/useCertificates';
+import { format } from 'date-fns';
 
 export function AdminDashboard() {
+  const navigate = useNavigate();
+  const { data: applications, isLoading: applicationsLoading } = useVolunteerApplications();
+  const { opportunities, isLoading: opportunitiesLoading } = useOpportunities();
+  const { volunteers, isLoading: volunteersLoading } = useVolunteers();
+  const { certificates, isLoading: certificatesLoading } = useCertificates();
+
+  const isLoading = applicationsLoading || opportunitiesLoading || volunteersLoading || certificatesLoading;
+
+  const pendingApplications = applications?.filter((a: any) => a.status === 'pending') || [];
+  const totalVolunteers = volunteers?.length || 0;
+  const activeOpportunities = opportunities?.filter((o: any) => o.status === 'published') || [];
+  const totalCertificates = certificates?.length || 0;
+
+  const stats = [
+    { 
+      title: 'Total Volunteers', 
+      value: totalVolunteers.toString(), 
+      change: 'Active', 
+      icon: Users, 
+      color: 'text-primary',
+      href: '/dashboard/volunteers'
+    },
+    { 
+      title: 'Pending Applications', 
+      value: pendingApplications.length.toString(), 
+      change: 'New', 
+      icon: ClipboardList, 
+      color: 'text-accent',
+      href: '/dashboard/applications'
+    },
+    { 
+      title: 'Active Opportunities', 
+      value: activeOpportunities.length.toString(), 
+      change: 'Published', 
+      icon: Calendar, 
+      color: 'text-info',
+      href: '/dashboard/opportunities'
+    },
+    { 
+      title: 'Certificates Issued', 
+      value: totalCertificates.toString(), 
+      change: 'Total', 
+      icon: Award, 
+      color: 'text-warning',
+      href: '/dashboard/certificates'
+    },
+  ];
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Dashboard">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout title="Dashboard">
       <div className="space-y-8">
@@ -44,7 +87,11 @@ export function AdminDashboard() {
           {stats.map((stat) => {
             const Icon = stat.icon;
             return (
-              <Card key={stat.title} className="hover:shadow-lg transition-shadow">
+              <Card 
+                key={stat.title} 
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => navigate(stat.href)}
+              >
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div>
@@ -74,34 +121,44 @@ export function AdminDashboard() {
                 <ClipboardList className="h-5 w-5 text-accent" />
                 Pending Applications
               </CardTitle>
-              <Button variant="ghost" size="sm" className="gap-1">
-                View All <ArrowRight className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="gap-1" asChild>
+                <Link to="/dashboard/applications">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Link>
               </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {pendingApplications.map((app) => (
-                  <div
-                    key={app.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <UserPlus className="h-5 w-5 text-primary" />
+                {pendingApplications.length > 0 ? (
+                  pendingApplications.slice(0, 3).map((app: any) => (
+                    <div
+                      key={app.id}
+                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <UserPlus className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{app.first_name} {app.family_name}</p>
+                          <p className="text-sm text-muted-foreground">{app.faculty?.name}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{app.name}</p>
-                        <p className="text-sm text-muted-foreground">{app.faculty}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="outline" size="sm">
-                        <AlertCircle className="h-4 w-4 mr-1" />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => navigate('/dashboard/applications')}
+                      >
                         Review
                       </Button>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <ClipboardList className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p>No pending applications</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -113,39 +170,51 @@ export function AdminDashboard() {
                 <Calendar className="h-5 w-5 text-primary" />
                 Upcoming Opportunities
               </CardTitle>
-              <Button variant="ghost" size="sm" className="gap-1">
-                View All <ArrowRight className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="gap-1" asChild>
+                <Link to="/dashboard/opportunities">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Link>
               </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {upcomingOpportunities.map((opp) => (
-                  <div
-                    key={opp.id}
-                    className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium">{opp.title}</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
-                          <Clock className="h-4 w-4" />
-                          {opp.date}
-                        </p>
+                {activeOpportunities.length > 0 ? (
+                  activeOpportunities.slice(0, 3).map((opp: any) => (
+                    <div
+                      key={opp.id}
+                      className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium">{opp.title}</p>
+                          <p className="text-sm text-muted-foreground flex items-center gap-1 mt-1">
+                            <Clock className="h-4 w-4" />
+                            {format(new Date(opp.date), 'MMM dd, yyyy')}
+                          </p>
+                        </div>
+                        <Badge variant={(opp.registrations?.[0]?.count || 0) >= opp.required_volunteers ? 'default' : 'secondary'}>
+                          {opp.registrations?.[0]?.count || 0}/{opp.required_volunteers} volunteers
+                        </Badge>
                       </div>
-                      <Badge variant={opp.volunteers >= opp.needed ? 'default' : 'secondary'}>
-                        {opp.volunteers}/{opp.needed} volunteers
-                      </Badge>
-                    </div>
-                    <div className="mt-3">
-                      <div className="w-full bg-muted rounded-full h-2">
-                        <div
-                          className="bg-primary h-2 rounded-full transition-all"
-                          style={{ width: `${(opp.volunteers / opp.needed) * 100}%` }}
-                        />
+                      <div className="mt-3">
+                        <div className="w-full bg-muted rounded-full h-2">
+                          <div
+                            className="bg-primary h-2 rounded-full transition-all"
+                            style={{ width: `${Math.min(((opp.registrations?.[0]?.count || 0) / opp.required_volunteers) * 100, 100)}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p>No active opportunities</p>
+                    <Button variant="link" size="sm" asChild>
+                      <Link to="/dashboard/opportunities">Create one</Link>
+                    </Button>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -158,21 +227,37 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate('/dashboard/volunteers')}
+              >
                 <UserPlus className="h-6 w-6 text-primary" />
-                <span>Add Volunteer</span>
+                <span>View Volunteers</span>
               </Button>
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate('/dashboard/opportunities')}
+              >
                 <Calendar className="h-6 w-6 text-primary" />
                 <span>Create Opportunity</span>
               </Button>
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate('/dashboard/certificates')}
+              >
                 <Award className="h-6 w-6 text-primary" />
                 <span>Issue Certificate</span>
               </Button>
-              <Button variant="outline" className="h-auto py-4 flex-col gap-2">
+              <Button 
+                variant="outline" 
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate('/dashboard/reports')}
+              >
                 <ClipboardList className="h-6 w-6 text-primary" />
-                <span>Generate Report</span>
+                <span>View Reports</span>
               </Button>
             </div>
           </CardContent>

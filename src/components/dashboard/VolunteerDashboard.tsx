@@ -1,3 +1,4 @@
+import { useNavigate, Link } from 'react-router-dom';
 import { DashboardLayout } from './DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,28 +14,73 @@ import {
   QrCode,
   Trophy,
   Target,
+  Loader2,
 } from 'lucide-react';
-
-// Mock data
-const volunteerStats = {
-  totalHours: 45,
-  opportunitiesCompleted: 8,
-  certificatesEarned: 6,
-  trainingsCompleted: 2,
-  trainingsTotal: 3,
-};
-
-const upcomingOpportunities = [
-  { id: 1, title: 'Blood Donation Campaign', date: 'Jan 20, 2024', time: '9:00 AM', location: 'Main Campus', status: 'registered' },
-  { id: 2, title: 'Campus Clean-up Day', date: 'Jan 22, 2024', time: '8:00 AM', location: 'University Gardens', status: 'pending' },
-];
-
-const recentCertificates = [
-  { id: 1, title: 'Environmental Awareness Workshop', hours: 4, date: 'Jan 10, 2024' },
-  { id: 2, title: 'First Aid Training', hours: 8, date: 'Dec 15, 2023' },
-];
+import { useMyRegistrations } from '@/hooks/useOpportunities';
+import { useMyCertificates } from '@/hooks/useCertificates';
+import { useMyTraining } from '@/hooks/useTraining';
+import { useAuth } from '@/contexts/AuthContext';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
 export function VolunteerDashboard() {
+  const navigate = useNavigate();
+  const { user, profile } = useAuth();
+
+  // Get volunteer record
+  const { data: volunteer, isLoading: volunteerLoading } = useQuery({
+    queryKey: ['my-volunteer-record', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase
+        .from('volunteers')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  const { registrations, isLoading: registrationsLoading } = useMyRegistrations();
+  const { certificates, isLoading: certificatesLoading } = useMyCertificates();
+  const { courses, isCourseComplete, isLoading: trainingLoading } = useMyTraining();
+
+  const isLoading = volunteerLoading || registrationsLoading || certificatesLoading || trainingLoading;
+
+  const totalHours = volunteer?.total_hours || 0;
+  const opportunitiesCompleted = volunteer?.opportunities_completed || 0;
+  const certificatesEarned = certificates?.length || 0;
+  
+  const requiredCourses = courses?.filter((c: any) => c.is_required) || [];
+  const trainingsCompleted = requiredCourses.filter((c: any) => 
+    isCourseComplete(c.id, c.content?.length || 0)
+  ).length;
+  const trainingsTotal = requiredCourses.length;
+
+  // Upcoming opportunities (approved registrations)
+  const upcomingOpportunities = registrations?.filter((reg: any) => {
+    const oppDate = new Date(reg.opportunity?.date);
+    return oppDate >= new Date() && reg.status === 'approved';
+  }).slice(0, 3) || [];
+
+  // Pending registrations
+  const pendingRegistrations = registrations?.filter((reg: any) => reg.status === 'pending') || [];
+
+  // Recent certificates
+  const recentCertificates = certificates?.slice(0, 2) || [];
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="My Dashboard">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout title="My Dashboard">
       <div className="space-y-8">
@@ -42,25 +88,27 @@ export function VolunteerDashboard() {
         <Card className="gradient-primary text-primary-foreground overflow-hidden relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-primary-foreground/10 rounded-full -translate-y-1/2 translate-x-1/2" />
           <CardContent className="p-8 relative">
-            <h2 className="text-2xl font-display font-bold mb-2">Welcome back, Volunteer!</h2>
+            <h2 className="text-2xl font-display font-bold mb-2">
+              Welcome back, {profile?.first_name || 'Volunteer'}!
+            </h2>
             <p className="text-primary-foreground/80 mb-6">
               You're making a difference. Keep up the great work!
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               <div>
-                <p className="text-3xl font-bold">{volunteerStats.totalHours}</p>
+                <p className="text-3xl font-bold">{totalHours}</p>
                 <p className="text-sm text-primary-foreground/70">Total Hours</p>
               </div>
               <div>
-                <p className="text-3xl font-bold">{volunteerStats.opportunitiesCompleted}</p>
+                <p className="text-3xl font-bold">{opportunitiesCompleted}</p>
                 <p className="text-sm text-primary-foreground/70">Opportunities</p>
               </div>
               <div>
-                <p className="text-3xl font-bold">{volunteerStats.certificatesEarned}</p>
+                <p className="text-3xl font-bold">{certificatesEarned}</p>
                 <p className="text-sm text-primary-foreground/70">Certificates</p>
               </div>
               <div>
-                <p className="text-3xl font-bold">{volunteerStats.trainingsCompleted}/{volunteerStats.trainingsTotal}</p>
+                <p className="text-3xl font-bold">{trainingsCompleted}/{trainingsTotal || 0}</p>
                 <p className="text-sm text-primary-foreground/70">Trainings</p>
               </div>
             </div>
@@ -68,35 +116,39 @@ export function VolunteerDashboard() {
         </Card>
 
         {/* Required Training Progress */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              Required Training
-            </CardTitle>
-            <Button variant="ghost" size="sm" className="gap-1">
-              View All <ArrowRight className="h-4 w-4" />
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted-foreground">
-                  {volunteerStats.trainingsCompleted} of {volunteerStats.trainingsTotal} courses completed
-                </span>
-                <span className="text-sm font-medium">
-                  {Math.round((volunteerStats.trainingsCompleted / volunteerStats.trainingsTotal) * 100)}%
-                </span>
+        {trainingsTotal > 0 && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <BookOpen className="h-5 w-5 text-primary" />
+                Required Training
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="gap-1" asChild>
+                <Link to="/dashboard/training">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {trainingsCompleted} of {trainingsTotal} courses completed
+                  </span>
+                  <span className="text-sm font-medium">
+                    {trainingsTotal > 0 ? Math.round((trainingsCompleted / trainingsTotal) * 100) : 0}%
+                  </span>
+                </div>
+                <Progress value={trainingsTotal > 0 ? (trainingsCompleted / trainingsTotal) * 100 : 0} />
+                {trainingsCompleted < trainingsTotal && (
+                  <p className="text-sm text-muted-foreground">
+                    Complete all required training courses to participate in volunteering opportunities.
+                  </p>
+                )}
               </div>
-              <Progress value={(volunteerStats.trainingsCompleted / volunteerStats.trainingsTotal) * 100} />
-              {volunteerStats.trainingsCompleted < volunteerStats.trainingsTotal && (
-                <p className="text-sm text-muted-foreground">
-                  Complete all required training courses to participate in volunteering opportunities.
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Upcoming Opportunities */}
@@ -106,42 +158,62 @@ export function VolunteerDashboard() {
                 <Calendar className="h-5 w-5 text-primary" />
                 My Upcoming Activities
               </CardTitle>
-              <Button variant="ghost" size="sm" className="gap-1">
-                Browse All <ArrowRight className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="gap-1" asChild>
+                <Link to="/dashboard/opportunities">
+                  Browse All <ArrowRight className="h-4 w-4" />
+                </Link>
               </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {upcomingOpportunities.map((opp) => (
-                  <div
-                    key={opp.id}
-                    className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-medium">{opp.title}</h4>
-                      <Badge variant={opp.status === 'registered' ? 'default' : 'secondary'}>
-                        {opp.status === 'registered' ? (
-                          <><CheckCircle className="h-3 w-3 mr-1" /> Registered</>
-                        ) : (
-                          'Pending Approval'
-                        )}
-                      </Badge>
+                {upcomingOpportunities.length > 0 ? (
+                  upcomingOpportunities.map((reg: any) => (
+                    <div
+                      key={reg.id}
+                      className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-medium">{reg.opportunity?.title}</h4>
+                        <Badge variant="default">
+                          <CheckCircle className="h-3 w-3 mr-1" /> Approved
+                        </Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {format(new Date(reg.opportunity?.date), 'MMM dd, yyyy')} at {reg.opportunity?.start_time}
+                        </span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">{reg.opportunity?.location}</p>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {opp.date} at {opp.time}
-                      </span>
+                  ))
+                ) : pendingRegistrations.length > 0 ? (
+                  pendingRegistrations.slice(0, 2).map((reg: any) => (
+                    <div
+                      key={reg.id}
+                      className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <h4 className="font-medium">{reg.opportunity?.title}</h4>
+                        <Badge variant="secondary">Pending Approval</Badge>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock className="h-4 w-4" />
+                          {format(new Date(reg.opportunity?.date), 'MMM dd, yyyy')}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">{opp.location}</p>
-                    {opp.status === 'registered' && (
-                      <Button variant="outline" size="sm" className="mt-3 gap-2">
-                        <QrCode className="h-4 w-4" />
-                        Check-in
-                      </Button>
-                    )}
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Calendar className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p>No upcoming activities</p>
+                    <Button variant="link" size="sm" asChild>
+                      <Link to="/dashboard/opportunities">Browse opportunities</Link>
+                    </Button>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -153,31 +225,43 @@ export function VolunteerDashboard() {
                 <Award className="h-5 w-5 text-warning" />
                 My Certificates
               </CardTitle>
-              <Button variant="ghost" size="sm" className="gap-1">
-                View All <ArrowRight className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="gap-1" asChild>
+                <Link to="/dashboard/certificates">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Link>
               </Button>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentCertificates.map((cert) => (
-                  <div
-                    key={cert.id}
-                    className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-warning/10 flex items-center justify-center">
-                        <Trophy className="h-6 w-6 text-warning" />
+                {recentCertificates.length > 0 ? (
+                  recentCertificates.map((cert: any) => (
+                    <div
+                      key={cert.id}
+                      className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-lg bg-warning/10 flex items-center justify-center">
+                          <Trophy className="h-6 w-6 text-warning" />
+                        </div>
+                        <div>
+                          <p className="font-medium">{cert.opportunity?.title}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {cert.hours} hours • {format(new Date(cert.issued_at), 'MMM dd, yyyy')}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{cert.title}</p>
-                        <p className="text-sm text-muted-foreground">{cert.hours} hours • {cert.date}</p>
-                      </div>
+                      <Button variant="outline" size="sm">
+                        Download
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm">
-                      Download
-                    </Button>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Award className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                    <p>No certificates yet</p>
+                    <p className="text-sm">Complete opportunities to earn certificates</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -197,7 +281,7 @@ export function VolunteerDashboard() {
                 </p>
               </div>
             </div>
-            <Button variant="hero" size="lg" className="gap-2">
+            <Button variant="hero" size="lg" className="gap-2" onClick={() => navigate('/dashboard/opportunities')}>
               <Calendar className="h-5 w-5" />
               Browse Opportunities
             </Button>
