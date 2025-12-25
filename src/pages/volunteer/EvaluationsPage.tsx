@@ -90,7 +90,9 @@ export function VolunteerEvaluationsPage() {
                       <div>
                         <p className="font-medium">{opp.opportunity?.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          {format(new Date(opp.opportunity?.date), 'MMM dd, yyyy')}
+                          {opp.opportunity?.date 
+                            ? format(new Date(opp.opportunity.date), 'MMM dd, yyyy')
+                            : 'Date not available'}
                         </p>
                       </div>
                     </div>
@@ -123,7 +125,9 @@ export function VolunteerEvaluationsPage() {
                       <div>
                         <p className="font-medium">{f.opportunity?.title}</p>
                         <p className="text-sm text-muted-foreground">
-                          {format(new Date(f.opportunity?.date), 'MMM dd, yyyy')}
+                          {f.opportunity?.date 
+                            ? format(new Date(f.opportunity.date), 'MMM dd, yyyy')
+                            : 'Date not available'}
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
@@ -137,7 +141,9 @@ export function VolunteerEvaluationsPage() {
                     <div className="flex items-center gap-2 mt-3">
                       <Badge variant="outline">
                         <CheckCircle className="h-3 w-3 mr-1" />
-                        Submitted {format(new Date(f.created_at), 'MMM dd')}
+                        Submitted {f.created_at 
+                          ? format(new Date(f.created_at), 'MMM dd')
+                          : ''}
                       </Badge>
                     </div>
                   </div>
