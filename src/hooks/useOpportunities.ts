@@ -141,12 +141,31 @@ export function useOpportunities() {
     },
   });
 
+  const deleteOpportunity = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('opportunities')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['opportunities'] });
+      toast({ title: 'Success', description: 'Opportunity deleted successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     opportunities,
     isLoading,
     error,
     createOpportunity,
     updateOpportunity,
+    deleteOpportunity,
     publishOpportunity,
     generateQRCode,
     closeQRCode,
@@ -245,7 +264,7 @@ export function useMyRegistrations() {
         .from('volunteers')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!volunteer) return [];
 
