@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PersonalInfoStep } from './steps/PersonalInfoStep';
@@ -6,7 +6,8 @@ import { AcademicInfoStep } from './steps/AcademicInfoStep';
 import { SkillsInterestsStep } from './steps/SkillsInterestsStep';
 import { AvailabilityStep } from './steps/AvailabilityStep';
 import { ReviewStep } from './steps/ReviewStep';
-import { useToast } from '@/hooks/use-toast';
+import { useSubmitApplication } from '@/hooks/useApplications';
+import { useFaculties, useMajors } from '@/hooks/useFaculties';
 
 export interface RegistrationData {
   firstName: string;
@@ -16,8 +17,8 @@ export interface RegistrationData {
   universityEmail: string;
   phoneNumber: string;
   universityId: string;
-  faculty: string;
-  major: string;
+  facultyId: string;
+  majorId: string;
   academicYear: string;
   emergencyContactName: string;
   emergencyContactPhone: string;
@@ -26,8 +27,6 @@ export interface RegistrationData {
   previousExperience: string;
   motivation: string;
   availability: { day: string; timeSlots: string[] }[];
-  password: string;
-  confirmPassword: string;
   acceptCodeOfConduct: boolean;
 }
 
@@ -41,8 +40,8 @@ const STEPS = [
 
 export function RegistrationWizard({ onClose }: { onClose: () => void }) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
+  const submitMutation = useSubmitApplication();
+  const { data: faculties } = useFaculties();
 
   const [formData, setFormData] = useState<RegistrationData>({
     firstName: '',
@@ -52,8 +51,8 @@ export function RegistrationWizard({ onClose }: { onClose: () => void }) {
     universityEmail: '',
     phoneNumber: '',
     universityId: '',
-    faculty: '',
-    major: '',
+    facultyId: '',
+    majorId: '',
     academicYear: '',
     emergencyContactName: '',
     emergencyContactPhone: '',
@@ -62,10 +61,10 @@ export function RegistrationWizard({ onClose }: { onClose: () => void }) {
     previousExperience: '',
     motivation: '',
     availability: [],
-    password: '',
-    confirmPassword: '',
     acceptCodeOfConduct: false,
   });
+
+  const { data: majors } = useMajors(formData.facultyId);
 
   const updateFormData = (data: Partial<RegistrationData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -84,17 +83,25 @@ export function RegistrationWizard({ onClose }: { onClose: () => void }) {
   };
 
   const handleSubmit = async () => {
-    setIsSubmitting(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    toast({
-      title: "Application Submitted!",
-      description: "Your volunteer application has been sent for review. You'll receive an email once it's processed.",
+    await submitMutation.mutateAsync({
+      first_name: formData.firstName,
+      father_name: formData.fatherName,
+      grandfather_name: formData.grandfatherName,
+      family_name: formData.familyName,
+      university_email: formData.universityEmail,
+      phone_number: formData.phoneNumber,
+      university_id: formData.universityId,
+      faculty_id: formData.facultyId,
+      major_id: formData.majorId,
+      academic_year: formData.academicYear,
+      emergency_contact_name: formData.emergencyContactName,
+      emergency_contact_phone: formData.emergencyContactPhone,
+      skills: formData.skills,
+      interests: formData.interests,
+      previous_experience: formData.previousExperience || null,
+      motivation: formData.motivation,
+      availability: formData.availability,
     });
-    
-    setIsSubmitting(false);
     onClose();
   };
 
@@ -103,13 +110,27 @@ export function RegistrationWizard({ onClose }: { onClose: () => void }) {
       case 1:
         return <PersonalInfoStep data={formData} onChange={updateFormData} />;
       case 2:
-        return <AcademicInfoStep data={formData} onChange={updateFormData} />;
+        return (
+          <AcademicInfoStep 
+            data={formData} 
+            onChange={updateFormData} 
+            faculties={faculties || []}
+            majors={majors || []}
+          />
+        );
       case 3:
         return <SkillsInterestsStep data={formData} onChange={updateFormData} />;
       case 4:
         return <AvailabilityStep data={formData} onChange={updateFormData} />;
       case 5:
-        return <ReviewStep data={formData} onChange={updateFormData} />;
+        return (
+          <ReviewStep 
+            data={formData} 
+            onChange={updateFormData}
+            faculties={faculties || []}
+            majors={majors || []}
+          />
+        );
       default:
         return null;
     }
@@ -180,10 +201,10 @@ export function RegistrationWizard({ onClose }: { onClose: () => void }) {
             <Button
               variant="hero"
               onClick={handleSubmit}
-              disabled={isSubmitting || !formData.acceptCodeOfConduct}
+              disabled={submitMutation.isPending || !formData.acceptCodeOfConduct}
               className="gap-2"
             >
-              {isSubmitting ? (
+              {submitMutation.isPending ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
                   Submitting...

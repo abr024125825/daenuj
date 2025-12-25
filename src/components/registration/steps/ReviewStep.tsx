@@ -1,17 +1,19 @@
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { RegistrationData } from '../RegistrationWizard';
-import { ClipboardCheck, User, GraduationCap, Sparkles, Calendar, Lock, Eye, EyeOff } from 'lucide-react';
-import { useState } from 'react';
+import { Faculty, Major } from '@/hooks/useFaculties';
+import { ClipboardCheck, User, GraduationCap, Sparkles, Calendar } from 'lucide-react';
 
 interface ReviewStepProps {
   data: RegistrationData;
   onChange: (data: Partial<RegistrationData>) => void;
+  faculties: Faculty[];
+  majors: Major[];
 }
 
-export function ReviewStep({ data, onChange }: ReviewStepProps) {
-  const [showPassword, setShowPassword] = useState(false);
+export function ReviewStep({ data, onChange, faculties, majors }: ReviewStepProps) {
+  const facultyName = faculties.find(f => f.id === data.facultyId)?.name || 'Not selected';
+  const majorName = majors.find(m => m.id === data.majorId)?.name || 'Not selected';
 
   const InfoSection = ({ icon: Icon, title, children }: { icon: any; title: string; children: React.ReactNode }) => (
     <div className="p-4 bg-card rounded-lg border border-border">
@@ -45,8 +47,8 @@ export function ReviewStep({ data, onChange }: ReviewStepProps) {
 
         <InfoSection icon={GraduationCap} title="Academic Information">
           <p><span className="font-medium text-foreground">University ID:</span> {data.universityId}</p>
-          <p><span className="font-medium text-foreground">Faculty:</span> {data.faculty}</p>
-          <p><span className="font-medium text-foreground">Major:</span> {data.major}</p>
+          <p><span className="font-medium text-foreground">Faculty:</span> {facultyName}</p>
+          <p><span className="font-medium text-foreground">Major:</span> {majorName}</p>
           <p><span className="font-medium text-foreground">Academic Year:</span> {data.academicYear}</p>
         </InfoSection>
 
@@ -70,55 +72,6 @@ export function ReviewStep({ data, onChange }: ReviewStepProps) {
             <p>No availability selected</p>
           )}
         </InfoSection>
-      </div>
-
-      {/* Password Setup */}
-      <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
-        <div className="flex items-center gap-2 mb-4">
-          <Lock className="h-5 w-5 text-primary" />
-          <h3 className="font-semibold text-foreground">Set Your Password</h3>
-        </div>
-        <p className="text-sm text-muted-foreground mb-4">
-          Create a password for your volunteer account. Your username will be your university email.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="password">Password *</Label>
-            <div className="relative">
-              <Input
-                id="password"
-                type={showPassword ? 'text' : 'password'}
-                value={data.password}
-                onChange={(e) => onChange({ password: e.target.value })}
-                placeholder="Min. 8 characters"
-                className="h-11 pr-10"
-                required
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-              >
-                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-              </button>
-            </div>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="confirmPassword">Confirm Password *</Label>
-            <Input
-              id="confirmPassword"
-              type={showPassword ? 'text' : 'password'}
-              value={data.confirmPassword}
-              onChange={(e) => onChange({ confirmPassword: e.target.value })}
-              placeholder="Re-enter password"
-              className="h-11"
-              required
-            />
-          </div>
-        </div>
-        {data.password && data.confirmPassword && data.password !== data.confirmPassword && (
-          <p className="text-sm text-destructive mt-2">Passwords do not match</p>
-        )}
       </div>
 
       {/* Code of Conduct */}

@@ -1,95 +1,165 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '@/types';
+import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
+
+export type UserRole = 'admin' | 'supervisor' | 'volunteer';
+
+export interface UserProfile {
+  id: string;
+  user_id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  role: UserRole;
+  is_active: boolean;
+  avatar_url?: string;
+}
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
+  profile: UserProfile | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
+  signup: (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isAuthenticated: boolean;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Mock users for demo
-const MOCK_USERS: (User & { password: string })[] = [
-  {
-    id: '1',
-    email: 'admin@ju.edu.jo',
-    password: 'admin123',
-    role: 'admin',
-    firstName: 'Admin',
-    lastName: 'User',
-    isActive: true,
-    createdAt: new Date(),
-  },
-  {
-    id: '2',
-    email: 'supervisor@ju.edu.jo',
-    password: 'super123',
-    role: 'supervisor',
-    firstName: 'Supervisor',
-    lastName: 'User',
-    isActive: true,
-    createdAt: new Date(),
-  },
-  {
-    id: '3',
-    email: 'volunteer@ju.edu.jo',
-    password: 'vol123',
-    role: 'volunteer',
-    firstName: 'Mohammed',
-    lastName: 'Ahmad',
-    isActive: true,
-    createdAt: new Date(),
-  },
-];
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Check for existing session
-    const savedUser = localStorage.getItem('vms_user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
+  const fetchProfile = async (userId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
+      }
+
+      return data as UserProfile | null;
+    } catch (err) {
+      console.error('Error in fetchProfile:', err);
+      return null;
     }
-    setIsLoading(false);
+  };
+
+  const refreshProfile = async () => {
+    if (user) {
+      const profileData = await fetchProfile(user.id);
+      setProfile(profileData);
+    }
+  };
+
+  useEffect(() => {
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        
+        // Defer profile fetch to avoid deadlock
+        if (session?.user) {
+          setTimeout(() => {
+            fetchProfile(session.user.id).then(setProfile);
+          }, 0);
+        } else {
+          setProfile(null);
+        }
+      }
+    );
+
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        fetchProfile(session.user.id).then((profileData) => {
+          setProfile(profileData);
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    setIsLoading(true);
-    
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const foundUser = MOCK_USERS.find(u => u.email === email && u.password === password);
-    
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('vms_user', JSON.stringify(userWithoutPassword));
-      setIsLoading(false);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
       return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'An unexpected error occurred' };
     }
-    
-    setIsLoading(false);
-    return { success: false, error: 'Invalid email or password' };
   };
 
-  const logout = () => {
+  const signup = async (
+    email: string, 
+    password: string, 
+    metadata?: { first_name?: string; last_name?: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: metadata,
+        },
+      });
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'An unexpected error occurred' };
+    }
+  };
+
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('vms_user');
+    setSession(null);
+    setProfile(null);
   };
 
   return (
     <AuthContext.Provider value={{
       user,
+      session,
+      profile,
       isLoading,
       login,
+      signup,
       logout,
       isAuthenticated: !!user,
+      refreshProfile,
     }}>
       {children}
     </AuthContext.Provider>
