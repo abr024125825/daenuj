@@ -7,7 +7,7 @@ import { VolunteerDashboard } from '@/components/dashboard/VolunteerDashboard';
 import { Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, profile, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,11 +27,18 @@ export default function Dashboard() {
     );
   }
 
-  if (!user) {
-    return null;
+  if (!user || !profile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading profile...</p>
+        </div>
+      </div>
+    );
   }
 
-  switch (user.role) {
+  switch (profile.role) {
     case 'admin':
       return <AdminDashboard />;
     case 'supervisor':
@@ -39,6 +46,6 @@ export default function Dashboard() {
     case 'volunteer':
       return <VolunteerDashboard />;
     default:
-      return null;
+      return <VolunteerDashboard />;
   }
 }
