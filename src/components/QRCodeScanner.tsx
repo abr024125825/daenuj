@@ -16,7 +16,8 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
   const [isInitializing, setIsInitializing] = useState(false);
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('camera');
+  const [activeTab, setActiveTab] = useState<'camera' | 'upload'>('upload');
+  const [isDragging, setIsDragging] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -56,10 +57,11 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
 
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const code = jsQR(imageData.data, imageData.width, imageData.height, {
-      inversionAttempts: 'dontInvert',
+      inversionAttempts: 'attemptBoth',
     });
 
     if (code) {
+      console.log('QR Code found:', code.data);
       onScan(code.data);
       stopScanning();
       return;
@@ -74,7 +76,7 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
 
     try {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        throw new Error('Camera API not available. Please use a modern browser with HTTPS.');
+        throw new Error('Camera API not available. Please use the Upload tab instead.');
       }
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -91,89 +93,131 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
         setIsScanning(true);
+        console.log('Camera started successfully');
       }
     } catch (err: any) {
       console.error('Camera error:', err);
-      let errorMsg = 'Failed to access camera';
+      let errorMsg = 'Failed to access camera. Please use the Upload tab.';
       
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        errorMsg = 'Camera permission denied. Please allow camera access or use the Upload tab.';
+        errorMsg = 'Camera permission denied. Please use the Upload tab instead.';
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
         errorMsg = 'No camera found. Please use the Upload tab instead.';
       } else if (err.name === 'NotReadableError' || err.name === 'TrackStartError') {
-        errorMsg = 'Camera is in use. Please use the Upload tab instead.';
-      } else if (err.message) {
-        errorMsg = err.message;
+        errorMsg = 'Camera is busy. Please use the Upload tab instead.';
       }
       
       setError(errorMsg);
       onError?.(errorMsg);
+      // Switch to upload tab automatically on camera error
+      setActiveTab('upload');
     } finally {
       setIsInitializing(false);
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
+  const processImage = useCallback((file: File) => {
     setIsProcessingImage(true);
     setError(null);
 
-    try {
-      const image = new Image();
-      const reader = new FileReader();
+    const image = new Image();
+    const reader = new FileReader();
 
-      reader.onload = () => {
-        image.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          
-          if (!ctx) {
-            setError('Failed to process image');
-            setIsProcessingImage(false);
-            return;
-          }
+    reader.onload = () => {
+      image.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        if (!ctx) {
+          setError('Failed to process image');
+          setIsProcessingImage(false);
+          return;
+        }
 
-          canvas.width = image.width;
-          canvas.height = image.height;
-          ctx.drawImage(image, 0, 0);
-
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: 'attemptBoth',
-          });
-
-          if (code) {
-            onScan(code.data);
+        // Scale down large images for faster processing
+        const maxSize = 1000;
+        let width = image.width;
+        let height = image.height;
+        
+        if (width > maxSize || height > maxSize) {
+          if (width > height) {
+            height = (height / width) * maxSize;
+            width = maxSize;
           } else {
-            setError('No QR code found in the image. Please try another image.');
+            width = (width / height) * maxSize;
+            height = maxSize;
           }
-          setIsProcessingImage(false);
-        };
+        }
 
-        image.onerror = () => {
-          setError('Failed to load image');
-          setIsProcessingImage(false);
-        };
+        canvas.width = width;
+        canvas.height = height;
+        ctx.drawImage(image, 0, 0, width, height);
 
-        image.src = reader.result as string;
-      };
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const code = jsQR(imageData.data, imageData.width, imageData.height, {
+          inversionAttempts: 'attemptBoth',
+        });
 
-      reader.onerror = () => {
-        setError('Failed to read file');
+        if (code) {
+          console.log('QR Code found in image:', code.data);
+          onScan(code.data);
+        } else {
+          setError('No QR code found in the image. Please try another image with a clear QR code.');
+        }
         setIsProcessingImage(false);
       };
 
-      reader.readAsDataURL(file);
-    } catch (err: any) {
-      setError(err.message || 'Failed to process image');
-      setIsProcessingImage(false);
-    }
+      image.onerror = () => {
+        setError('Failed to load image');
+        setIsProcessingImage(false);
+      };
 
+      image.src = reader.result as string;
+    };
+
+    reader.onerror = () => {
+      setError('Failed to read file');
+      setIsProcessingImage(false);
+    };
+
+    reader.readAsDataURL(file);
+  }, [onScan]);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    processImage(file);
     // Reset file input
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.type.startsWith('image/')) {
+        processImage(file);
+      } else {
+        setError('Please drop an image file (JPG, PNG, etc.)');
+      }
     }
   };
 
@@ -208,15 +252,77 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
       <CardContent className="p-4 space-y-4">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'camera' | 'upload')}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="camera" className="gap-2">
-              <Camera className="h-4 w-4" />
-              Camera
-            </TabsTrigger>
             <TabsTrigger value="upload" className="gap-2">
               <Upload className="h-4 w-4" />
               Upload
             </TabsTrigger>
+            <TabsTrigger value="camera" className="gap-2">
+              <Camera className="h-4 w-4" />
+              Camera
+            </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="upload" className="mt-4 space-y-4">
+            <div 
+              className={`w-full aspect-square rounded-lg bg-muted flex flex-col items-center justify-center gap-4 border-2 border-dashed transition-colors cursor-pointer ${
+                isDragging 
+                  ? 'border-primary bg-primary/10' 
+                  : 'border-muted-foreground/25 hover:border-primary/50'
+              }`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+            >
+              {isProcessingImage ? (
+                <>
+                  <Loader2 className="h-16 w-16 text-primary animate-spin" />
+                  <p className="text-sm font-medium">Processing image...</p>
+                </>
+              ) : isDragging ? (
+                <>
+                  <Upload className="h-16 w-16 text-primary" />
+                  <p className="text-sm font-medium text-primary">Drop image here</p>
+                </>
+              ) : (
+                <>
+                  <ImageIcon className="h-16 w-16 text-muted-foreground" />
+                  <div className="text-center px-4">
+                    <p className="text-sm font-medium">Drag & drop QR code image here</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      or click to select file
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <Input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleFileUpload}
+            />
+
+            <Button
+              className="w-full"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isProcessingImage}
+            >
+              {isProcessingImage ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Select Image
+                </>
+              )}
+            </Button>
+          </TabsContent>
 
           <TabsContent value="camera" className="mt-4 space-y-4">
             <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted">
@@ -239,7 +345,7 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
                 <div className="w-full h-full flex flex-col items-center justify-center gap-4">
                   <Camera className="h-16 w-16 text-muted-foreground" />
                   <p className="text-sm text-muted-foreground text-center px-4">
-                    Click the button below to start scanning
+                    Click to start camera
                   </p>
                 </div>
               )}
@@ -253,7 +359,7 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
               {isInitializing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Starting camera...
+                  Starting...
                 </>
               ) : isScanning ? (
                 <>
@@ -268,47 +374,6 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
               )}
             </Button>
           </TabsContent>
-
-          <TabsContent value="upload" className="mt-4 space-y-4">
-            <div 
-              className="w-full aspect-square rounded-lg bg-muted flex flex-col items-center justify-center gap-4 border-2 border-dashed border-muted-foreground/25 cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <ImageIcon className="h-16 w-16 text-muted-foreground" />
-              <div className="text-center px-4">
-                <p className="text-sm font-medium">Click to upload QR code image</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Supports JPG, PNG, GIF
-                </p>
-              </div>
-            </div>
-
-            <Input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileUpload}
-            />
-
-            <Button
-              className="w-full"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={isProcessingImage}
-            >
-              {isProcessingImage ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processing image...
-                </>
-              ) : (
-                <>
-                  <Upload className="h-4 w-4 mr-2" />
-                  Select Image
-                </>
-              )}
-            </Button>
-          </TabsContent>
         </Tabs>
 
         {/* Hidden canvas for QR processing */}
@@ -317,17 +382,14 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
         {error && (
           <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex items-start gap-2">
             <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-medium">Error</p>
-              <p>{error}</p>
-            </div>
+            <p>{error}</p>
           </div>
         )}
 
         <p className="text-xs text-muted-foreground text-center">
           {activeTab === 'camera' 
-            ? 'Point your camera at the QR code to scan'
-            : 'Upload a screenshot or photo of the QR code'}
+            ? 'Point camera at QR code'
+            : 'Upload or drag a QR code image'}
         </p>
       </CardContent>
     </Card>
