@@ -180,22 +180,37 @@ export function VolunteerOpportunitiesPage() {
                     </Badge>
                   )}
 
-                  {!registered ? (
-                    <Button
-                      className="w-full"
-                      onClick={() => handleRegister(opp.id)}
-                      disabled={!volunteer || registerForOpportunity.isPending}
-                    >
-                      {registerForOpportunity.isPending ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : null}
-                      Register
-                    </Button>
-                  ) : (
-                    <Button variant="outline" className="w-full" disabled>
-                      Already Registered
-                    </Button>
-                  )}
+                  <div className="flex gap-2">
+                    {!registered ? (
+                      <Button
+                        className="flex-1"
+                        onClick={() => handleRegister(opp.id)}
+                        disabled={!volunteer || registerForOpportunity.isPending}
+                      >
+                        {registerForOpportunity.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : null}
+                        Register
+                      </Button>
+                    ) : status === 'approved' ? (
+                      <>
+                        <Button variant="outline" className="flex-1" disabled>
+                          Registered
+                        </Button>
+                        <Button
+                          onClick={() => setCheckInDialogOpen(true)}
+                          className="gap-1"
+                        >
+                          <QrCode className="h-4 w-4" />
+                          Check In
+                        </Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" className="flex-1" disabled>
+                        Pending Approval
+                      </Button>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             );
