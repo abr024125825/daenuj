@@ -58,7 +58,7 @@ export function SettingsPage() {
 
   const handleCreateUser = async () => {
     if (!newUserEmail || !newUserPassword || !newUserFirstName || !newUserLastName) {
-      toast({ title: 'خطأ', description: 'يرجى ملء جميع الحقول', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Please fill in all fields', variant: 'destructive' });
       return;
     }
 
@@ -102,8 +102,8 @@ export function SettingsPage() {
         if (profileError) throw profileError;
 
         toast({ 
-          title: 'تم بنجاح', 
-          description: `تم إنشاء حساب ${newUserRole === 'admin' ? 'المدير' : newUserRole === 'supervisor' ? 'المشرف' : 'المتطوع'} بنجاح` 
+          title: 'Success', 
+          description: `${newUserRole.charAt(0).toUpperCase() + newUserRole.slice(1)} account created successfully` 
         });
         setCreateUserDialogOpen(false);
         resetCreateUserForm();
@@ -146,12 +146,12 @@ export function SettingsPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-display font-bold">إعدادات النظام</h2>
-            <p className="text-muted-foreground">إدارة المستخدمين والأدوار وإعدادات النظام</p>
+            <h2 className="text-2xl font-display font-bold">System Settings</h2>
+            <p className="text-muted-foreground">Manage users, roles, and system configuration</p>
           </div>
           <Button onClick={() => setCreateUserDialogOpen(true)}>
             <UserPlus className="h-4 w-4 mr-2" />
-            إنشاء مستخدم جديد
+            Create New User
           </Button>
         </div>
 
@@ -306,56 +306,54 @@ export function SettingsPage() {
         <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>إنشاء مستخدم جديد</DialogTitle>
+              <DialogTitle>Create New User</DialogTitle>
               <DialogDescription>
-                إنشاء حساب جديد مع اختيار الدور المناسب
+                Create a new account and assign the appropriate role
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label htmlFor="new-user-first-name">الاسم الأول</Label>
+                  <Label htmlFor="new-user-first-name">First Name</Label>
                   <Input
                     id="new-user-first-name"
                     value={newUserFirstName}
                     onChange={(e) => setNewUserFirstName(e.target.value)}
-                    placeholder="أحمد"
+                    placeholder="John"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="new-user-last-name">اسم العائلة</Label>
+                  <Label htmlFor="new-user-last-name">Last Name</Label>
                   <Input
                     id="new-user-last-name"
                     value={newUserLastName}
                     onChange={(e) => setNewUserLastName(e.target.value)}
-                    placeholder="المشرف"
+                    placeholder="Doe"
                   />
                 </div>
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="new-user-email">البريد الإلكتروني</Label>
+                <Label htmlFor="new-user-email">Email</Label>
                 <Input
                   id="new-user-email"
                   type="email"
                   value={newUserEmail}
                   onChange={(e) => setNewUserEmail(e.target.value)}
                   placeholder="user@university.edu"
-                  dir="ltr"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="new-user-password">كلمة المرور</Label>
+                <Label htmlFor="new-user-password">Password</Label>
                 <Input
                   id="new-user-password"
                   type="password"
                   value={newUserPassword}
                   onChange={(e) => setNewUserPassword(e.target.value)}
-                  placeholder="كلمة مرور آمنة"
-                  dir="ltr"
+                  placeholder="Secure password"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="new-user-role">الدور</Label>
+                <Label htmlFor="new-user-role">Role</Label>
                 <Select
                   value={newUserRole}
                   onValueChange={(value) => setNewUserRole(value as any)}
@@ -364,9 +362,9 @@ export function SettingsPage() {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="volunteer">متطوع</SelectItem>
-                    <SelectItem value="supervisor">مشرف</SelectItem>
-                    <SelectItem value="admin">مدير</SelectItem>
+                    <SelectItem value="volunteer">Volunteer</SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -376,7 +374,7 @@ export function SettingsPage() {
                 disabled={isCreatingUser}
               >
                 {isCreatingUser && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                إنشاء المستخدم
+                Create User
               </Button>
             </div>
           </DialogContent>

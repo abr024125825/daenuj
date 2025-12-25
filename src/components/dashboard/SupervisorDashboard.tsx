@@ -25,12 +25,10 @@ import {
   CheckCircle,
   Clock,
   MapPin,
-  Eye,
   UserCheck,
   LogOut,
   UsersRound,
   Loader2,
-  XCircle,
 } from 'lucide-react';
 import { useSupervisorOpportunities } from '@/hooks/useSupervisors';
 import { useOpportunityRegistrations } from '@/hooks/useOpportunities';
@@ -74,7 +72,7 @@ export function SupervisorDashboard() {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="لوحة تحكم المشرف">
+      <DashboardLayout title="Supervisor Dashboard">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -83,7 +81,7 @@ export function SupervisorDashboard() {
   }
 
   return (
-    <DashboardLayout title="لوحة تحكم المشرف">
+    <DashboardLayout title="Supervisor Dashboard">
       <div className="space-y-8">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -95,7 +93,7 @@ export function SupervisorDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.total}</p>
-                  <p className="text-sm text-muted-foreground">الفرص المسندة</p>
+                  <p className="text-sm text-muted-foreground">Assigned Opportunities</p>
                 </div>
               </div>
             </CardContent>
@@ -108,7 +106,7 @@ export function SupervisorDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.published}</p>
-                  <p className="text-sm text-muted-foreground">فرص نشطة</p>
+                  <p className="text-sm text-muted-foreground">Active</p>
                 </div>
               </div>
             </CardContent>
@@ -121,7 +119,7 @@ export function SupervisorDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.completed}</p>
-                  <p className="text-sm text-muted-foreground">فرص مكتملة</p>
+                  <p className="text-sm text-muted-foreground">Completed</p>
                 </div>
               </div>
             </CardContent>
@@ -134,7 +132,7 @@ export function SupervisorDashboard() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{stats.totalVolunteers}</p>
-                  <p className="text-sm text-muted-foreground">إجمالي المتطوعين</p>
+                  <p className="text-sm text-muted-foreground">Total Volunteers</p>
                 </div>
               </div>
             </CardContent>
@@ -146,10 +144,10 @@ export function SupervisorDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5 text-primary" />
-              الفرص المسندة إليّ
+              My Assigned Opportunities
             </CardTitle>
             <CardDescription>
-              قم بإدارة الحضور والمتطوعين للفرص المسندة إليك
+              Manage attendance and volunteers for your assigned opportunities
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -157,12 +155,12 @@ export function SupervisorDashboard() {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>الفرصة</TableHead>
-                    <TableHead>التاريخ والوقت</TableHead>
-                    <TableHead>الموقع</TableHead>
-                    <TableHead>المتطوعون</TableHead>
-                    <TableHead>الحالة</TableHead>
-                    <TableHead>الإجراءات</TableHead>
+                    <TableHead>Opportunity</TableHead>
+                    <TableHead>Date & Time</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Volunteers</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -207,7 +205,7 @@ export function SupervisorDashboard() {
                         <div className="flex items-center gap-1">
                           <Button size="sm" variant="outline" onClick={() => openRegistrationsDialog(opp)}>
                             <ClipboardList className="h-4 w-4 mr-1" />
-                            إدارة الحضور
+                            Manage Attendance
                           </Button>
                         </div>
                       </TableCell>
@@ -218,9 +216,9 @@ export function SupervisorDashboard() {
             ) : (
               <div className="text-center py-12">
                 <Calendar className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">لا توجد فرص مسندة</h3>
+                <h3 className="text-lg font-medium mb-2">No Opportunities Assigned</h3>
                 <p className="text-muted-foreground">
-                  ستظهر الفرص المسندة إليك هنا بمجرد أن يقوم المدير بتعيينك عليها
+                  You will see your assigned opportunities here once the admin assigns them to you.
                 </p>
               </div>
             )}
@@ -231,9 +229,9 @@ export function SupervisorDashboard() {
         <Dialog open={registrationsDialogOpen} onOpenChange={setRegistrationsDialogOpen}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>إدارة الحضور - {selectedOpportunity?.title}</DialogTitle>
+              <DialogTitle>Manage Attendance - {selectedOpportunity?.title}</DialogTitle>
               <DialogDescription>
-                قم بتسجيل حضور وانصراف المتطوعين
+                Check in and check out volunteers for this opportunity
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 max-h-96 overflow-y-auto">
@@ -242,10 +240,10 @@ export function SupervisorDashboard() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-medium text-muted-foreground">
-                      المعتمدون ({registrations?.filter((r: any) => r.status === 'approved').length})
+                      Approved ({registrations?.filter((r: any) => r.status === 'approved').length})
                       {' • '}
                       <span className="text-green-600">
-                        {registrations?.filter((r: any) => r.status === 'approved' && checkedInVolunteerIds.has(r.volunteer?.id)).length} حاضر
+                        {registrations?.filter((r: any) => r.status === 'approved' && checkedInVolunteerIds.has(r.volunteer?.id)).length} checked in
                       </span>
                     </p>
                     {registrations?.filter((r: any) => r.status === 'approved' && !checkedInVolunteerIds.has(r.volunteer?.id)).length > 0 && (
@@ -256,7 +254,7 @@ export function SupervisorDashboard() {
                         disabled={bulkCheckIn.isPending}
                       >
                         <UsersRound className="h-4 w-4 mr-2" />
-                        تسجيل حضور الجميع ({registrations?.filter((r: any) => r.status === 'approved' && !checkedInVolunteerIds.has(r.volunteer?.id)).length})
+                        Check In All ({registrations?.filter((r: any) => r.status === 'approved' && !checkedInVolunteerIds.has(r.volunteer?.id)).length})
                       </Button>
                     )}
                   </div>
@@ -292,8 +290,8 @@ export function SupervisorDashboard() {
                           <div>
                             <p className="font-medium text-sm">
                               {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
-                              {isCheckedOut && <span className="ml-2 text-xs text-muted-foreground font-normal">(غادر مبكراً)</span>}
-                              {isCheckedIn && !isCheckedOut && <span className="ml-2 text-xs text-green-600 font-normal">(حاضر)</span>}
+                              {isCheckedOut && <span className="ml-2 text-xs text-muted-foreground font-normal">(Left Early)</span>}
+                              {isCheckedIn && !isCheckedOut && <span className="ml-2 text-xs text-green-600 font-normal">(Checked In)</span>}
                             </p>
                             <p className="text-xs text-muted-foreground">{reg.volunteer?.application?.university_id}</p>
                           </div>
@@ -303,7 +301,7 @@ export function SupervisorDashboard() {
                             variant={isCheckedOut ? "outline" : isCheckedIn ? "default" : "secondary"} 
                             className={isCheckedOut ? "text-muted-foreground" : isCheckedIn ? "bg-green-500" : ""}
                           >
-                            {isCheckedOut ? 'غادر' : isCheckedIn ? 'حاضر' : 'معتمد'}
+                            {isCheckedOut ? 'checked out' : isCheckedIn ? 'checked in' : 'approved'}
                           </Badge>
                           {!isCheckedIn && (
                             <Button 
@@ -315,7 +313,7 @@ export function SupervisorDashboard() {
                                 registrationId: reg.id,
                               })}
                               disabled={manualCheckIn.isPending}
-                              title="تسجيل الحضور"
+                              title="Manual Check-in"
                             >
                               <UserCheck className="h-4 w-4 text-primary" />
                             </Button>
@@ -329,7 +327,7 @@ export function SupervisorDashboard() {
                                 volunteerId: reg.volunteer?.id,
                               })}
                               disabled={checkOut.isPending}
-                              title="تسجيل الانصراف"
+                              title="Check Out (Left Early)"
                             >
                               <LogOut className="h-4 w-4 text-orange-500" />
                             </Button>
@@ -345,7 +343,7 @@ export function SupervisorDashboard() {
               {registrations?.filter((r: any) => r.status === 'pending').length > 0 && (
                 <div className="space-y-2">
                   <p className="text-sm font-medium text-muted-foreground">
-                    في انتظار الموافقة ({registrations?.filter((r: any) => r.status === 'pending').length})
+                    Pending ({registrations?.filter((r: any) => r.status === 'pending').length})
                   </p>
                   {registrations?.filter((r: any) => r.status === 'pending').map((reg: any) => (
                     <div key={reg.id} className="flex items-center justify-between p-3 border rounded-lg">
@@ -363,7 +361,7 @@ export function SupervisorDashboard() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary">قيد الانتظار</Badge>
+                        <Badge variant="secondary">pending</Badge>
                         <Button 
                           size="sm" 
                           variant="outline" 
@@ -380,7 +378,7 @@ export function SupervisorDashboard() {
 
               {(!registrations || registrations.length === 0) && (
                 <div className="text-center py-8 text-muted-foreground">
-                  لا يوجد متطوعون مسجلون لهذه الفرصة
+                  No volunteers registered for this opportunity yet.
                 </div>
               )}
             </div>
