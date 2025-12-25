@@ -40,6 +40,7 @@ import {
   Search,
   ClipboardCheck,
   AlertCircle,
+  Eye,
 } from 'lucide-react';
 import { useReportsData } from '@/hooks/useReports';
 import {
@@ -87,6 +88,8 @@ export function ReportsPage() {
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>('');
   const [selectedVolunteerId, setSelectedVolunteerId] = useState<string>('');
   const [volunteerSearch, setVolunteerSearch] = useState('');
+  const [universityIdSearch, setUniversityIdSearch] = useState('');
+  const [selectedFacultyId, setSelectedFacultyId] = useState<string>('');
   
   const { data: attendanceData, isLoading: attendanceLoading } = useAttendanceReport(selectedOpportunityId);
   const { data: volunteerDetails, isLoading: volunteerDetailsLoading } = useVolunteerDetails(selectedVolunteerId);
@@ -172,6 +175,16 @@ export function ReportsPage() {
   const filteredVolunteers = allVolunteers?.filter(v => 
     v.full_name.toLowerCase().includes(volunteerSearch.toLowerCase()) ||
     v.university_id.includes(volunteerSearch)
+  );
+
+  // Filter volunteers by university ID for individual report
+  const volunteersByUniversityId = allVolunteers?.filter(v => 
+    v.university_id.includes(universityIdSearch)
+  );
+
+  // Get volunteers for selected faculty
+  const facultyVolunteers = allVolunteers?.filter(v => 
+    selectedFacultyId && v.faculty === facultyData?.find(f => f.id === selectedFacultyId)?.name
   );
 
   const completedOpportunities = opportunities?.filter((o: any) => 
@@ -438,6 +451,7 @@ export function ReportsPage() {
                         <TableHead className="text-right">Volunteers</TableHead>
                         <TableHead className="text-right">Total Hours</TableHead>
                         <TableHead className="text-right">Avg Hours</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -451,11 +465,21 @@ export function ReportsPage() {
                           <TableCell className="text-right">
                             {faculty.count > 0 ? (faculty.hours / faculty.count).toFixed(1) : 0}
                           </TableCell>
+                          <TableCell className="text-right">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setSelectedFacultyId(selectedFacultyId === faculty.id ? '' : faculty.id)}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              {selectedFacultyId === faculty.id ? 'Hide' : 'View'}
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                       {(!facultyData || facultyData.length === 0) && (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                             No faculty data available
                           </TableCell>
                         </TableRow>
@@ -465,6 +489,87 @@ export function ReportsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Faculty Volunteers Detail */}
+            {selectedFacultyId && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg">
+                        {facultyData?.find(f => f.id === selectedFacultyId)?.name} - Volunteers
+                      </CardTitle>
+                      <CardDescription>
+                        {facultyVolunteers?.length || 0} volunteers in this faculty
+                      </CardDescription>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        if (!facultyVolunteers || facultyVolunteers.length === 0) return;
+                        generateAllVolunteersPDF(facultyVolunteers.map(v => ({
+                          name: v.full_name,
+                          university_id: v.university_id,
+                          faculty: v.faculty,
+                          total_hours: v.total_hours,
+                          opportunities_completed: v.opportunities_completed,
+                          is_active: v.is_active ?? false,
+                        })));
+                      }}
+                      disabled={!facultyVolunteers || facultyVolunteers.length === 0}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download PDF
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>University ID</TableHead>
+                        <TableHead>Major</TableHead>
+                        <TableHead>Hours</TableHead>
+                        <TableHead>Opportunities</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {facultyVolunteers?.map((v) => (
+                        <TableRow key={v.id}>
+                          <TableCell className="font-medium">{v.full_name}</TableCell>
+                          <TableCell>{v.university_id}</TableCell>
+                          <TableCell>{v.major || 'N/A'}</TableCell>
+                          <TableCell><Badge variant="secondary">{v.total_hours}</Badge></TableCell>
+                          <TableCell>{v.opportunities_completed}</TableCell>
+                          <TableCell>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedVolunteerId(v.id);
+                              }}
+                            >
+                              <FileText className="h-4 w-4 mr-1" />
+                              Report
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {(!facultyVolunteers || facultyVolunteers.length === 0) && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            No volunteers in this faculty
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
 
           {/* Top Hours Tab */}
@@ -803,18 +908,54 @@ export function ReportsPage() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Select value={selectedVolunteerId} onValueChange={setSelectedVolunteerId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a volunteer" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {allVolunteers?.map((v) => (
-                      <SelectItem key={v.id} value={v.id}>
-                        {v.full_name} ({v.university_id})
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Search by University ID</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Enter university ID..."
+                        value={universityIdSearch}
+                        onChange={(e) => setUniversityIdSearch(e.target.value)}
+                        className="pl-9"
+                      />
+                    </div>
+                    {universityIdSearch && volunteersByUniversityId && volunteersByUniversityId.length > 0 && (
+                      <div className="border rounded-lg p-2 space-y-1 max-h-40 overflow-y-auto">
+                        {volunteersByUniversityId.slice(0, 10).map((v) => (
+                          <Button
+                            key={v.id}
+                            variant="ghost"
+                            size="sm"
+                            className="w-full justify-start text-left"
+                            onClick={() => {
+                              setSelectedVolunteerId(v.id);
+                              setUniversityIdSearch('');
+                            }}
+                          >
+                            <span className="font-mono mr-2">{v.university_id}</span>
+                            <span className="text-muted-foreground">{v.full_name}</span>
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Or select from list</label>
+                    <Select value={selectedVolunteerId} onValueChange={setSelectedVolunteerId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a volunteer" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allVolunteers?.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.full_name} ({v.university_id})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
                 {volunteerDetailsLoading && (
                   <div className="flex items-center justify-center h-32">

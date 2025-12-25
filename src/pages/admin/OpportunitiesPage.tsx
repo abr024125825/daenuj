@@ -377,6 +377,16 @@ export function OpportunitiesPage() {
                             </Button>
                           </>
                         )}
+                        {opp.status === 'completed' && opp.qr_code_token && (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleShowQR(opp)}
+                            title="View QR Code (Read Only)"
+                          >
+                            <QrCode className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        )}
                         <Button size="sm" variant="ghost" onClick={() => openDetailsDialog(opp)}>
                           <Eye className="h-4 w-4" />
                         </Button>
