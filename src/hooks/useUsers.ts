@@ -12,12 +12,10 @@ export function useUsers() {
   const { data: users, isLoading } = useQuery({
     queryKey: ['all-users'],
     queryFn: async () => {
+      // Fetch profiles directly - role is already stored in profiles table
       const { data, error } = await supabase
         .from('profiles')
-        .select(`
-          *,
-          user_roles(role)
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
       
       if (error) throw error;
