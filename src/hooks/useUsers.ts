@@ -21,8 +21,10 @@ export function useUsers() {
         .order('created_at', { ascending: false });
       
       if (error) throw error;
-      return data;
+      return data || [];
     },
+    staleTime: 30000,
+    retry: 2,
   });
 
   const updateUserRole = useMutation({
