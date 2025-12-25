@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, LogIn, Loader2, Shield, ArrowLeft } from 'lucide-react';
+import { Eye, EyeOff, LogIn, Loader2, Shield, UserPlus, Heart, Users, Award, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -26,15 +26,15 @@ export function SupervisorLoginPage() {
 
     if (result.success) {
       toast({
-        title: "مرحباً بك!",
-        description: "تم تسجيل الدخول بنجاح.",
+        title: "Welcome back!",
+        description: "You have been successfully logged in.",
       });
       navigate('/dashboard');
     } else {
       toast({
         variant: "destructive",
-        title: "فشل تسجيل الدخول",
-        description: result.error || "بيانات الاعتماد غير صحيحة",
+        title: "Login failed",
+        description: result.error || "Invalid credentials",
       });
     }
 
@@ -42,116 +42,165 @@ export function SupervisorLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-blue-900 flex flex-col">
+    <div className="min-h-screen gradient-hero">
       {/* Header */}
-      <header className="p-4">
-        <Link 
-          to="/" 
-          className="inline-flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          العودة للرئيسية
-        </Link>
+      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <Logo size="sm" />
+          <nav className="hidden md:flex items-center gap-6">
+            <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Home
+            </Link>
+            <Link to="/register" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Become a Volunteer
+            </Link>
+          </nav>
+        </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          {/* Login Card */}
-          <div className="bg-card rounded-2xl shadow-2xl border border-border p-8">
-            {/* Header */}
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 rounded-2xl bg-blue-600/20 flex items-center justify-center mx-auto mb-4">
-                <Shield className="h-10 w-10 text-blue-400" />
-              </div>
-              <h1 className="text-2xl font-display font-bold text-foreground">
-                بوابة المشرفين
-              </h1>
-              <p className="text-muted-foreground mt-2">
-                تسجيل الدخول لإدارة الفرص التطوعية
-              </p>
-            </div>
-
-            {/* Login Form */}
-            <form onSubmit={handleLogin} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="supervisor-email" className="text-sm font-medium">
-                  البريد الإلكتروني
-                </Label>
-                <Input
-                  id="supervisor-email"
-                  type="email"
-                  placeholder="supervisor@university.edu"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="h-12 bg-secondary/50 border-border/50 focus:border-blue-500 transition-colors"
-                  required
-                  dir="ltr"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="supervisor-password" className="text-sm font-medium">
-                  كلمة المرور
-                </Label>
-                <div className="relative">
-                  <Input
-                    id="supervisor-password"
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="أدخل كلمة المرور"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 bg-secondary/50 border-border/50 focus:border-blue-500 transition-colors pr-12"
-                    required
-                    dir="ltr"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+      <main className="pt-16">
+        {/* Hero Section */}
+        <section className="relative overflow-hidden py-20 lg:py-32">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+          <div className="container mx-auto px-4 relative">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left Content */}
+              <div className="animate-slide-up">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-6">
+                  <Shield className="h-4 w-4" />
+                  Supervisor Portal
+                </div>
+                <h1 className="text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight mb-6">
+                  Manage Your <span className="text-primary">Opportunities</span>
+                </h1>
+                <p className="text-lg text-muted-foreground mb-8 max-w-lg">
+                  Access your supervisor dashboard to manage volunteer attendance, 
+                  track participation, and oversee your assigned opportunities.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Button
+                    variant="outline"
+                    size="xl"
+                    onClick={() => navigate('/')}
+                    className="gap-2"
                   >
-                    {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                  </button>
+                    <ArrowRight className="h-5 w-5" />
+                    Back to Main Login
+                  </Button>
+                </div>
+
+                {/* Features */}
+                <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-border">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    <span className="text-sm text-muted-foreground">Manage Volunteers</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Award className="h-5 w-5 text-accent" />
+                    <span className="text-sm text-muted-foreground">Track Attendance</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Heart className="h-5 w-5 text-foreground" />
+                    <span className="text-sm text-muted-foreground">View Reports</span>
+                  </div>
                 </div>
               </div>
 
-              <Button
-                type="submit"
-                className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin ml-2" />
-                    جارٍ تسجيل الدخول...
-                  </>
-                ) : (
-                  <>
-                    <LogIn className="h-5 w-5 ml-2" />
-                    تسجيل الدخول
-                  </>
-                )}
-              </Button>
-            </form>
+              {/* Right Content - Login Card */}
+              <div className="lg:pl-12 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+                <div className="bg-card rounded-2xl shadow-xl border border-border p-8 max-w-md mx-auto">
+                  <div className="text-center mb-8">
+                    <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                      <Shield className="h-8 w-8 text-primary" />
+                    </div>
+                    <h2 className="text-2xl font-display font-bold text-foreground">Supervisor Login</h2>
+                    <p className="text-muted-foreground mt-2">Sign in to your supervisor account</p>
+                  </div>
 
-            {/* Footer */}
-            <div className="mt-6 pt-6 border-t border-border">
-              <p className="text-center text-sm text-muted-foreground">
-                هذه البوابة مخصصة للمشرفين المعتمدين فقط.
-                <br />
-                إذا كنت متطوعاً، يرجى استخدام{' '}
-                <Link to="/" className="text-blue-500 hover:underline">
-                  صفحة تسجيل الدخول الرئيسية
-                </Link>
+                  {/* Login Form */}
+                  <form onSubmit={handleLogin} className="space-y-5">
+                    <div className="space-y-2">
+                      <Label htmlFor="supervisor-email" className="text-sm font-medium">
+                        Email
+                      </Label>
+                      <Input
+                        id="supervisor-email"
+                        type="email"
+                        placeholder="supervisor@university.edu"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="h-12 bg-secondary/50 border-border/50 focus:border-primary transition-colors"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="supervisor-password" className="text-sm font-medium">
+                        Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="supervisor-password"
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder="Enter your password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="h-12 bg-secondary/50 border-border/50 focus:border-primary transition-colors pr-12"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <Button
+                      type="submit"
+                      className="w-full h-12"
+                      variant="hero"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                          Signing in...
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="h-5 w-5" />
+                          Sign In
+                        </>
+                      )}
+                    </Button>
+                  </form>
+
+                  {/* Footer */}
+                  <div className="mt-6 pt-4 border-t border-border text-center">
+                    <p className="text-sm text-muted-foreground">
+                      This portal is for authorized supervisors only.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="bg-card border-t border-border py-8">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <Logo size="sm" />
+              <p className="text-sm text-muted-foreground">
+                © {new Date().getFullYear()} Community Service & Development Center. University of Jordan.
               </p>
             </div>
           </div>
-
-          {/* Logo */}
-          <div className="mt-8 text-center">
-            <Logo size="sm" />
-          </div>
-        </div>
+        </footer>
       </main>
     </div>
   );
