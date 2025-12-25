@@ -19,7 +19,8 @@ export function useOpportunities() {
         .select(`
           *,
           faculty:faculties(id, name),
-          registrations:opportunity_registrations(count)
+          registrations:opportunity_registrations(count),
+          supervisor:profiles!opportunities_supervisor_id_fkey(user_id, first_name, last_name, email)
         `)
         .order('date', { ascending: true });
       

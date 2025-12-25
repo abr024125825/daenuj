@@ -303,6 +303,7 @@ export type Database = {
           required_volunteers: number
           start_time: string
           status: Database["public"]["Enums"]["opportunity_status"]
+          supervisor_id: string | null
           title: string
           updated_at: string
         }
@@ -323,6 +324,7 @@ export type Database = {
           required_volunteers?: number
           start_time: string
           status?: Database["public"]["Enums"]["opportunity_status"]
+          supervisor_id?: string | null
           title: string
           updated_at?: string
         }
@@ -343,6 +345,7 @@ export type Database = {
           required_volunteers?: number
           start_time?: string
           status?: Database["public"]["Enums"]["opportunity_status"]
+          supervisor_id?: string | null
           title?: string
           updated_at?: string
         }
