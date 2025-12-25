@@ -82,7 +82,7 @@ export function OpportunitiesPage() {
   });
 
   // Get registrations for selected opportunity
-  const { registrations, approveRegistration, rejectRegistration } = useOpportunityRegistrations(selectedOpportunity?.id);
+  const { registrations, approveRegistration, rejectRegistration, manualCheckIn } = useOpportunityRegistrations(selectedOpportunity?.id);
 
   const handleCreate = async () => {
     if (!formData.title || !formData.description || !formData.date || !formData.start_time || !formData.end_time || !formData.location) {
@@ -543,6 +543,19 @@ export function OpportunitiesPage() {
                       </div>
                       <div className="flex items-center gap-2">
                         <Badge variant="default">approved</Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => manualCheckIn.mutate({
+                            opportunityId: selectedOpportunity?.id,
+                            volunteerId: reg.volunteer?.id,
+                            registrationId: reg.id,
+                          })}
+                          disabled={manualCheckIn.isPending}
+                          title="Manual Check-in"
+                        >
+                          <UserCheck className="h-4 w-4 text-primary" />
+                        </Button>
                         <Button size="sm" variant="ghost" onClick={() => handleRejectRegistration(reg.id)}>
                           <XCircle className="h-4 w-4 text-destructive" />
                         </Button>
