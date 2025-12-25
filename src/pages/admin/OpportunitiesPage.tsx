@@ -32,7 +32,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Plus, Calendar, MapPin, Users, QrCode, Eye, Send, Loader2, 
-  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, RotateCcw, UserCheckIcon, UsersRound
+  Pencil, Trash2, CheckCircle, XCircle, Clock, UserCheck, RotateCcw, UsersRound, LogOut
 } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
 import { useFaculties } from '@/hooks/useFaculties';
@@ -82,7 +82,7 @@ export function OpportunitiesPage() {
   });
 
   // Get registrations for selected opportunity
-  const { registrations, approveRegistration, rejectRegistration, manualCheckIn, bulkCheckIn, checkedInVolunteerIds } = useOpportunityRegistrations(selectedOpportunity?.id);
+  const { registrations, approveRegistration, rejectRegistration, manualCheckIn, bulkCheckIn, checkOut, checkedInVolunteerIds, checkedOutVolunteerIds } = useOpportunityRegistrations(selectedOpportunity?.id);
 
   const handleCreate = async () => {
     if (!formData.title || !formData.description || !formData.date || !formData.start_time || !formData.end_time || !formData.location) {
@@ -547,11 +547,26 @@ export function OpportunitiesPage() {
                   </div>
                   {registrations?.filter((r: any) => r.status === 'approved').map((reg: any) => {
                     const isCheckedIn = checkedInVolunteerIds.has(reg.volunteer?.id);
+                    const isCheckedOut = checkedOutVolunteerIds.has(reg.volunteer?.id);
                     return (
-                      <div key={reg.id} className={`flex items-center justify-between p-3 border rounded-lg ${isCheckedIn ? 'bg-green-500/10 border-green-500/30' : 'bg-green-500/5 border-green-500/20'}`}>
+                      <div key={reg.id} className={`flex items-center justify-between p-3 border rounded-lg ${
+                        isCheckedOut 
+                          ? 'bg-muted/50 border-muted-foreground/20' 
+                          : isCheckedIn 
+                            ? 'bg-green-500/10 border-green-500/30' 
+                            : 'bg-green-500/5 border-green-500/20'
+                      }`}>
                         <div className="flex items-center gap-3">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isCheckedIn ? 'bg-green-500 text-white' : 'bg-green-500/20'}`}>
-                            {isCheckedIn ? (
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                            isCheckedOut 
+                              ? 'bg-muted text-muted-foreground' 
+                              : isCheckedIn 
+                                ? 'bg-green-500 text-white' 
+                                : 'bg-green-500/20'
+                          }`}>
+                            {isCheckedOut ? (
+                              <LogOut className="h-4 w-4" />
+                            ) : isCheckedIn ? (
                               <CheckCircle className="h-4 w-4" />
                             ) : (
                               <span className="text-xs font-medium text-green-600">
@@ -562,14 +577,18 @@ export function OpportunitiesPage() {
                           <div>
                             <p className="font-medium text-sm">
                               {reg.volunteer?.application?.first_name} {reg.volunteer?.application?.family_name}
-                              {isCheckedIn && <span className="ml-2 text-xs text-green-600 font-normal">(Checked In)</span>}
+                              {isCheckedOut && <span className="ml-2 text-xs text-muted-foreground font-normal">(Left Early)</span>}
+                              {isCheckedIn && !isCheckedOut && <span className="ml-2 text-xs text-green-600 font-normal">(Checked In)</span>}
                             </p>
                             <p className="text-xs text-muted-foreground">{reg.volunteer?.application?.university_id}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Badge variant={isCheckedIn ? "default" : "secondary"} className={isCheckedIn ? "bg-green-500" : ""}>
-                            {isCheckedIn ? 'checked in' : 'approved'}
+                          <Badge 
+                            variant={isCheckedOut ? "outline" : isCheckedIn ? "default" : "secondary"} 
+                            className={isCheckedOut ? "text-muted-foreground" : isCheckedIn ? "bg-green-500" : ""}
+                          >
+                            {isCheckedOut ? 'checked out' : isCheckedIn ? 'checked in' : 'approved'}
                           </Badge>
                           {!isCheckedIn && (
                             <Button 
@@ -584,6 +603,20 @@ export function OpportunitiesPage() {
                               title="Manual Check-in"
                             >
                               <UserCheck className="h-4 w-4 text-primary" />
+                            </Button>
+                          )}
+                          {isCheckedIn && !isCheckedOut && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => checkOut.mutate({
+                                opportunityId: selectedOpportunity?.id,
+                                volunteerId: reg.volunteer?.id,
+                              })}
+                              disabled={checkOut.isPending}
+                              title="Check Out (Left Early)"
+                            >
+                              <LogOut className="h-4 w-4 text-orange-500" />
                             </Button>
                           )}
                           <Button size="sm" variant="ghost" onClick={() => handleRejectRegistration(reg.id)}>

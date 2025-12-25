@@ -256,7 +256,7 @@ export function useOpportunityRegistrations(opportunityId?: string) {
       if (!opportunityId) return [];
       const { data, error } = await supabase
         .from('attendance')
-        .select('volunteer_id')
+        .select('volunteer_id, check_out_time')
         .eq('opportunity_id', opportunityId);
       
       if (error) throw error;
@@ -266,6 +266,9 @@ export function useOpportunityRegistrations(opportunityId?: string) {
   });
 
   const checkedInVolunteerIds = new Set(attendance?.map(a => a.volunteer_id) || []);
+  const checkedOutVolunteerIds = new Set(
+    attendance?.filter(a => a.check_out_time !== null).map(a => a.volunteer_id) || []
+  );
 
   const registerForOpportunity = useMutation({
     mutationFn: async ({ opportunityId, volunteerId }: { opportunityId: string; volunteerId: string }) => {
@@ -471,6 +474,28 @@ export function useOpportunityRegistrations(opportunityId?: string) {
     },
   });
 
+  const checkOut = useMutation({
+    mutationFn: async ({ opportunityId, volunteerId }: { opportunityId: string; volunteerId: string }) => {
+      const { data, error } = await supabase
+        .from('attendance')
+        .update({ check_out_time: new Date().toISOString() })
+        .eq('opportunity_id', opportunityId)
+        .eq('volunteer_id', volunteerId)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      toast({ title: 'Success', description: 'Volunteer checked out' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     registrations,
     isLoading,
@@ -479,7 +504,9 @@ export function useOpportunityRegistrations(opportunityId?: string) {
     rejectRegistration,
     manualCheckIn,
     bulkCheckIn,
+    checkOut,
     checkedInVolunteerIds,
+    checkedOutVolunteerIds,
   };
 }
 
