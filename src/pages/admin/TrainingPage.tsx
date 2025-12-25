@@ -37,8 +37,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { GraduationCap, Plus, BookOpen, Video, FileText, Loader2, Pencil, Trash2, Link2 } from 'lucide-react';
+import { GraduationCap, Plus, BookOpen, Video, FileText, Loader2, Pencil, Trash2, Link2, ClipboardList } from 'lucide-react';
 import { useTrainingCourses } from '@/hooks/useTraining';
+import { QuizManager } from '@/components/training/QuizManager';
 
 export function TrainingPage() {
   const { courses, isLoading, createCourse, addContent, deleteCourse, deleteContent, updateCourse } = useTrainingCourses();
@@ -253,6 +254,11 @@ export function TrainingPage() {
                   </Accordion>
                 </CardContent>
               )}
+              
+              {/* Quiz Manager Section */}
+              <CardContent className="border-t">
+                <QuizManager courseId={course.id} courseName={course.title} />
+              </CardContent>
             </Card>
           ))}
           {(!courses || courses.length === 0) && (
