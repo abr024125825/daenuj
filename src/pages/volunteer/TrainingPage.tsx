@@ -10,12 +10,20 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { GraduationCap, BookOpen, Video, FileText, CheckCircle, Circle, Loader2 } from 'lucide-react';
+import { GraduationCap, BookOpen, Video, FileText, CheckCircle, Circle, Loader2, ClipboardList } from 'lucide-react';
 import { useMyTraining } from '@/hooks/useTraining';
+import { useQuizzes, useMyQuizAttempts } from '@/hooks/useQuizzes';
+import { QuizTaker } from '@/components/training/QuizTaker';
 
 export function VolunteerTrainingPage() {
   const { courses, isLoading, markContentComplete, getCompletedContentIds, isCourseComplete } = useMyTraining();
+  const { quizzes } = useQuizzes();
+  const { hasPassedQuiz } = useMyQuizAttempts();
   const completedContentIds = getCompletedContentIds();
+  
+  const getCourseQuizzes = (courseId: string) => {
+    return quizzes?.filter(q => q.course_id === courseId) || [];
+  };
 
   const getContentIcon = (type: string) => {
     switch (type) {
@@ -168,6 +176,19 @@ export function VolunteerTrainingPage() {
                       </Accordion>
                     </CardContent>
                   )}
+                  
+                  {/* Course Quizzes */}
+                  {getCourseQuizzes(course.id).length > 0 && (
+                    <CardContent className="border-t space-y-3">
+                      <h4 className="font-medium flex items-center gap-2 text-sm">
+                        <ClipboardList className="h-4 w-4" />
+                        اختبارات الدورة
+                      </h4>
+                      {getCourseQuizzes(course.id).map((quiz: any) => (
+                        <QuizTaker key={quiz.id} quiz={quiz} />
+                      ))}
+                    </CardContent>
+                  )}
                 </Card>
               );
             })}
@@ -256,6 +277,19 @@ export function VolunteerTrainingPage() {
                           );
                         })}
                       </Accordion>
+                    </CardContent>
+                  )}
+                  
+                  {/* Course Quizzes */}
+                  {getCourseQuizzes(course.id).length > 0 && (
+                    <CardContent className="border-t space-y-3">
+                      <h4 className="font-medium flex items-center gap-2 text-sm">
+                        <ClipboardList className="h-4 w-4" />
+                        اختبارات الدورة
+                      </h4>
+                      {getCourseQuizzes(course.id).map((quiz: any) => (
+                        <QuizTaker key={quiz.id} quiz={quiz} />
+                      ))}
                     </CardContent>
                   )}
                 </Card>
