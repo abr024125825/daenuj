@@ -158,7 +158,9 @@ export function EvaluationsPage() {
                             </div>
                           </TableCell>
                           <TableCell className="text-muted-foreground">
-                            {format(new Date(evaluation.created_at), 'MMM dd, yyyy')}
+                            {evaluation.created_at 
+                              ? format(new Date(evaluation.created_at), 'MMM dd, yyyy')
+                              : 'N/A'}
                           </TableCell>
                           <TableCell className="max-w-xs truncate">
                             {evaluation.comments || '-'}

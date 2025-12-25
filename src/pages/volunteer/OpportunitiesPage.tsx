@@ -158,7 +158,7 @@ export function VolunteerOpportunitiesPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Calendar className="h-4 w-4" />
-                      {format(new Date(opp.date), 'EEEE, MMMM dd, yyyy')}
+                      {opp.date ? format(new Date(opp.date), 'EEEE, MMMM dd, yyyy') : 'Date TBD'}
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Clock className="h-4 w-4" />
