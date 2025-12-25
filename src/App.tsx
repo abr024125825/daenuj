@@ -6,7 +6,6 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
 import { RegisterPage } from "./pages/RegisterPage";
-import { SupervisorLoginPage } from "./pages/SupervisorLoginPage";
 import Dashboard from "./pages/Dashboard";
 import { ApplicationsPage } from "./pages/admin/ApplicationsPage";
 import { OpportunitiesRouter } from "./components/routing/OpportunitiesRouter";
@@ -31,7 +30,6 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route path="/supervisor-login" element={<SupervisorLoginPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/applications" element={<ApplicationsPage />} />
             <Route path="/dashboard/opportunities" element={<OpportunitiesRouter />} />

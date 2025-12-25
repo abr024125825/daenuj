@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Users, Shield, Settings, Search, Loader2, UserCog, UserPlus } from 'lucide-react';
+import { Users, Shield, Settings, Search, Loader2, UserCog } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -41,37 +41,34 @@ export function SettingsPage() {
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
-  const [createUserDialogOpen, setCreateUserDialogOpen] = useState(false);
-  const [newUserEmail, setNewUserEmail] = useState('');
-  const [newUserPassword, setNewUserPassword] = useState('');
-  const [newUserFirstName, setNewUserFirstName] = useState('');
-  const [newUserLastName, setNewUserLastName] = useState('');
-  const [newUserRole, setNewUserRole] = useState<'admin' | 'supervisor' | 'volunteer'>('volunteer');
-  const [isCreatingUser, setIsCreatingUser] = useState(false);
+  const [seederDialogOpen, setSeederDialogOpen] = useState(false);
+  const [seederEmail, setSeederEmail] = useState('');
+  const [seederPassword, setSeederPassword] = useState('');
+  const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
 
   const filteredUsers = users?.filter(
     (u: any) =>
-      (u.email?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (u.first_name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
-      (u.last_name?.toLowerCase() || '').includes(searchQuery.toLowerCase())
-  ) || [];
+      u.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.first_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      u.last_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const handleCreateUser = async () => {
-    if (!newUserEmail || !newUserPassword || !newUserFirstName || !newUserLastName) {
+  const handleCreateAdmin = async () => {
+    if (!seederEmail || !seederPassword) {
       toast({ title: 'Error', description: 'Please fill in all fields', variant: 'destructive' });
       return;
     }
 
-    setIsCreatingUser(true);
+    setIsCreatingAdmin(true);
     try {
       // Create the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: newUserEmail,
-        password: newUserPassword,
+        email: seederEmail,
+        password: seederPassword,
         options: {
           data: {
-            first_name: newUserFirstName,
-            last_name: newUserLastName,
+            first_name: 'Admin',
+            last_name: 'User',
           },
         },
       });
@@ -82,45 +79,31 @@ export function SettingsPage() {
         // Wait a moment for the trigger to create the profile
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Update the user's role
+        // Update the user's role to admin
         const { error: roleError } = await supabase
           .from('user_roles')
-          .update({ role: newUserRole })
+          .update({ role: 'admin' })
           .eq('user_id', authData.user.id);
 
         if (roleError) throw roleError;
 
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({ 
-            role: newUserRole,
-            first_name: newUserFirstName,
-            last_name: newUserLastName,
-          })
+          .update({ role: 'admin' })
           .eq('user_id', authData.user.id);
 
         if (profileError) throw profileError;
 
-        toast({ 
-          title: 'Success', 
-          description: `${newUserRole.charAt(0).toUpperCase() + newUserRole.slice(1)} account created successfully` 
-        });
-        setCreateUserDialogOpen(false);
-        resetCreateUserForm();
+        toast({ title: 'Success', description: 'Admin user created successfully' });
+        setSeederDialogOpen(false);
+        setSeederEmail('');
+        setSeederPassword('');
       }
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
-      setIsCreatingUser(false);
+      setIsCreatingAdmin(false);
     }
-  };
-
-  const resetCreateUserForm = () => {
-    setNewUserEmail('');
-    setNewUserPassword('');
-    setNewUserFirstName('');
-    setNewUserLastName('');
-    setNewUserRole('volunteer');
   };
 
   const getRoleBadgeVariant = (role: string) => {
@@ -149,9 +132,9 @@ export function SettingsPage() {
             <h2 className="text-2xl font-display font-bold">System Settings</h2>
             <p className="text-muted-foreground">Manage users, roles, and system configuration</p>
           </div>
-          <Button onClick={() => setCreateUserDialogOpen(true)}>
-            <UserPlus className="h-4 w-4 mr-2" />
-            Create New User
+          <Button onClick={() => setSeederDialogOpen(true)}>
+            <Shield className="h-4 w-4 mr-2" />
+            Create Admin User
           </Button>
         </div>
 
@@ -302,79 +285,43 @@ export function SettingsPage() {
           </TabsContent>
         </Tabs>
 
-        {/* Create User Dialog */}
-        <Dialog open={createUserDialogOpen} onOpenChange={setCreateUserDialogOpen}>
+        {/* Admin Seeder Dialog */}
+        <Dialog open={seederDialogOpen} onOpenChange={setSeederDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
+              <DialogTitle>Create Admin User</DialogTitle>
               <DialogDescription>
-                Create a new account and assign the appropriate role
+                Create a new admin user with full system access
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="new-user-first-name">First Name</Label>
-                  <Input
-                    id="new-user-first-name"
-                    value={newUserFirstName}
-                    onChange={(e) => setNewUserFirstName(e.target.value)}
-                    placeholder="John"
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="new-user-last-name">Last Name</Label>
-                  <Input
-                    id="new-user-last-name"
-                    value={newUserLastName}
-                    onChange={(e) => setNewUserLastName(e.target.value)}
-                    placeholder="Doe"
-                  />
-                </div>
-              </div>
               <div className="grid gap-2">
-                <Label htmlFor="new-user-email">Email</Label>
+                <Label htmlFor="admin-email">Email</Label>
                 <Input
-                  id="new-user-email"
+                  id="admin-email"
                   type="email"
-                  value={newUserEmail}
-                  onChange={(e) => setNewUserEmail(e.target.value)}
-                  placeholder="user@university.edu"
+                  value={seederEmail}
+                  onChange={(e) => setSeederEmail(e.target.value)}
+                  placeholder="admin@university.edu"
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="new-user-password">Password</Label>
+                <Label htmlFor="admin-password">Password</Label>
                 <Input
-                  id="new-user-password"
+                  id="admin-password"
                   type="password"
-                  value={newUserPassword}
-                  onChange={(e) => setNewUserPassword(e.target.value)}
+                  value={seederPassword}
+                  onChange={(e) => setSeederPassword(e.target.value)}
                   placeholder="Secure password"
                 />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="new-user-role">Role</Label>
-                <Select
-                  value={newUserRole}
-                  onValueChange={(value) => setNewUserRole(value as any)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="volunteer">Volunteer</SelectItem>
-                    <SelectItem value="supervisor">Supervisor</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
               <Button
                 className="w-full"
-                onClick={handleCreateUser}
-                disabled={isCreatingUser}
+                onClick={handleCreateAdmin}
+                disabled={isCreatingAdmin}
               >
-                {isCreatingUser && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Create User
+                {isCreatingAdmin && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Create Admin
               </Button>
             </div>
           </DialogContent>
