@@ -11,7 +11,18 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import {
   Select,
   SelectContent,
@@ -28,7 +39,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Award, Plus, FileText, Search, Loader2, Download } from 'lucide-react';
+import { Award, Plus, FileText, Search, Loader2, Download, Pencil, Trash2 } from 'lucide-react';
 import { useCertificates, useCertificateTemplates } from '@/hooks/useCertificates';
 import { useOpportunities } from '@/hooks/useOpportunities';
 import { useQuery } from '@tanstack/react-query';
@@ -36,21 +47,45 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { generateCertificatePDF } from '@/lib/generateCertificatePDF';
 
+const defaultTemplateHtml = `
+<div style="text-align: center; padding: 40px; font-family: 'Georgia', serif;">
+  <h1 style="color: #1a365d; font-size: 32px;">Certificate of Appreciation</h1>
+  <p style="font-size: 18px; margin-top: 30px;">This is to certify that</p>
+  <h2 style="color: #2563eb; font-size: 28px; margin: 20px 0;">{{volunteer_name}}</h2>
+  <p style="font-size: 18px;">has successfully completed</p>
+  <h3 style="font-size: 24px; margin: 20px 0;">{{opportunity_title}}</h3>
+  <p style="font-size: 18px;">contributing <strong>{{hours}} hours</strong> of volunteer service</p>
+  <p style="font-size: 14px; margin-top: 40px; color: #666;">
+    Certificate Number: {{certificate_number}}<br/>
+    Date Issued: {{date}}
+  </p>
+</div>
+`;
+
 export function CertificatesPage() {
   const { certificates, isLoading, issueCertificate } = useCertificates();
-  const { templates, createTemplate } = useCertificateTemplates();
+  const { templates, createTemplate, updateTemplate, deleteTemplate } = useCertificateTemplates();
   const { opportunities } = useOpportunities();
   const [searchQuery, setSearchQuery] = useState('');
   const [issueDialogOpen, setIssueDialogOpen] = useState(false);
   const [templateDialogOpen, setTemplateDialogOpen] = useState(false);
+  const [editTemplateDialogOpen, setEditTemplateDialogOpen] = useState(false);
+  const [deleteTemplateDialogOpen, setDeleteTemplateDialogOpen] = useState(false);
   const [selectedOpportunity, setSelectedOpportunity] = useState('');
   const [selectedVolunteer, setSelectedVolunteer] = useState('');
   const [hours, setHours] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('');
+  const [templateToEdit, setTemplateToEdit] = useState<any>(null);
+  const [templateToDelete, setTemplateToDelete] = useState<any>(null);
   const [newTemplate, setNewTemplate] = useState({
     name: '',
     description: '',
     template_html: defaultTemplateHtml,
+  });
+  const [editTemplate, setEditTemplate] = useState({
+    name: '',
+    description: '',
+    template_html: '',
   });
 
   // Get volunteers who attended the selected opportunity
@@ -95,6 +130,38 @@ export function CertificatesPage() {
     await createTemplate.mutateAsync(newTemplate);
     setTemplateDialogOpen(false);
     setNewTemplate({ name: '', description: '', template_html: defaultTemplateHtml });
+  };
+
+  const handleEditTemplate = async () => {
+    if (!templateToEdit) return;
+    await updateTemplate.mutateAsync({
+      id: templateToEdit.id,
+      ...editTemplate,
+    });
+    setEditTemplateDialogOpen(false);
+    setTemplateToEdit(null);
+  };
+
+  const handleDeleteTemplate = async () => {
+    if (!templateToDelete) return;
+    await deleteTemplate.mutateAsync(templateToDelete.id);
+    setDeleteTemplateDialogOpen(false);
+    setTemplateToDelete(null);
+  };
+
+  const openEditDialog = (template: any) => {
+    setTemplateToEdit(template);
+    setEditTemplate({
+      name: template.name,
+      description: template.description || '',
+      template_html: template.template_html,
+    });
+    setEditTemplateDialogOpen(true);
+  };
+
+  const openDeleteDialog = (template: any) => {
+    setTemplateToDelete(template);
+    setDeleteTemplateDialogOpen(true);
   };
 
   const completedOpportunities = opportunities?.filter(
@@ -241,8 +308,27 @@ export function CertificatesPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-32 bg-muted rounded-lg flex items-center justify-center">
+                    <div className="h-32 bg-muted rounded-lg flex items-center justify-center mb-4">
                       <FileText className="h-12 w-12 text-muted-foreground" />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => openEditDialog(template)}
+                      >
+                        <Pencil className="h-4 w-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="text-destructive hover:text-destructive"
+                        onClick={() => openDeleteDialog(template)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -388,22 +474,76 @@ export function CertificatesPage() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Template Dialog */}
+        <Dialog open={editTemplateDialogOpen} onOpenChange={setEditTemplateDialogOpen}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Edit Certificate Template</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid gap-2">
+                <Label>Template Name</Label>
+                <Input
+                  value={editTemplate.name}
+                  onChange={(e) => setEditTemplate({ ...editTemplate, name: e.target.value })}
+                  placeholder="Standard Certificate"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Description</Label>
+                <Input
+                  value={editTemplate.description}
+                  onChange={(e) => setEditTemplate({ ...editTemplate, description: e.target.value })}
+                  placeholder="Certificate template description"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Template HTML</Label>
+                <Textarea
+                  value={editTemplate.template_html}
+                  onChange={(e) => setEditTemplate({ ...editTemplate, template_html: e.target.value })}
+                  placeholder="HTML template with placeholders"
+                  rows={10}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use placeholders: {'{{volunteer_name}}'}, {'{{opportunity_title}}'}, {'{{hours}}'}, {'{{date}}'}, {'{{certificate_number}}'}
+                </p>
+              </div>
+              <Button
+                className="w-full"
+                onClick={handleEditTemplate}
+                disabled={!editTemplate.name || updateTemplate.isPending}
+              >
+                {updateTemplate.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Save Changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Template Dialog */}
+        <AlertDialog open={deleteTemplateDialogOpen} onOpenChange={setDeleteTemplateDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Template</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete "{templateToDelete?.name}"? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteTemplate}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteTemplate.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Delete'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );
 }
-
-const defaultTemplateHtml = `
-<div style="text-align: center; padding: 40px; font-family: 'Georgia', serif;">
-  <h1 style="color: #1a365d; font-size: 32px;">Certificate of Appreciation</h1>
-  <p style="font-size: 18px; margin-top: 30px;">This is to certify that</p>
-  <h2 style="color: #2563eb; font-size: 28px; margin: 20px 0;">{{volunteer_name}}</h2>
-  <p style="font-size: 18px;">has successfully completed</p>
-  <h3 style="font-size: 24px; margin: 20px 0;">{{opportunity_title}}</h3>
-  <p style="font-size: 18px;">contributing <strong>{{hours}} hours</strong> of volunteer service</p>
-  <p style="font-size: 14px; margin-top: 40px; color: #666;">
-    Certificate Number: {{certificate_number}}<br/>
-    Date Issued: {{date}}
-  </p>
-</div>
-`;
