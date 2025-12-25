@@ -170,7 +170,9 @@ export function VolunteerEvaluationsPage() {
                 <div className="p-3 rounded-lg bg-muted/50">
                   <p className="font-medium">{selectedOpportunity.opportunity?.title}</p>
                   <p className="text-sm text-muted-foreground">
-                    {format(new Date(selectedOpportunity.opportunity?.date), 'MMMM dd, yyyy')}
+                    {selectedOpportunity.opportunity?.date 
+                      ? format(new Date(selectedOpportunity.opportunity.date), 'MMMM dd, yyyy')
+                      : 'Date not available'}
                   </p>
                 </div>
 
