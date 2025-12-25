@@ -742,14 +742,14 @@ function OpportunityForm({
       <div className="grid gap-2">
         <Label htmlFor="faculty_restriction">Faculty Restriction (Optional)</Label>
         <Select
-          value={formData.faculty_restriction}
-          onValueChange={(value) => setFormData({ ...formData, faculty_restriction: value })}
+          value={formData.faculty_restriction || "all"}
+          onValueChange={(value) => setFormData({ ...formData, faculty_restriction: value === "all" ? "" : value })}
         >
           <SelectTrigger>
             <SelectValue placeholder="Open to all faculties" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Open to all faculties</SelectItem>
+            <SelectItem value="all">Open to all faculties</SelectItem>
             {faculties?.map((faculty: any) => (
               <SelectItem key={faculty.id} value={faculty.id}>
                 {faculty.name}
