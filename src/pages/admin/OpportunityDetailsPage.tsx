@@ -348,26 +348,19 @@ export function OpportunityDetailsPage() {
   const handlePrintList = async (type: 'approved' | 'rejected' | 'waitlisted' | 'withdrawn') => {
     if (!opportunity) return;
     
-    const filteredRegs = registrations?.filter((r: any) => {
-      if (type === 'withdrawn') return r.status === 'rejected';
+    let filteredRegs = registrations?.filter((r: any) => {
+      if (type === 'withdrawn') return r.status === 'rejected' && r.withdrawal_reason;
       return r.status === type;
     }) || [];
     
-    const volunteers = await Promise.all(
-      filteredRegs.map(async (reg: any) => {
-        const { data: volunteer } = await supabase
-          .from('volunteers')
-          .select('*, application:volunteer_applications(*)')
-          .eq('id', reg.volunteer_id)
-          .single();
-        
-        return {
-          name: `${volunteer?.application?.first_name} ${volunteer?.application?.father_name} ${volunteer?.application?.family_name}`,
-          university_id: volunteer?.application?.university_id || '',
-          reason: type === 'withdrawn' ? 'Withdrawn from opportunity' : undefined,
-        };
-      })
-    );
+    // Use the already loaded volunteer data from registrations
+    const volunteers = filteredRegs.map((reg: any) => ({
+      name: reg.volunteer?.application 
+        ? `${reg.volunteer.application.first_name || ''} ${reg.volunteer.application.father_name || ''} ${reg.volunteer.application.family_name || ''}`
+        : 'Unknown Volunteer',
+      university_id: reg.volunteer?.application?.university_id || 'N/A',
+      reason: type === 'withdrawn' ? (reg.withdrawal_reason || 'No reason provided') : undefined,
+    }));
     
     await generateOpportunityListPDF({
       opportunity: {

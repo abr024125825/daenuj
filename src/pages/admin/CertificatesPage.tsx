@@ -39,13 +39,19 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Award, Plus, FileText, Search, Loader2, Download, Pencil, Trash2 } from 'lucide-react';
+import { Award, Plus, FileText, Search, Loader2, Download, Pencil, Trash2, Sparkles } from 'lucide-react';
 import { useCertificates, useCertificateTemplates } from '@/hooks/useCertificates';
 import { useOpportunities } from '@/hooks/useOpportunities';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
-import { generateCertificatePDF } from '@/lib/generateCertificatePDF';
+import { generateCertificatePDF, generateModernCertificatePDF } from '@/lib/generateCertificatePDF';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const defaultTemplateHtml = `
 <div style="text-align: center; padding: 40px; font-family: 'Georgia', serif;">
@@ -269,26 +275,54 @@ export function CertificatesPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={async () => {
-                                const volunteerName = cert.volunteer?.application 
-                                  ? `${cert.volunteer.application.first_name} ${cert.volunteer.application.father_name || ''} ${cert.volunteer.application.family_name}`
-                                  : 'Volunteer';
-                                await generateCertificatePDF({
-                                  volunteerName,
-                                  opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
-                                  hours: cert.hours,
-                                  certificateNumber: cert.certificate_number,
-                                  issuedAt: cert.issued_at ? format(new Date(cert.issued_at), 'MMMM dd, yyyy') : 'N/A',
-                                  opportunityDate: cert.opportunity?.date ? format(new Date(cert.opportunity.date), 'MMMM dd, yyyy') : 'N/A',
-                                  location: cert.opportunity?.location || '',
-                                });
-                              }}
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="sm" variant="outline">
+                                  <Download className="h-4 w-4 mr-1" />
+                                  Download
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    const volunteerName = cert.volunteer?.application 
+                                      ? `${cert.volunteer.application.first_name} ${cert.volunteer.application.father_name || ''} ${cert.volunteer.application.family_name}`
+                                      : 'Volunteer';
+                                    await generateCertificatePDF({
+                                      volunteerName,
+                                      opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
+                                      hours: cert.hours,
+                                      certificateNumber: cert.certificate_number,
+                                      issuedAt: cert.issued_at ? format(new Date(cert.issued_at), 'MMMM dd, yyyy') : 'N/A',
+                                      opportunityDate: cert.opportunity?.date ? format(new Date(cert.opportunity.date), 'MMMM dd, yyyy') : 'N/A',
+                                      location: cert.opportunity?.location || '',
+                                    });
+                                  }}
+                                >
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  Classic Design
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={async () => {
+                                    const volunteerName = cert.volunteer?.application 
+                                      ? `${cert.volunteer.application.first_name} ${cert.volunteer.application.father_name || ''} ${cert.volunteer.application.family_name}`
+                                      : 'Volunteer';
+                                    await generateModernCertificatePDF({
+                                      volunteerName,
+                                      opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
+                                      hours: cert.hours,
+                                      certificateNumber: cert.certificate_number,
+                                      issuedAt: cert.issued_at ? format(new Date(cert.issued_at), 'MMMM dd, yyyy') : 'N/A',
+                                      opportunityDate: cert.opportunity?.date ? format(new Date(cert.opportunity.date), 'MMMM dd, yyyy') : 'N/A',
+                                      location: cert.opportunity?.location || '',
+                                    });
+                                  }}
+                                >
+                                  <Sparkles className="h-4 w-4 mr-2" />
+                                  Modern Design
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                             <Button 
                               size="sm" 
                               variant="ghost"
