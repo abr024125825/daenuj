@@ -2,10 +2,16 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Award, Download, Calendar, MapPin, Clock, Loader2 } from 'lucide-react';
+import { Award, Download, Calendar, MapPin, Clock, Loader2, ChevronDown, FileText } from 'lucide-react';
 import { useMyCertificates } from '@/hooks/useCertificates';
 import { format } from 'date-fns';
-import { generateCertificatePDF } from '@/lib/generateCertificatePDF';
+import { generateCertificatePDF, generateModernCertificatePDF } from '@/lib/generateCertificatePDF';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
@@ -31,12 +37,12 @@ export function VolunteerCertificatesPage() {
 
   const totalHours = certificates?.reduce((sum: number, cert: any) => sum + Number(cert.hours), 0) || 0;
 
-  const handleDownload = (cert: any) => {
+  const handleDownload = async (cert: any, isModern: boolean = false) => {
     const volunteerName = volunteerData 
       ? `${volunteerData.first_name} ${volunteerData.father_name} ${volunteerData.family_name}`
       : 'Volunteer';
 
-    generateCertificatePDF({
+    const certData = {
       volunteerName,
       opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
       hours: cert.hours,
@@ -44,7 +50,13 @@ export function VolunteerCertificatesPage() {
       issuedAt: cert.issued_at ? format(new Date(cert.issued_at), 'MMMM dd, yyyy') : 'N/A',
       opportunityDate: cert.opportunity?.date ? format(new Date(cert.opportunity.date), 'MMMM dd, yyyy') : 'N/A',
       location: cert.opportunity?.location || '',
-    });
+    };
+
+    if (isModern) {
+      await generateModernCertificatePDF(certData);
+    } else {
+      await generateCertificatePDF(certData);
+    }
   };
 
   if (isLoading) {
@@ -132,14 +144,25 @@ export function VolunteerCertificatesPage() {
                       : 'N/A'}
                   </div>
                 </div>
-                <Button 
-                  variant="outline" 
-                  className="w-full gap-2"
-                  onClick={() => handleDownload(cert)}
-                >
-                  <Download className="h-4 w-4" />
-                  Download Certificate
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="w-full gap-2">
+                      <Download className="h-4 w-4" />
+                      Download Certificate
+                      <ChevronDown className="h-4 w-4 ml-auto" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-full">
+                    <DropdownMenuItem onClick={() => handleDownload(cert, false)}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Classic Design
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleDownload(cert, true)}>
+                      <Award className="h-4 w-4 mr-2" />
+                      Modern Design
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </CardContent>
             </Card>
           ))}
