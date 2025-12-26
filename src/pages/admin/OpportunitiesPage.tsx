@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -21,12 +22,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { 
-  Plus, Calendar, MapPin, Users, Loader2, Clock, CheckCircle, Send, Eye
+  Plus, Calendar, MapPin, Users, Loader2, Clock, CheckCircle, Send, Eye, Lock
 } from 'lucide-react';
 import { useOpportunities } from '@/hooks/useOpportunities';
 import { useFaculties } from '@/hooks/useFaculties';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { INTERESTS } from '@/types';
 
 export function OpportunitiesPage() {
   const navigate = useNavigate();
@@ -46,6 +48,7 @@ export function OpportunitiesPage() {
     location: '',
     required_volunteers: 1,
     faculty_restriction: '',
+    target_interests: [] as string[],
   });
 
   const handleCreate = async () => {
@@ -57,6 +60,7 @@ export function OpportunitiesPage() {
       ...formData,
       required_volunteers: Number(formData.required_volunteers),
       faculty_restriction: formData.faculty_restriction || null,
+      target_interests: formData.target_interests,
     });
     setCreateDialogOpen(false);
     setFormData({
@@ -68,6 +72,7 @@ export function OpportunitiesPage() {
       location: '',
       required_volunteers: 1,
       faculty_restriction: '',
+      target_interests: [],
     });
   };
 
@@ -189,7 +194,14 @@ export function OpportunitiesPage() {
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <CardTitle className="text-lg line-clamp-1">{opp.title}</CardTitle>
-                  <Badge variant={getStatusColor(opp.status)}>{opp.status}</Badge>
+                  <div className="flex items-center gap-1">
+                    {opp.access_password && (
+                      <Badge variant="outline" className="gap-1">
+                        <Lock className="h-3 w-3" />
+                      </Badge>
+                    )}
+                    <Badge variant={getStatusColor(opp.status)}>{opp.status}</Badge>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -313,6 +325,31 @@ export function OpportunitiesPage() {
                       ))}
                     </SelectContent>
                   </Select>
+                </div>
+                <div className="col-span-2">
+                  <Label>Target Interests (for volunteer matching)</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-32 overflow-y-auto border rounded-lg p-2">
+                    {INTERESTS.map((interest) => (
+                      <label
+                        key={interest}
+                        className={`flex items-center gap-2 p-1 rounded text-xs cursor-pointer ${
+                          formData.target_interests.includes(interest) ? 'bg-primary/10' : 'hover:bg-muted'
+                        }`}
+                      >
+                        <Checkbox
+                          checked={formData.target_interests.includes(interest)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setFormData({ ...formData, target_interests: [...formData.target_interests, interest] });
+                            } else {
+                              setFormData({ ...formData, target_interests: formData.target_interests.filter(i => i !== interest) });
+                            }
+                          }}
+                        />
+                        <span>{interest}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
