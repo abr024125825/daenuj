@@ -50,7 +50,8 @@ import {
   ArrowLeft, Calendar, MapPin, Users, Clock,
   ChevronDown, ChevronUp, CheckCircle, XCircle, 
   UserMinus, Printer, QrCode, Keyboard, Hash,
-  Award, Trash2, Pencil, Download, Loader2, Send
+  Award, Trash2, Pencil, Download, Loader2, Send,
+  Lock, Unlock, UserPlus, Sparkles, Shield
 } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
 import { useFaculties } from '@/hooks/useFaculties';
@@ -59,6 +60,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
 import { QRCodeSVG } from 'qrcode.react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { INTERESTS } from '@/types';
 import { 
   generateOpportunityVolunteersPDF, 
   generateOpportunityListPDF,
@@ -90,6 +93,19 @@ export function OpportunityDetailsPage() {
   const [reopenDialogOpen, setReopenDialogOpen] = useState(false);
   const [reopenReason, setReopenReason] = useState('');
   
+  // Password protection states
+  const [passwordDialogOpen, setPasswordDialogOpen] = useState(false);
+  const [accessPassword, setAccessPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [showSetPasswordDialog, setShowSetPasswordDialog] = useState(false);
+  
+  // Recommendation states
+  const [recommendDialogOpen, setRecommendDialogOpen] = useState(false);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
+  const [matchingVolunteers, setMatchingVolunteers] = useState<any[]>([]);
+  const [loadingRecommendations, setLoadingRecommendations] = useState(false);
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -99,6 +115,7 @@ export function OpportunityDetailsPage() {
     location: '',
     required_volunteers: 1,
     faculty_restriction: '',
+    target_interests: [] as string[],
   });
   
   const opportunity = opportunities?.find((o: any) => o.id === id);
@@ -114,7 +131,15 @@ export function OpportunityDetailsPage() {
         location: opportunity.location,
         required_volunteers: opportunity.required_volunteers,
         faculty_restriction: opportunity.faculty_restriction || '',
+        target_interests: opportunity.target_interests || [],
       });
+      
+      // Check if opportunity has password protection
+      if (opportunity.access_password) {
+        setIsAuthenticated(false);
+      } else {
+        setIsAuthenticated(true);
+      }
     }
   }, [opportunity]);
 
@@ -179,6 +204,7 @@ export function OpportunityDetailsPage() {
       ...formData,
       required_volunteers: Number(formData.required_volunteers),
       faculty_restriction: formData.faculty_restriction || null,
+      target_interests: formData.target_interests,
     });
     setEditDialogOpen(false);
   };
@@ -376,6 +402,141 @@ export function OpportunityDetailsPage() {
     });
   };
 
+  // Password verification handler
+  const handleVerifyPassword = () => {
+    if (accessPassword === opportunity?.access_password) {
+      setIsAuthenticated(true);
+      setPasswordDialogOpen(false);
+      setAccessPassword('');
+      toast({ title: 'Success', description: 'Access granted' });
+    } else {
+      toast({ title: 'Error', description: 'Incorrect password', variant: 'destructive' });
+    }
+  };
+
+  // Set password handler (admin only)
+  const handleSetPassword = async () => {
+    if (!id || !newPassword.trim()) {
+      toast({ title: 'Error', description: 'Please enter a password', variant: 'destructive' });
+      return;
+    }
+    
+    setIsProcessing(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('opportunities')
+        .update({
+          access_password: newPassword,
+          access_password_set_by: user?.id,
+          access_password_set_at: new Date().toISOString(),
+        })
+        .eq('id', id);
+      
+      if (error) throw error;
+      
+      toast({ title: 'Success', description: 'Password set successfully. Only those with the password can access this opportunity.' });
+      setShowSetPasswordDialog(false);
+      setNewPassword('');
+      setIsAuthenticated(true);
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Fetch matching volunteers based on interests
+  const handleFindMatchingVolunteers = async () => {
+    if (selectedInterests.length === 0) {
+      toast({ title: 'Error', description: 'Please select at least one interest', variant: 'destructive' });
+      return;
+    }
+    
+    setLoadingRecommendations(true);
+    try {
+      // Find volunteers whose interests match
+      const { data: volunteers, error } = await supabase
+        .from('volunteers')
+        .select(`
+          id,
+          user_id,
+          application:volunteer_applications(
+            first_name,
+            father_name,
+            family_name,
+            university_id,
+            interests,
+            phone_number,
+            university_email
+          )
+        `)
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      
+      // Filter volunteers with matching interests
+      const matching = volunteers?.filter((v: any) => {
+        const volunteerInterests = v.application?.interests || [];
+        return selectedInterests.some(interest => volunteerInterests.includes(interest));
+      }) || [];
+      
+      // Filter out already registered volunteers
+      const registeredIds = registrations?.map((r: any) => r.volunteer_id) || [];
+      const available = matching.filter((v: any) => !registeredIds.includes(v.id));
+      
+      setMatchingVolunteers(available);
+      
+      if (available.length === 0) {
+        toast({ title: 'Info', description: 'No matching volunteers found' });
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setLoadingRecommendations(false);
+    }
+  };
+
+  // Auto-approve matching volunteers
+  const handleAutoApproveVolunteer = async (volunteerId: string) => {
+    if (!id) return;
+    
+    setIsProcessing(true);
+    try {
+      // Register the volunteer with auto-approved status
+      const { error } = await supabase
+        .from('opportunity_registrations')
+        .insert({
+          opportunity_id: id,
+          volunteer_id: volunteerId,
+          status: 'approved',
+          auto_approved: true,
+          approved_at: new Date().toISOString(),
+        });
+      
+      if (error) throw error;
+      
+      // Remove from matching list
+      setMatchingVolunteers(prev => prev.filter(v => v.id !== volunteerId));
+      
+      toast({ title: 'Success', description: 'Volunteer auto-approved for this opportunity' });
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Toggle interest selection
+  const toggleInterest = (interest: string) => {
+    setSelectedInterests(prev =>
+      prev.includes(interest)
+        ? prev.filter(i => i !== interest)
+        : [...prev, interest]
+    );
+  };
+
   if (isLoading) {
     return (
       <DashboardLayout title="Opportunity Details">
@@ -392,6 +553,40 @@ export function OpportunityDetailsPage() {
         <div className="text-center py-12">
           <p className="text-muted-foreground">Opportunity not found</p>
           <Button className="mt-4" onClick={() => navigate('/dashboard/opportunities')}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Opportunities
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show password prompt if opportunity is protected and not authenticated
+  if (opportunity.access_password && !isAuthenticated) {
+    return (
+      <DashboardLayout title="Opportunity Details">
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <div className="p-4 rounded-full bg-muted">
+            <Lock className="h-12 w-12 text-muted-foreground" />
+          </div>
+          <h3 className="text-xl font-semibold">Password Protected</h3>
+          <p className="text-muted-foreground text-center max-w-md">
+            This opportunity is password protected. Enter the access password to view details.
+          </p>
+          <div className="flex items-center gap-2 w-full max-w-sm">
+            <Input
+              type="password"
+              placeholder="Enter password..."
+              value={accessPassword}
+              onChange={(e) => setAccessPassword(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+            />
+            <Button onClick={handleVerifyPassword}>
+              <Unlock className="h-4 w-4 mr-2" />
+              Unlock
+            </Button>
+          </div>
+          <Button variant="ghost" onClick={() => navigate('/dashboard/opportunities')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Opportunities
           </Button>
@@ -444,7 +639,26 @@ export function OpportunityDetailsPage() {
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Password Protection Button */}
+            {!opportunity.access_password ? (
+              <Button variant="outline" onClick={() => setShowSetPasswordDialog(true)}>
+                <Lock className="h-4 w-4 mr-2" />
+                Set Password
+              </Button>
+            ) : (
+              <Badge variant="secondary" className="gap-1">
+                <Shield className="h-3 w-3" />
+                Protected
+              </Badge>
+            )}
+            
+            {/* Recommend Button */}
+            <Button variant="outline" onClick={() => setRecommendDialogOpen(true)}>
+              <Sparkles className="h-4 w-4 mr-2" />
+              Recommend
+            </Button>
+            
             {opportunity.status === 'draft' && (
               <Button onClick={() => publishOpportunity.mutate(opportunity.id)}>
                 <Send className="h-4 w-4 mr-2" />
@@ -982,6 +1196,33 @@ export function OpportunityDetailsPage() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="col-span-2">
+                  <Label>Target Interests (for recommendations)</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2 max-h-40 overflow-y-auto border rounded-lg p-2">
+                    {INTERESTS.map((interest) => (
+                      <label
+                        key={interest}
+                        className={`flex items-center gap-2 p-1.5 rounded text-xs cursor-pointer transition-all ${
+                          formData.target_interests.includes(interest)
+                            ? 'bg-primary/10 text-primary'
+                            : 'hover:bg-muted'
+                        }`}
+                      >
+                        <Checkbox
+                          checked={formData.target_interests.includes(interest)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setFormData({ ...formData, target_interests: [...formData.target_interests, interest] });
+                            } else {
+                              setFormData({ ...formData, target_interests: formData.target_interests.filter(i => i !== interest) });
+                            }
+                          }}
+                        />
+                        <span>{interest}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setEditDialogOpen(false)}>Cancel</Button>
@@ -1072,6 +1313,154 @@ export function OpportunityDetailsPage() {
                   Reopen
                 </Button>
               </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Password Verify Dialog */}
+        <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Password Required
+              </DialogTitle>
+              <DialogDescription>
+                This opportunity is password protected. Please enter the access password to view details.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Access Password</Label>
+                <Input
+                  type="password"
+                  placeholder="Enter password..."
+                  value={accessPassword}
+                  onChange={(e) => setAccessPassword(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => navigate('/dashboard/opportunities')}>Cancel</Button>
+                <Button onClick={handleVerifyPassword}>
+                  <Unlock className="h-4 w-4 mr-2" />
+                  Unlock
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Set Password Dialog */}
+        <Dialog open={showSetPasswordDialog} onOpenChange={setShowSetPasswordDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Set Access Password
+              </DialogTitle>
+              <DialogDescription>
+                Set a password to protect this opportunity. Only users with the password can access the details.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>New Password</Label>
+                <Input
+                  type="password"
+                  placeholder="Enter new password..."
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowSetPasswordDialog(false)}>Cancel</Button>
+                <Button onClick={handleSetPassword} disabled={isProcessing || !newPassword.trim()}>
+                  {isProcessing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Lock className="h-4 w-4 mr-2" />}
+                  Set Password
+                </Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Recommend Volunteers Dialog */}
+        <Dialog open={recommendDialogOpen} onOpenChange={setRecommendDialogOpen}>
+          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5" />
+                Recommend Volunteers
+              </DialogTitle>
+              <DialogDescription>
+                Select interests to find matching volunteers. Matching volunteers will be auto-approved when added.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Interest Selection */}
+              <div className="space-y-3">
+                <Label>Select Target Interests</Label>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {INTERESTS.map((interest) => (
+                    <label
+                      key={interest}
+                      className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all text-sm ${
+                        selectedInterests.includes(interest)
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <Checkbox
+                        checked={selectedInterests.includes(interest)}
+                        onCheckedChange={() => toggleInterest(interest)}
+                      />
+                      <span>{interest}</span>
+                    </label>
+                  ))}
+                </div>
+                <Button 
+                  onClick={handleFindMatchingVolunteers} 
+                  disabled={loadingRecommendations || selectedInterests.length === 0}
+                  className="w-full"
+                >
+                  {loadingRecommendations ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Sparkles className="h-4 w-4 mr-2" />}
+                  Find Matching Volunteers
+                </Button>
+              </div>
+
+              {/* Matching Volunteers */}
+              {matchingVolunteers.length > 0 && (
+                <div className="space-y-3">
+                  <Label>Matching Volunteers ({matchingVolunteers.length})</Label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {matchingVolunteers.map((v: any) => (
+                      <div key={v.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div>
+                          <p className="font-medium">
+                            {v.application?.first_name} {v.application?.father_name} {v.application?.family_name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {v.application?.university_id} | {v.application?.phone_number}
+                          </p>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {v.application?.interests?.slice(0, 3).map((int: string) => (
+                              <Badge key={int} variant="outline" className="text-xs">{int}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <Button 
+                          size="sm" 
+                          onClick={() => handleAutoApproveVolunteer(v.id)}
+                          disabled={isProcessing}
+                        >
+                          <UserPlus className="h-4 w-4 mr-1" />
+                          Add & Approve
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </DialogContent>
         </Dialog>
