@@ -481,7 +481,7 @@ export function useAttendance() {
         .eq('qr_code_token', token)
         .single();
 
-      if (!opportunity) throw new Error('Invalid QR code');
+      if (!opportunity) throw new Error('Invalid QR code or token');
       if (!opportunity.qr_code_active) throw new Error('Check-in is closed for this opportunity');
 
       // Check if already registered
@@ -501,7 +501,7 @@ export function useAttendance() {
         .select('id')
         .eq('opportunity_id', opportunity.id)
         .eq('volunteer_id', volunteer.id)
-        .single();
+        .maybeSingle();
 
       if (existingAttendance) throw new Error('You have already checked in');
 
@@ -522,6 +522,8 @@ export function useAttendance() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['my-registrations'] });
+      queryClient.invalidateQueries({ queryKey: ['attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['opportunity-registrations'] });
       toast({ title: 'Success', description: 'Check-in successful!' });
     },
     onError: (error) => {

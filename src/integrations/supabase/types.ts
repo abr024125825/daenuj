@@ -287,6 +287,9 @@ export type Database = {
       }
       opportunities: {
         Row: {
+          access_password: string | null
+          access_password_set_at: string | null
+          access_password_set_by: string | null
           created_at: string
           created_by: string
           date: string
@@ -304,10 +307,14 @@ export type Database = {
           start_time: string
           status: Database["public"]["Enums"]["opportunity_status"]
           supervisor_id: string | null
+          target_interests: string[] | null
           title: string
           updated_at: string
         }
         Insert: {
+          access_password?: string | null
+          access_password_set_at?: string | null
+          access_password_set_by?: string | null
           created_at?: string
           created_by: string
           date: string
@@ -325,10 +332,14 @@ export type Database = {
           start_time: string
           status?: Database["public"]["Enums"]["opportunity_status"]
           supervisor_id?: string | null
+          target_interests?: string[] | null
           title: string
           updated_at?: string
         }
         Update: {
+          access_password?: string | null
+          access_password_set_at?: string | null
+          access_password_set_by?: string | null
           created_at?: string
           created_by?: string
           date?: string
@@ -346,6 +357,7 @@ export type Database = {
           start_time?: string
           status?: Database["public"]["Enums"]["opportunity_status"]
           supervisor_id?: string | null
+          target_interests?: string[] | null
           title?: string
           updated_at?: string
         }
@@ -363,29 +375,38 @@ export type Database = {
         Row: {
           approved_at: string | null
           approved_by: string | null
+          auto_approved: boolean | null
           id: string
           opportunity_id: string
           registered_at: string
           status: Database["public"]["Enums"]["application_status"]
           volunteer_id: string
+          withdrawal_reason: string | null
+          withdrawn_at: string | null
         }
         Insert: {
           approved_at?: string | null
           approved_by?: string | null
+          auto_approved?: boolean | null
           id?: string
           opportunity_id: string
           registered_at?: string
           status?: Database["public"]["Enums"]["application_status"]
           volunteer_id: string
+          withdrawal_reason?: string | null
+          withdrawn_at?: string | null
         }
         Update: {
           approved_at?: string | null
           approved_by?: string | null
+          auto_approved?: boolean | null
           id?: string
           opportunity_id?: string
           registered_at?: string
           status?: Database["public"]["Enums"]["application_status"]
           volunteer_id?: string
+          withdrawal_reason?: string | null
+          withdrawn_at?: string | null
         }
         Relationships: [
           {
