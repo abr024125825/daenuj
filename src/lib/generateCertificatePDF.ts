@@ -319,20 +319,20 @@ export async function generateModernCertificatePDF(data: CertificateData): Promi
 
   // Hours badge with modern design
   doc.setFillColor(brightGreen[0], brightGreen[1], brightGreen[2]);
-  doc.roundedRect(pageWidth / 2 - 32, 161, 64, 12, 6, 6, 'F');
+  doc.roundedRect(pageWidth / 2 - 32, 160, 64, 12, 6, 6, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(white[0], white[1], white[2]);
-  doc.text(`${data.hours} VOLUNTEER HOURS`, pageWidth / 2, 169, { align: 'center' });
+  doc.text(`${data.hours} VOLUNTEER HOURS`, pageWidth / 2, 168, { align: 'center' });
 
   // Info section with icons style
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
   doc.setTextColor(slate[0], slate[1], slate[2]);
-  doc.text(`Date: ${data.opportunityDate}  |  Location: ${data.location}`, pageWidth / 2, 180, { align: 'center' });
+  doc.text(`Date: ${data.opportunityDate}  |  Location: ${data.location}`, pageWidth / 2, 178, { align: 'center' });
 
-  // Signature section with modern layout
-  const sigY = pageHeight - 42;
+  // Signature section with modern layout - moved lower
+  const sigY = pageHeight - 38;
   
   // Left signature
   doc.setDrawColor(slate[0], slate[1], slate[2]);
@@ -343,19 +343,20 @@ export async function generateModernCertificatePDF(data: CertificateData): Promi
   doc.setTextColor(slate[0], slate[1], slate[2]);
   doc.text('Director Signature', 82.5, sigY + 5, { align: 'center' });
 
-  // Center seal
+  // Center seal - positioned between content and signatures
+  const sealY = 188;
   doc.setDrawColor(gold[0], gold[1], gold[2]);
   doc.setLineWidth(2);
-  doc.circle(pageWidth / 2, sigY - 5, 14, 'S');
+  doc.circle(pageWidth / 2, sealY, 12, 'S');
   doc.setDrawColor(deepGreen[0], deepGreen[1], deepGreen[2]);
   doc.setLineWidth(1);
-  doc.circle(pageWidth / 2, sigY - 5, 10, 'S');
+  doc.circle(pageWidth / 2, sealY, 8, 'S');
   doc.setFillColor(gold[0], gold[1], gold[2]);
-  doc.circle(pageWidth / 2, sigY - 5, 3, 'F');
+  doc.circle(pageWidth / 2, sealY, 2.5, 'F');
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(5);
   doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-  doc.text('VERIFIED', pageWidth / 2, sigY + 3, { align: 'center' });
+  doc.text('VERIFIED', pageWidth / 2, sealY + 6, { align: 'center' });
 
   // Right signature
   doc.setDrawColor(slate[0], slate[1], slate[2]);
