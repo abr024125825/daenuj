@@ -133,39 +133,39 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(11);
     doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text('This certificate is proudly presented to', pageWidth / 2, 120, { align: 'center' });
+    doc.text('This certificate is proudly presented to', pageWidth / 2, 118, { align: 'center' });
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(26);
+    doc.setFontSize(24);
     doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-    doc.text(data.volunteerName, pageWidth / 2, 135, { align: 'center' });
+    doc.text(data.volunteerName, pageWidth / 2, 132, { align: 'center' });
     
     const nameWidth = doc.getTextWidth(data.volunteerName);
     doc.setDrawColor(brightGreen[0], brightGreen[1], brightGreen[2]);
-    doc.setLineWidth(2);
-    doc.line(pageWidth / 2 - nameWidth / 2, 139, pageWidth / 2 + nameWidth / 2, 139);
+    doc.setLineWidth(1.5);
+    doc.line(pageWidth / 2 - nameWidth / 2, 135, pageWidth / 2 + nameWidth / 2, 135);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
+    doc.setFontSize(10);
     doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text('for outstanding dedication and exceptional volunteer service in', pageWidth / 2, 150, { align: 'center' });
+    doc.text('for outstanding dedication and exceptional volunteer service in', pageWidth / 2, 146, { align: 'center' });
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
+    doc.setFontSize(14);
     doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-    doc.text(data.opportunityTitle, pageWidth / 2, 162, { align: 'center' });
+    doc.text(data.opportunityTitle, pageWidth / 2, 156, { align: 'center' });
 
     doc.setFillColor(brightGreen[0], brightGreen[1], brightGreen[2]);
-    doc.roundedRect(pageWidth / 2 - 35, 168, 70, 14, 7, 7, 'F');
+    doc.roundedRect(pageWidth / 2 - 32, 161, 64, 12, 6, 6, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(white[0], white[1], white[2]);
-    doc.text(`${data.hours} VOLUNTEER HOURS`, pageWidth / 2, 177, { align: 'center' });
+    doc.text(`${data.hours} VOLUNTEER HOURS`, pageWidth / 2, 169, { align: 'center' });
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text(`📅 ${data.opportunityDate}    📍 ${data.location}`, pageWidth / 2, 190, { align: 'center' });
+    doc.text(`Date: ${data.opportunityDate}  |  Location: ${data.location}`, pageWidth / 2, 180, { align: 'center' });
 
     const sigY = pageHeight - 42;
     
