@@ -39,13 +39,16 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Award, Plus, FileText, Search, Loader2, Download, Pencil, Trash2, Sparkles } from 'lucide-react';
+import { Award, Plus, FileText, Search, Loader2, Download, Pencil, Trash2, Sparkles, Archive, FolderArchive } from 'lucide-react';
 import { useCertificates, useCertificateTemplates } from '@/hooks/useCertificates';
 import { useOpportunities } from '@/hooks/useOpportunities';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { generateCertificatePDF, generateModernCertificatePDF } from '@/lib/generateCertificatePDF';
+import { generateCertificatesZip } from '@/lib/generateCertificateZip';
+import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -78,6 +81,11 @@ export function CertificatesPage() {
   const [editTemplateDialogOpen, setEditTemplateDialogOpen] = useState(false);
   const [deleteTemplateDialogOpen, setDeleteTemplateDialogOpen] = useState(false);
   const [deleteCertDialogOpen, setDeleteCertDialogOpen] = useState(false);
+  const [batchDownloadDialogOpen, setBatchDownloadDialogOpen] = useState(false);
+  const [batchDownloadOpportunity, setBatchDownloadOpportunity] = useState('');
+  const [batchDownloadDesign, setBatchDownloadDesign] = useState<'classic' | 'modern'>('modern');
+  const [batchDownloadProgress, setBatchDownloadProgress] = useState(0);
+  const [isBatchDownloading, setIsBatchDownloading] = useState(false);
   const [certToDelete, setCertToDelete] = useState<any>(null);
   const [selectedOpportunity, setSelectedOpportunity] = useState('');
   const [selectedVolunteer, setSelectedVolunteer] = useState('');
@@ -183,6 +191,61 @@ export function CertificatesPage() {
     setDeleteTemplateDialogOpen(true);
   };
 
+  const handleBatchDownload = async () => {
+    if (!batchDownloadOpportunity) return;
+    
+    const opportunityCerts = certificates?.filter(
+      (cert: any) => cert.opportunity_id === batchDownloadOpportunity
+    );
+    
+    if (!opportunityCerts || opportunityCerts.length === 0) {
+      toast.error('No certificates found for this opportunity');
+      return;
+    }
+
+    const opportunity = opportunities?.find((o: any) => o.id === batchDownloadOpportunity);
+    
+    setIsBatchDownloading(true);
+    setBatchDownloadProgress(0);
+    
+    try {
+      const certDataList = opportunityCerts.map((cert: any) => ({
+        volunteerName: cert.volunteer?.application 
+          ? `${cert.volunteer.application.first_name} ${cert.volunteer.application.father_name || ''} ${cert.volunteer.application.family_name}`
+          : 'Volunteer',
+        opportunityTitle: cert.opportunity?.title || 'Volunteering Activity',
+        hours: cert.hours,
+        certificateNumber: cert.certificate_number,
+        issuedAt: cert.issued_at ? format(new Date(cert.issued_at), 'MMMM dd, yyyy') : 'N/A',
+        opportunityDate: cert.opportunity?.date ? format(new Date(cert.opportunity.date), 'MMMM dd, yyyy') : 'N/A',
+        location: cert.opportunity?.location || '',
+      }));
+
+      await generateCertificatesZip(
+        certDataList,
+        batchDownloadDesign,
+        opportunity?.title || 'certificates',
+        (current, total) => {
+          setBatchDownloadProgress(Math.round((current / total) * 100));
+        }
+      );
+      
+      toast.success(`Downloaded ${opportunityCerts.length} certificates successfully`);
+      setBatchDownloadDialogOpen(false);
+    } catch (error) {
+      console.error('Batch download error:', error);
+      toast.error('Failed to generate ZIP file');
+    } finally {
+      setIsBatchDownloading(false);
+      setBatchDownloadProgress(0);
+    }
+  };
+
+  // Get opportunities that have certificates
+  const opportunitiesWithCerts = opportunities?.filter((opp: any) => 
+    certificates?.some((cert: any) => cert.opportunity_id === opp.id)
+  );
+
   const completedOpportunities = opportunities?.filter(
     (opp: any) => opp.status === 'completed' || opp.status === 'published'
   );
@@ -212,6 +275,10 @@ export function CertificatesPage() {
             <p className="text-muted-foreground">Issue and manage volunteer certificates</p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setBatchDownloadDialogOpen(true)}>
+              <FolderArchive className="h-4 w-4 mr-2" />
+              Batch Download
+            </Button>
             <Button variant="outline" onClick={() => setTemplateDialogOpen(true)}>
               <FileText className="h-4 w-4 mr-2" />
               New Template
@@ -623,6 +690,92 @@ export function CertificatesPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Batch Download Dialog */}
+        <Dialog open={batchDownloadDialogOpen} onOpenChange={setBatchDownloadDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Batch Download Certificates</DialogTitle>
+              <DialogDescription>
+                Download all certificates for an opportunity as a ZIP file
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid gap-2">
+                <Label>Select Opportunity</Label>
+                <Select value={batchDownloadOpportunity} onValueChange={setBatchDownloadOpportunity}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choose an opportunity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {opportunitiesWithCerts?.map((opp: any) => {
+                      const certCount = certificates?.filter((c: any) => c.opportunity_id === opp.id).length || 0;
+                      return (
+                        <SelectItem key={opp.id} value={opp.id}>
+                          {opp.title} ({certCount} certificates)
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-2">
+                <Label>Certificate Design</Label>
+                <Select 
+                  value={batchDownloadDesign} 
+                  onValueChange={(v) => setBatchDownloadDesign(v as 'classic' | 'modern')}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="classic">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4" />
+                        Classic Design
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="modern">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4" />
+                        Modern Design
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {isBatchDownloading && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>Generating certificates...</span>
+                    <span>{batchDownloadProgress}%</span>
+                  </div>
+                  <Progress value={batchDownloadProgress} className="h-2" />
+                </div>
+              )}
+
+              <Button
+                className="w-full"
+                onClick={handleBatchDownload}
+                disabled={!batchDownloadOpportunity || isBatchDownloading}
+              >
+                {isBatchDownloading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Generating ZIP...
+                  </>
+                ) : (
+                  <>
+                    <FolderArchive className="h-4 w-4 mr-2" />
+                    Download All as ZIP
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
