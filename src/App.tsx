@@ -17,6 +17,7 @@ import { VolunteersPage } from "./pages/admin/VolunteersPage";
 import { ReportsPage } from "./pages/admin/ReportsPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import NotFound from "./pages/NotFound";
+import { VerifyCertificate } from "./pages/VerifyCertificate";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/verify" element={<VerifyCertificate />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/applications" element={<ApplicationsPage />} />

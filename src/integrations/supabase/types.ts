@@ -105,6 +105,38 @@ export type Database = {
         }
         Relationships: []
       }
+      certificate_verifications: {
+        Row: {
+          certificate_id: string | null
+          id: string
+          ip_address: string | null
+          user_agent: string | null
+          verified_at: string
+        }
+        Insert: {
+          certificate_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          verified_at?: string
+        }
+        Update: {
+          certificate_id?: string | null
+          id?: string
+          ip_address?: string | null
+          user_agent?: string | null
+          verified_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "certificate_verifications_certificate_id_fkey"
+            columns: ["certificate_id"]
+            isOneToOne: false
+            referencedRelation: "certificates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificates: {
         Row: {
           certificate_number: string

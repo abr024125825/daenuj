@@ -1,5 +1,8 @@
 import jsPDF from 'jspdf';
 import logoImage from '@/assets/logo.png';
+import { QRCodeCanvas } from 'qrcode.react';
+import { createRoot } from 'react-dom/client';
+import { createElement } from 'react';
 
 interface CertificateData {
   volunteerName: string;
@@ -30,6 +33,37 @@ async function getLogoBase64(): Promise<string> {
     };
     img.onerror = reject;
     img.src = logoImage;
+  });
+}
+
+// Generate QR code as base64
+async function generateQRCodeBase64(certificateNumber: string): Promise<string> {
+  return new Promise((resolve) => {
+    const verifyUrl = `${window.location.origin}/verify?cert=${encodeURIComponent(certificateNumber)}`;
+    
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    document.body.appendChild(container);
+    
+    const root = createRoot(container);
+    root.render(createElement(QRCodeCanvas, {
+      value: verifyUrl,
+      size: 200,
+      level: 'H',
+      includeMargin: true,
+    }));
+    
+    setTimeout(() => {
+      const canvas = container.querySelector('canvas');
+      if (canvas) {
+        resolve(canvas.toDataURL('image/png'));
+      } else {
+        resolve('');
+      }
+      root.unmount();
+      document.body.removeChild(container);
+    }, 100);
   });
 }
 
@@ -106,73 +140,82 @@ export async function generateCertificatePDF(data: CertificateData): Promise<voi
   doc.setFont('times', 'italic');
   doc.setFontSize(12);
   doc.setTextColor(80, 80, 80);
-  doc.text('This is to certify that', pageWidth / 2, 115, { align: 'center' });
+  doc.text('This is to certify that', pageWidth / 2, 112, { align: 'center' });
 
   // Volunteer name
   doc.setFont('times', 'bold');
-  doc.setFontSize(28);
+  doc.setFontSize(26);
   doc.setTextColor(accentRed[0], accentRed[1], accentRed[2]);
-  doc.text(data.volunteerName, pageWidth / 2, 130, { align: 'center' });
+  doc.text(data.volunteerName, pageWidth / 2, 125, { align: 'center' });
 
   // Underline for name
   const nameWidth = doc.getTextWidth(data.volunteerName);
   doc.setDrawColor(goldAccent[0], goldAccent[1], goldAccent[2]);
   doc.setLineWidth(0.5);
-  doc.line(pageWidth / 2 - nameWidth / 2 - 5, 134, pageWidth / 2 + nameWidth / 2 + 5, 134);
+  doc.line(pageWidth / 2 - nameWidth / 2 - 5, 128, pageWidth / 2 + nameWidth / 2 + 5, 128);
 
   // Service description
   doc.setFont('times', 'normal');
-  doc.setFontSize(12);
+  doc.setFontSize(11);
   doc.setTextColor(80, 80, 80);
-  doc.text('has successfully completed volunteer service for', pageWidth / 2, 148, { align: 'center' });
+  doc.text('has successfully completed volunteer service for', pageWidth / 2, 140, { align: 'center' });
 
   // Opportunity title
   doc.setFont('times', 'bold');
-  doc.setFontSize(18);
+  doc.setFontSize(16);
   doc.setTextColor(darkSlate[0], darkSlate[1], darkSlate[2]);
-  doc.text(data.opportunityTitle, pageWidth / 2, 160, { align: 'center' });
+  doc.text(data.opportunityTitle, pageWidth / 2, 150, { align: 'center' });
 
   // Hours badge
   doc.setFillColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
-  doc.roundedRect(pageWidth / 2 - 30, 166, 60, 12, 4, 4, 'F');
+  doc.roundedRect(pageWidth / 2 - 28, 155, 56, 10, 4, 4, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(255, 255, 255);
-  doc.text(`${data.hours} VOLUNTEER HOURS`, pageWidth / 2, 174, { align: 'center' });
+  doc.text(`${data.hours} VOLUNTEER HOURS`, pageWidth / 2, 162, { align: 'center' });
 
   // Date and location
   doc.setFont('times', 'normal');
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(100, 100, 100);
-  doc.text(`Date: ${data.opportunityDate}  |  Location: ${data.location}`, pageWidth / 2, 188, { align: 'center' });
+  doc.text(`Date: ${data.opportunityDate}  |  Location: ${data.location}`, pageWidth / 2, 173, { align: 'center' });
 
   // Signature section
-  const sigY = pageHeight - 42;
+  const sigY = pageHeight - 35;
   
   // Left signature
   doc.setDrawColor(100, 100, 100);
   doc.setLineWidth(0.3);
-  doc.line(50, sigY, 110, sigY);
-  doc.setFontSize(9);
-  doc.text('Director Signature', 80, sigY + 6, { align: 'center' });
+  doc.line(35, sigY, 95, sigY);
+  doc.setFontSize(8);
+  doc.text('Director Signature', 65, sigY + 5, { align: 'center' });
 
   // Right signature  
-  doc.line(pageWidth - 110, sigY, pageWidth - 50, sigY);
-  doc.text('Center Stamp', pageWidth - 80, sigY + 6, { align: 'center' });
+  doc.line(pageWidth - 95, sigY, pageWidth - 35, sigY);
+  doc.text('Center Stamp', pageWidth - 65, sigY + 5, { align: 'center' });
 
-  // Certificate info footer
-  doc.setFontSize(8);
-  doc.setTextColor(130, 130, 130);
-  doc.text(`Certificate No: ${data.certificateNumber}`, 25, pageHeight - 20);
-  doc.text(`Issued: ${data.issuedAt}`, pageWidth - 25, pageHeight - 20, { align: 'right' });
+  // QR Code for verification
+  try {
+    const qrBase64 = await generateQRCodeBase64(data.certificateNumber);
+    if (qrBase64) {
+      doc.addImage(qrBase64, 'PNG', pageWidth / 2 - 12, sigY - 20, 24, 24);
+      doc.setFontSize(5);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Scan to verify', pageWidth / 2, sigY + 8, { align: 'center' });
+    }
+  } catch (error) {
+    console.error('Could not generate QR code:', error);
+  }
 
-  // Seal/stamp circle placeholder
-  doc.setDrawColor(goldAccent[0], goldAccent[1], goldAccent[2]);
-  doc.setLineWidth(1);
-  doc.circle(pageWidth - 80, sigY - 8, 12, 'S');
-  doc.setFontSize(6);
-  doc.setTextColor(goldAccent[0], goldAccent[1], goldAccent[2]);
-  doc.text('OFFICIAL', pageWidth - 80, sigY - 8, { align: 'center' });
+  // Certificate info footer - moved outside main frame
+  doc.setFillColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
+  doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+  
+  doc.setFontSize(7);
+  doc.setTextColor(255, 255, 255);
+  doc.text(`Certificate No: ${data.certificateNumber}`, 15, pageHeight - 5);
+  doc.text(`Issued: ${data.issuedAt}`, pageWidth - 15, pageHeight - 5, { align: 'right' });
+  doc.text('Verify at: ' + window.location.origin + '/verify', pageWidth / 2, pageHeight - 5, { align: 'center' });
 
   // Save the PDF
   doc.save(`certificate-${data.certificateNumber}.pdf`);
@@ -209,7 +252,7 @@ export async function generateModernCertificatePDF(data: CertificateData): Promi
   // Main certificate card
   const cardMargin = 20;
   const cardWidth = pageWidth - cardMargin * 2;
-  const cardHeight = pageHeight - cardMargin * 2;
+  const cardHeight = pageHeight - cardMargin * 2 - 14; // Leave space for footer
   
   doc.setFillColor(255, 255, 255);
   doc.roundedRect(cardMargin, cardMargin, cardWidth, cardHeight, 8, 8, 'F');
@@ -220,12 +263,12 @@ export async function generateModernCertificatePDF(data: CertificateData): Promi
   doc.roundedRect(cardMargin + 5, cardMargin + 5, cardWidth - 10, cardHeight - 10, 6, 6, 'S');
 
   // Decorative corner elements
-  const cornerSize = 25;
+  const cornerSize = 20;
   const corners = [
     { x: cardMargin + 10, y: cardMargin + 10 },
     { x: pageWidth - cardMargin - 10, y: cardMargin + 10 },
-    { x: cardMargin + 10, y: pageHeight - cardMargin - 10 },
-    { x: pageWidth - cardMargin - 10, y: pageHeight - cardMargin - 10 },
+    { x: cardMargin + 10, y: cardMargin + cardHeight - 10 },
+    { x: pageWidth - cardMargin - 10, y: cardMargin + cardHeight - 10 },
   ];
 
   doc.setDrawColor(gold[0], gold[1], gold[2]);
@@ -250,7 +293,7 @@ export async function generateModernCertificatePDF(data: CertificateData): Promi
   // Try to add logo
   try {
     const logoBase64 = await getLogoBase64();
-    doc.addImage(logoBase64, 'PNG', pageWidth / 2 - 16, 29, 32, 32);
+    doc.addImage(logoBase64, 'PNG', pageWidth / 2 - 14, 27, 28, 28);
   } catch (error) {
     console.error('Could not load logo:', error);
   }
@@ -259,123 +302,116 @@ export async function generateModernCertificatePDF(data: CertificateData): Promi
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-  doc.text('COMMUNITY SERVICE & DEVELOPMENT CENTER', pageWidth / 2, 68, { align: 'center' });
+  doc.text('COMMUNITY SERVICE & DEVELOPMENT CENTER', pageWidth / 2, 62, { align: 'center' });
   
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setTextColor(slate[0], slate[1], slate[2]);
-  doc.text('University of Jordan', pageWidth / 2, 74, { align: 'center' });
+  doc.text('University of Jordan', pageWidth / 2, 68, { align: 'center' });
 
   // Certificate badge/ribbon effect
   doc.setFillColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-  doc.roundedRect(pageWidth / 2 - 70, 82, 140, 22, 3, 3, 'F');
+  doc.roundedRect(pageWidth / 2 - 65, 74, 130, 18, 3, 3, 'F');
   
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
+  doc.setFontSize(14);
   doc.setTextColor(white[0], white[1], white[2]);
-  doc.text('CERTIFICATE OF APPRECIATION', pageWidth / 2, 96, { align: 'center' });
+  doc.text('CERTIFICATE OF APPRECIATION', pageWidth / 2, 86, { align: 'center' });
 
   // Decorative line under title
   doc.setDrawColor(gold[0], gold[1], gold[2]);
   doc.setLineWidth(0.8);
-  doc.line(pageWidth / 2 - 80, 108, pageWidth / 2 + 80, 108);
+  doc.line(pageWidth / 2 - 70, 96, pageWidth / 2 + 70, 96);
   
   // Small diamond decorations
-  const diamondY = 108;
   doc.setFillColor(gold[0], gold[1], gold[2]);
-  [pageWidth / 2 - 80, pageWidth / 2, pageWidth / 2 + 80].forEach(x => {
-    doc.circle(x, diamondY, 2, 'F');
+  [pageWidth / 2 - 70, pageWidth / 2, pageWidth / 2 + 70].forEach(x => {
+    doc.circle(x, 96, 1.5, 'F');
   });
 
   // Certification text
   doc.setFont('helvetica', 'italic');
-  doc.setFontSize(11);
+  doc.setFontSize(10);
   doc.setTextColor(slate[0], slate[1], slate[2]);
-  doc.text('This certificate is proudly presented to', pageWidth / 2, 118, { align: 'center' });
+  doc.text('This certificate is proudly presented to', pageWidth / 2, 106, { align: 'center' });
 
   // Volunteer name with underline effect
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(24);
+  doc.setFontSize(22);
   doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-  doc.text(data.volunteerName, pageWidth / 2, 132, { align: 'center' });
+  doc.text(data.volunteerName, pageWidth / 2, 118, { align: 'center' });
   
   // Decorative underline for name
   const nameWidth = doc.getTextWidth(data.volunteerName);
   doc.setDrawColor(brightGreen[0], brightGreen[1], brightGreen[2]);
-  doc.setLineWidth(1.5);
-  doc.line(pageWidth / 2 - nameWidth / 2, 135, pageWidth / 2 + nameWidth / 2, 135);
+  doc.setLineWidth(1.2);
+  doc.line(pageWidth / 2 - nameWidth / 2, 121, pageWidth / 2 + nameWidth / 2, 121);
 
   // Service description
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setTextColor(slate[0], slate[1], slate[2]);
-  doc.text('for outstanding dedication and exceptional volunteer service in', pageWidth / 2, 146, { align: 'center' });
+  doc.text('for outstanding dedication and exceptional volunteer service in', pageWidth / 2, 130, { align: 'center' });
 
   // Opportunity title
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(14);
+  doc.setFontSize(13);
   doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-  doc.text(data.opportunityTitle, pageWidth / 2, 156, { align: 'center' });
+  doc.text(data.opportunityTitle, pageWidth / 2, 140, { align: 'center' });
 
   // Hours badge with modern design
   doc.setFillColor(brightGreen[0], brightGreen[1], brightGreen[2]);
-  doc.roundedRect(pageWidth / 2 - 32, 160, 64, 12, 6, 6, 'F');
+  doc.roundedRect(pageWidth / 2 - 28, 145, 56, 10, 5, 5, 'F');
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(white[0], white[1], white[2]);
-  doc.text(`${data.hours} VOLUNTEER HOURS`, pageWidth / 2, 168, { align: 'center' });
-
-  // Info section with icons style
-  doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.setTextColor(slate[0], slate[1], slate[2]);
-  doc.text(`Date: ${data.opportunityDate}  |  Location: ${data.location}`, pageWidth / 2, 178, { align: 'center' });
+  doc.setTextColor(white[0], white[1], white[2]);
+  doc.text(`${data.hours} VOLUNTEER HOURS`, pageWidth / 2, 152, { align: 'center' });
 
-  // Signature section with modern layout - moved lower
-  const sigY = pageHeight - 38;
+  // Info section
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(7);
+  doc.setTextColor(slate[0], slate[1], slate[2]);
+  doc.text(`Date: ${data.opportunityDate}  |  Location: ${data.location}`, pageWidth / 2, 162, { align: 'center' });
+
+  // Signature section
+  const sigY = cardMargin + cardHeight - 22;
   
   // Left signature
   doc.setDrawColor(slate[0], slate[1], slate[2]);
   doc.setLineWidth(0.5);
-  doc.line(50, sigY, 115, sigY);
+  doc.line(40, sigY, 100, sigY);
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
+  doc.setFontSize(7);
   doc.setTextColor(slate[0], slate[1], slate[2]);
-  doc.text('Director Signature', 82.5, sigY + 5, { align: 'center' });
-
-  // Center seal - positioned between content and signatures
-  const sealY = 188;
-  doc.setDrawColor(gold[0], gold[1], gold[2]);
-  doc.setLineWidth(2);
-  doc.circle(pageWidth / 2, sealY, 12, 'S');
-  doc.setDrawColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-  doc.setLineWidth(1);
-  doc.circle(pageWidth / 2, sealY, 8, 'S');
-  doc.setFillColor(gold[0], gold[1], gold[2]);
-  doc.circle(pageWidth / 2, sealY, 2.5, 'F');
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(5);
-  doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-  doc.text('VERIFIED', pageWidth / 2, sealY + 6, { align: 'center' });
+  doc.text('Director Signature', 70, sigY + 4, { align: 'center' });
 
   // Right signature
-  doc.setDrawColor(slate[0], slate[1], slate[2]);
-  doc.setLineWidth(0.5);
-  doc.line(pageWidth - 115, sigY, pageWidth - 50, sigY);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text('Official Stamp', pageWidth - 82.5, sigY + 5, { align: 'center' });
+  doc.line(pageWidth - 100, sigY, pageWidth - 40, sigY);
+  doc.text('Official Stamp', pageWidth - 70, sigY + 4, { align: 'center' });
 
-  // Certificate info footer with modern style
+  // QR Code for verification - center position
+  try {
+    const qrBase64 = await generateQRCodeBase64(data.certificateNumber);
+    if (qrBase64) {
+      doc.addImage(qrBase64, 'PNG', pageWidth / 2 - 10, sigY - 16, 20, 20);
+      doc.setFontSize(5);
+      doc.setTextColor(slate[0], slate[1], slate[2]);
+      doc.text('Scan to verify', pageWidth / 2, sigY + 7, { align: 'center' });
+    }
+  } catch (error) {
+    console.error('Could not generate QR code:', error);
+  }
+
+  // Certificate info footer - outside main card
   doc.setFillColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-  doc.roundedRect(cardMargin + 10, pageHeight - 30, cardWidth - 20, 12, 2, 2, 'F');
+  doc.rect(0, pageHeight - 14, pageWidth, 14, 'F');
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(white[0], white[1], white[2]);
-  doc.text(`Certificate No: ${data.certificateNumber}`, cardMargin + 20, pageHeight - 22);
-  doc.text(`Issued: ${data.issuedAt}`, pageWidth - cardMargin - 20, pageHeight - 22, { align: 'right' });
-  doc.text('This certificate validates genuine volunteer service', pageWidth / 2, pageHeight - 22, { align: 'center' });
+  doc.text(`Certificate No: ${data.certificateNumber}`, 15, pageHeight - 5);
+  doc.text(`Issued: ${data.issuedAt}`, pageWidth - 15, pageHeight - 5, { align: 'right' });
+  doc.text('This certificate validates genuine volunteer service  •  Verify at: ' + window.location.origin + '/verify', pageWidth / 2, pageHeight - 5, { align: 'center' });
 
   // Save the PDF
   doc.save(`certificate-modern-${data.certificateNumber}.pdf`);
