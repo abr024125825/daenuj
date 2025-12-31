@@ -19,6 +19,7 @@ import {
   Bell,
   ClipboardList,
   MessageSquare,
+  Shield,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +42,7 @@ const adminNavItems: NavItem[] = [
   { icon: Users, label: 'Volunteers', href: '/dashboard/volunteers' },
   { icon: Calendar, label: 'Opportunities', href: '/dashboard/opportunities' },
   { icon: Award, label: 'Certificates', href: '/dashboard/certificates' },
+  { icon: Shield, label: 'Verification Logs', href: '/dashboard/certificate-verifications' },
   { icon: MessageSquare, label: 'Evaluations', href: '/dashboard/evaluations' },
   { icon: GraduationCap, label: 'Training', href: '/dashboard/training' },
   { icon: BarChart3, label: 'Reports', href: '/dashboard/reports' },
