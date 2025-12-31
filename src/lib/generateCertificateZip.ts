@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import logoImage from '@/assets/logo.png';
+import JsBarcode from 'jsbarcode';
 
 interface CertificateData {
   volunteerName: string;
@@ -34,6 +35,19 @@ async function getLogoBase64(): Promise<string> {
   });
 }
 
+// Generate Barcode as base64
+function generateBarcodeBase64(certificateNumber: string): string {
+  const canvas = document.createElement('canvas');
+  JsBarcode(canvas, certificateNumber, {
+    format: 'CODE128',
+    width: 2,
+    height: 40,
+    displayValue: false,
+    margin: 5,
+  });
+  return canvas.toDataURL('image/png');
+}
+
 // Generate PDF as ArrayBuffer (for ZIP)
 async function generateCertificatePDFBuffer(data: CertificateData, design: 'classic' | 'modern'): Promise<ArrayBuffer> {
   const doc = new jsPDF({
@@ -64,9 +78,9 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     }
 
     // Main card
-    const cardMargin = 20;
+    const cardMargin = 18;
     const cardWidth = pageWidth - cardMargin * 2;
-    const cardHeight = pageHeight - cardMargin * 2;
+    const cardHeight = pageHeight - cardMargin * 2 - 14;
     
     doc.setFillColor(255, 255, 255);
     doc.roundedRect(cardMargin, cardMargin, cardWidth, cardHeight, 8, 8, 'F');
@@ -76,12 +90,12 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     doc.roundedRect(cardMargin + 5, cardMargin + 5, cardWidth - 10, cardHeight - 10, 6, 6, 'S');
 
     // Corner decorations
-    const cornerSize = 25;
+    const cornerSize = 20;
     const corners = [
       { x: cardMargin + 10, y: cardMargin + 10 },
       { x: pageWidth - cardMargin - 10, y: cardMargin + 10 },
-      { x: cardMargin + 10, y: pageHeight - cardMargin - 10 },
-      { x: pageWidth - cardMargin - 10, y: pageHeight - cardMargin - 10 },
+      { x: cardMargin + 10, y: cardMargin + cardHeight - 10 },
+      { x: pageWidth - cardMargin - 10, y: cardMargin + cardHeight - 10 },
     ];
 
     doc.setDrawColor(gold[0], gold[1], gold[2]);
@@ -98,7 +112,7 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
 
     try {
       const logoBase64 = await getLogoBase64();
-      doc.addImage(logoBase64, 'PNG', pageWidth / 2 - 16, 29, 32, 32);
+      doc.addImage(logoBase64, 'PNG', pageWidth / 2 - 12, 24, 24, 24);
     } catch (error) {
       console.error('Could not load logo:', error);
     }
@@ -106,107 +120,111 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
     doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-    doc.text('COMMUNITY SERVICE & DEVELOPMENT CENTER', pageWidth / 2, 68, { align: 'center' });
+    doc.text('COMMUNITY SERVICE & DEVELOPMENT CENTER', pageWidth / 2, 53, { align: 'center' });
     
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text('University of Jordan', pageWidth / 2, 74, { align: 'center' });
+    doc.text('University of Jordan', pageWidth / 2, 59, { align: 'center' });
 
     doc.setFillColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-    doc.roundedRect(pageWidth / 2 - 70, 82, 140, 22, 3, 3, 'F');
+    doc.roundedRect(pageWidth / 2 - 60, 64, 120, 14, 3, 3, 'F');
     
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
+    doc.setFontSize(12);
     doc.setTextColor(white[0], white[1], white[2]);
-    doc.text('CERTIFICATE OF APPRECIATION', pageWidth / 2, 96, { align: 'center' });
+    doc.text('CERTIFICATE OF APPRECIATION', pageWidth / 2, 73, { align: 'center' });
 
     doc.setDrawColor(gold[0], gold[1], gold[2]);
     doc.setLineWidth(0.8);
-    doc.line(pageWidth / 2 - 80, 108, pageWidth / 2 + 80, 108);
+    doc.line(pageWidth / 2 - 70, 82, pageWidth / 2 + 70, 82);
     
     doc.setFillColor(gold[0], gold[1], gold[2]);
-    [pageWidth / 2 - 80, pageWidth / 2, pageWidth / 2 + 80].forEach(x => {
-      doc.circle(x, 108, 2, 'F');
+    [pageWidth / 2 - 70, pageWidth / 2, pageWidth / 2 + 70].forEach(x => {
+      doc.circle(x, 82, 1.5, 'F');
     });
 
     doc.setFont('helvetica', 'italic');
-    doc.setFontSize(11);
+    doc.setFontSize(9);
     doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text('This certificate is proudly presented to', pageWidth / 2, 118, { align: 'center' });
+    doc.text('This certificate is proudly presented to', pageWidth / 2, 91, { align: 'center' });
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(24);
+    doc.setFontSize(20);
     doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-    doc.text(data.volunteerName, pageWidth / 2, 132, { align: 'center' });
+    doc.text(data.volunteerName, pageWidth / 2, 102, { align: 'center' });
     
     const nameWidth = doc.getTextWidth(data.volunteerName);
     doc.setDrawColor(brightGreen[0], brightGreen[1], brightGreen[2]);
-    doc.setLineWidth(1.5);
-    doc.line(pageWidth / 2 - nameWidth / 2, 135, pageWidth / 2 + nameWidth / 2, 135);
+    doc.setLineWidth(1.2);
+    doc.line(pageWidth / 2 - nameWidth / 2, 105, pageWidth / 2 + nameWidth / 2, 105);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text('for outstanding dedication and exceptional volunteer service in', pageWidth / 2, 146, { align: 'center' });
-
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14);
-    doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-    doc.text(data.opportunityTitle, pageWidth / 2, 156, { align: 'center' });
-
-    doc.setFillColor(brightGreen[0], brightGreen[1], brightGreen[2]);
-    doc.roundedRect(pageWidth / 2 - 32, 160, 64, 12, 6, 6, 'F');
-    doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
-    doc.setTextColor(white[0], white[1], white[2]);
-    doc.text(`${data.hours} VOLUNTEER HOURS`, pageWidth / 2, 168, { align: 'center' });
-
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
     doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text(`Date: ${data.opportunityDate}  |  Location: ${data.location}`, pageWidth / 2, 178, { align: 'center' });
+    doc.text('for outstanding dedication and exceptional volunteer service in', pageWidth / 2, 114, { align: 'center' });
 
-    const sigY = pageHeight - 38;
-    
-    doc.setDrawColor(slate[0], slate[1], slate[2]);
-    doc.setLineWidth(0.5);
-    doc.line(50, sigY, 115, sigY);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text('Director Signature', 82.5, sigY + 5, { align: 'center' });
-
-    const sealY = 188;
-    doc.setDrawColor(gold[0], gold[1], gold[2]);
-    doc.setLineWidth(2);
-    doc.circle(pageWidth / 2, sealY, 12, 'S');
-    doc.setDrawColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-    doc.setLineWidth(1);
-    doc.circle(pageWidth / 2, sealY, 8, 'S');
-    doc.setFillColor(gold[0], gold[1], gold[2]);
-    doc.circle(pageWidth / 2, sealY, 2.5, 'F');
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(5);
+    doc.setFontSize(12);
     doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-    doc.text('VERIFIED', pageWidth / 2, sealY + 6, { align: 'center' });
+    doc.text(data.opportunityTitle, pageWidth / 2, 123, { align: 'center' });
 
-    doc.setDrawColor(slate[0], slate[1], slate[2]);
-    doc.setLineWidth(0.5);
-    doc.line(pageWidth - 115, sigY, pageWidth - 50, sigY);
-    doc.setFont('helvetica', 'normal');
+    // Details grid
+    const detailsY = 132;
+    const cardSpacing = 55;
+    const detailCards = [
+      { label: 'Service Date', value: data.opportunityDate },
+      { label: 'Location', value: data.location },
+      { label: 'Hours', value: `${data.hours} Hours` },
+      { label: 'Issued', value: data.issuedAt },
+    ];
+
+    const startX = pageWidth / 2 - (cardSpacing * 1.5);
+    detailCards.forEach((card, index) => {
+      const x = startX + (index * cardSpacing);
+      
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(x - 22, detailsY - 4, 44, 16, 2, 2, 'F');
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(slate[0], slate[1], slate[2]);
+      doc.text(card.label, x, detailsY, { align: 'center' });
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8);
+      doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
+      doc.text(card.value, x, detailsY + 7, { align: 'center' });
+    });
+
+    // Appreciation message
+    doc.setFont('helvetica', 'italic');
     doc.setFontSize(8);
-    doc.text('Official Stamp', pageWidth - 82.5, sigY + 5, { align: 'center' });
+    doc.setTextColor(slate[0], slate[1], slate[2]);
+    doc.text('In recognition of your dedication, commitment, and outstanding service to the community.', pageWidth / 2, 156, { align: 'center' });
 
+    // Barcode
+    try {
+      const barcodeBase64 = generateBarcodeBase64(data.certificateNumber);
+      doc.addImage(barcodeBase64, 'PNG', pageWidth / 2 - 30, cardMargin + cardHeight - 22, 60, 15);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(5);
+      doc.setTextColor(slate[0], slate[1], slate[2]);
+      doc.text('Scan barcode to verify authenticity', pageWidth / 2, cardMargin + cardHeight - 5, { align: 'center' });
+    } catch (error) {
+      console.error('Could not generate barcode:', error);
+    }
+
+    // Footer
     doc.setFillColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-    doc.roundedRect(cardMargin + 10, pageHeight - 30, cardWidth - 20, 12, 2, 2, 'F');
+    doc.rect(0, pageHeight - 14, pageWidth, 14, 'F');
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(white[0], white[1], white[2]);
-    doc.text(`Certificate No: ${data.certificateNumber}`, cardMargin + 20, pageHeight - 22);
-    doc.text(`Issued: ${data.issuedAt}`, pageWidth - cardMargin - 20, pageHeight - 22, { align: 'right' });
-    doc.text('This certificate validates genuine volunteer service', pageWidth / 2, pageHeight - 22, { align: 'center' });
+    doc.text(`Certificate No: ${data.certificateNumber}`, 15, pageHeight - 5);
+    doc.text(`Issued: ${data.issuedAt}`, pageWidth - 15, pageHeight - 5, { align: 'right' });
+    doc.text('This certificate validates genuine volunteer service', pageWidth / 2, pageHeight - 5, { align: 'center' });
 
   } else {
     // Classic design
@@ -232,7 +250,7 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
 
     try {
       const logoBase64 = await getLogoBase64();
-      doc.addImage(logoBase64, 'PNG', pageWidth / 2 - 15, 25, 30, 30);
+      doc.addImage(logoBase64, 'PNG', pageWidth / 2 - 15, 22, 30, 30);
     } catch (error) {
       console.error('Could not load logo:', error);
     }
@@ -240,84 +258,106 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
-    doc.text('COMMUNITY SERVICE & DEVELOPMENT CENTER', pageWidth / 2, 62, { align: 'center' });
+    doc.text('COMMUNITY SERVICE & DEVELOPMENT CENTER', pageWidth / 2, 58, { align: 'center' });
     
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
-    doc.text('University of Jordan', pageWidth / 2, 68, { align: 'center' });
+    doc.text('University of Jordan', pageWidth / 2, 64, { align: 'center' });
 
     doc.setFont('times', 'bold');
-    doc.setFontSize(38);
+    doc.setFontSize(36);
     doc.setTextColor(darkSlate[0], darkSlate[1], darkSlate[2]);
-    doc.text('CERTIFICATE', pageWidth / 2, 85, { align: 'center' });
+    doc.text('CERTIFICATE', pageWidth / 2, 80, { align: 'center' });
 
-    doc.setFontSize(18);
+    doc.setFontSize(16);
     doc.setTextColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
-    doc.text('OF VOLUNTEER SERVICE', pageWidth / 2, 95, { align: 'center' });
+    doc.text('OF VOLUNTEER SERVICE', pageWidth / 2, 89, { align: 'center' });
 
     doc.setDrawColor(goldAccent[0], goldAccent[1], goldAccent[2]);
     doc.setLineWidth(1);
-    doc.line(pageWidth / 2 - 70, 100, pageWidth / 2 + 70, 100);
+    doc.line(pageWidth / 2 - 70, 93, pageWidth / 2 + 70, 93);
 
     doc.setFont('times', 'italic');
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setTextColor(80, 80, 80);
-    doc.text('This is to certify that', pageWidth / 2, 115, { align: 'center' });
+    doc.text('This is to certify that', pageWidth / 2, 103, { align: 'center' });
 
     doc.setFont('times', 'bold');
-    doc.setFontSize(28);
+    doc.setFontSize(24);
     doc.setTextColor(accentRed[0], accentRed[1], accentRed[2]);
-    doc.text(data.volunteerName, pageWidth / 2, 130, { align: 'center' });
+    doc.text(data.volunteerName, pageWidth / 2, 115, { align: 'center' });
 
     const nameWidth = doc.getTextWidth(data.volunteerName);
     doc.setDrawColor(goldAccent[0], goldAccent[1], goldAccent[2]);
     doc.setLineWidth(0.5);
-    doc.line(pageWidth / 2 - nameWidth / 2 - 5, 134, pageWidth / 2 + nameWidth / 2 + 5, 134);
+    doc.line(pageWidth / 2 - nameWidth / 2 - 5, 118, pageWidth / 2 + nameWidth / 2 + 5, 118);
 
     doc.setFont('times', 'normal');
-    doc.setFontSize(12);
+    doc.setFontSize(10);
     doc.setTextColor(80, 80, 80);
-    doc.text('has successfully completed volunteer service for', pageWidth / 2, 148, { align: 'center' });
+    doc.text('has successfully completed volunteer service for', pageWidth / 2, 128, { align: 'center' });
 
     doc.setFont('times', 'bold');
-    doc.setFontSize(18);
+    doc.setFontSize(14);
     doc.setTextColor(darkSlate[0], darkSlate[1], darkSlate[2]);
-    doc.text(data.opportunityTitle, pageWidth / 2, 160, { align: 'center' });
+    doc.text(data.opportunityTitle, pageWidth / 2, 137, { align: 'center' });
 
-    doc.setFillColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
-    doc.roundedRect(pageWidth / 2 - 30, 166, 60, 12, 4, 4, 'F');
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.setTextColor(255, 255, 255);
-    doc.text(`${data.hours} VOLUNTEER HOURS`, pageWidth / 2, 174, { align: 'center' });
+    // Details section
+    const leftCol = 60;
+    const rightCol = pageWidth - 60;
+    const detailsY = 148;
 
-    doc.setFont('times', 'normal');
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Date: ${data.opportunityDate}  |  Location: ${data.location}`, pageWidth / 2, 188, { align: 'center' });
-
-    const sigY = pageHeight - 42;
-    
-    doc.setDrawColor(100, 100, 100);
-    doc.setLineWidth(0.3);
-    doc.line(50, sigY, 110, sigY);
+    doc.setFont('helvetica', 'normal');
     doc.setFontSize(9);
-    doc.text('Director Signature', 80, sigY + 6, { align: 'center' });
+    doc.setTextColor(80, 80, 80);
 
-    doc.line(pageWidth - 110, sigY, pageWidth - 50, sigY);
-    doc.text('Center Stamp', pageWidth - 80, sigY + 6, { align: 'center' });
+    doc.text('Service Date:', leftCol, detailsY, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.text(` ${data.opportunityDate}`, leftCol + 2, detailsY);
 
-    doc.setFontSize(8);
-    doc.setTextColor(130, 130, 130);
-    doc.text(`Certificate No: ${data.certificateNumber}`, 25, pageHeight - 20);
-    doc.text(`Issued: ${data.issuedAt}`, pageWidth - 25, pageHeight - 20, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('Location:', leftCol, detailsY + 6, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.text(` ${data.location}`, leftCol + 2, detailsY + 6);
 
-    doc.setDrawColor(goldAccent[0], goldAccent[1], goldAccent[2]);
-    doc.setLineWidth(1);
-    doc.circle(pageWidth - 80, sigY - 8, 12, 'S');
-    doc.setFontSize(6);
-    doc.setTextColor(goldAccent[0], goldAccent[1], goldAccent[2]);
-    doc.text('OFFICIAL', pageWidth - 80, sigY - 8, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.text('Hours Completed:', rightCol - 40, detailsY, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
+    doc.text(` ${data.hours} Hours`, rightCol - 38, detailsY);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text('Issue Date:', rightCol - 40, detailsY + 6, { align: 'right' });
+    doc.setFont('helvetica', 'bold');
+    doc.text(` ${data.issuedAt}`, rightCol - 38, detailsY + 6);
+
+    // Appreciation message
+    doc.setFont('times', 'italic');
+    doc.setFontSize(9);
+    doc.setTextColor(100, 100, 100);
+    doc.text('In recognition of dedication, commitment, and outstanding service to the community.', pageWidth / 2, 165, { align: 'center' });
+
+    // Barcode
+    try {
+      const barcodeBase64 = generateBarcodeBase64(data.certificateNumber);
+      doc.addImage(barcodeBase64, 'PNG', pageWidth / 2 - 35, pageHeight - 45, 70, 18);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(6);
+      doc.setTextColor(100, 100, 100);
+      doc.text('Scan barcode to verify authenticity', pageWidth / 2, pageHeight - 26, { align: 'center' });
+    } catch (error) {
+      console.error('Could not generate barcode:', error);
+    }
+
+    // Footer
+    doc.setFillColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
+    doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+    
+    doc.setFontSize(7);
+    doc.setTextColor(255, 255, 255);
+    doc.text(`Certificate No: ${data.certificateNumber}`, 15, pageHeight - 5);
+    doc.text(`Issued: ${data.issuedAt}`, pageWidth - 15, pageHeight - 5, { align: 'right' });
   }
 
   return doc.output('arraybuffer');
