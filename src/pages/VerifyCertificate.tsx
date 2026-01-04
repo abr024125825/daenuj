@@ -38,7 +38,7 @@ export function VerifyCertificate() {
   const verifyCertificate = async (certNumber?: string) => {
     const numberToVerify = certNumber || certificateNumber;
     if (!numberToVerify.trim()) {
-      setError('الرجاء إدخال رقم الشهادة');
+      setError('Please enter a certificate number');
       return;
     }
 
@@ -75,23 +75,23 @@ export function VerifyCertificate() {
         const volunteerApp = certificate.volunteer?.application;
         const volunteerName = volunteerApp 
           ? `${volunteerApp.first_name} ${volunteerApp.father_name || ''} ${volunteerApp.family_name}`.trim()
-          : 'غير معروف';
+          : 'Unknown';
 
         setVerificationResult({
           certificate_number: certificate.certificate_number,
           volunteer_name: volunteerName,
-          opportunity_title: certificate.opportunity?.title || 'خدمة تطوعية',
+          opportunity_title: certificate.opportunity?.title || 'Volunteer Service',
           hours: certificate.hours,
           issued_at: certificate.issued_at,
           opportunity_date: certificate.opportunity?.date || '',
           location: certificate.opportunity?.location || '',
         });
       } else {
-        setError('لم يتم العثور على الشهادة. تأكد من رقم الشهادة وحاول مرة أخرى.');
+        setError('Certificate not found. Please check the certificate number and try again.');
       }
     } catch (err) {
       console.error('Verification error:', err);
-      setError('حدث خطأ أثناء التحقق. حاول مرة أخرى.');
+      setError('An error occurred during verification. Please try again.');
     } finally {
       setIsVerifying(false);
     }
@@ -108,7 +108,7 @@ export function VerifyCertificate() {
           <Button variant="ghost" asChild>
             <Link to="/">
               <ArrowLeft className="h-4 w-4 mr-2" />
-              العودة للرئيسية
+              Back to Home
             </Link>
           </Button>
         </div>
@@ -120,9 +120,9 @@ export function VerifyCertificate() {
             <div className="inline-flex items-center justify-center p-4 bg-primary/10 rounded-full">
               <Shield className="h-12 w-12 text-primary" />
             </div>
-            <h1 className="text-3xl font-display font-bold">التحقق من الشهادة</h1>
+            <h1 className="text-3xl font-display font-bold">Certificate Verification</h1>
             <p className="text-muted-foreground">
-              أدخل رقم الشهادة أو امسح الباركود للتحقق من صحتها
+              Enter the certificate number or scan the QR code to verify its authenticity
             </p>
           </div>
 
@@ -130,16 +130,16 @@ export function VerifyCertificate() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Search className="h-5 w-5" />
-                التحقق من الشهادة
+                Verify Certificate
               </CardTitle>
               <CardDescription>
-                أدخل رقم الشهادة الموجود في أسفل الشهادة
+                Enter the certificate number found at the bottom of the certificate
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex gap-3">
                 <Input
-                  placeholder="مثال: CSDC-2025-000001"
+                  placeholder="Example: CSDC-2025-000001"
                   value={certificateNumber}
                   onChange={(e) => setCertificateNumber(e.target.value.toUpperCase())}
                   onKeyDown={(e) => e.key === 'Enter' && verifyCertificate()}
@@ -152,7 +152,7 @@ export function VerifyCertificate() {
                   ) : (
                     <>
                       <Search className="h-4 w-4 mr-2" />
-                      تحقق
+                      Verify
                     </>
                   )}
                 </Button>
@@ -165,8 +165,8 @@ export function VerifyCertificate() {
                       <div className="flex items-center gap-3 text-green-700 dark:text-green-400">
                         <CheckCircle className="h-8 w-8" />
                         <div>
-                          <h3 className="font-semibold text-lg">شهادة موثقة ✓</h3>
-                          <p className="text-sm opacity-80">هذه الشهادة صحيحة وصادرة من مركز خدمة المجتمع</p>
+                          <h3 className="font-semibold text-lg">Verified Certificate ✓</h3>
+                          <p className="text-sm opacity-80">This certificate is authentic and issued by the Community Service Center</p>
                         </div>
                       </div>
                       
@@ -181,7 +181,7 @@ export function VerifyCertificate() {
                           <div className="flex items-start gap-3">
                             <User className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <p className="text-sm text-muted-foreground">اسم المتطوع</p>
+                              <p className="text-sm text-muted-foreground">Volunteer Name</p>
                               <p className="font-semibold">{verificationResult.volunteer_name}</p>
                             </div>
                           </div>
@@ -189,7 +189,7 @@ export function VerifyCertificate() {
                           <div className="flex items-start gap-3">
                             <Award className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <p className="text-sm text-muted-foreground">النشاط التطوعي</p>
+                              <p className="text-sm text-muted-foreground">Volunteer Activity</p>
                               <p className="font-semibold">{verificationResult.opportunity_title}</p>
                             </div>
                           </div>
@@ -197,10 +197,10 @@ export function VerifyCertificate() {
                           <div className="flex items-start gap-3">
                             <Calendar className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <p className="text-sm text-muted-foreground">تاريخ النشاط</p>
+                              <p className="text-sm text-muted-foreground">Activity Date</p>
                               <p className="font-semibold">
                                 {verificationResult.opportunity_date 
-                                  ? format(new Date(verificationResult.opportunity_date), 'yyyy/MM/dd')
+                                  ? format(new Date(verificationResult.opportunity_date), 'MMMM dd, yyyy')
                                   : '-'}
                               </p>
                             </div>
@@ -209,7 +209,7 @@ export function VerifyCertificate() {
                           <div className="flex items-start gap-3">
                             <MapPin className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <p className="text-sm text-muted-foreground">الموقع</p>
+                              <p className="text-sm text-muted-foreground">Location</p>
                               <p className="font-semibold">{verificationResult.location || '-'}</p>
                             </div>
                           </div>
@@ -217,18 +217,18 @@ export function VerifyCertificate() {
                           <div className="flex items-start gap-3">
                             <Clock className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <p className="text-sm text-muted-foreground">ساعات التطوع</p>
-                              <p className="font-semibold">{verificationResult.hours} ساعة</p>
+                              <p className="text-sm text-muted-foreground">Volunteer Hours</p>
+                              <p className="font-semibold">{verificationResult.hours} Hours</p>
                             </div>
                           </div>
 
                           <div className="flex items-start gap-3">
                             <Calendar className="h-5 w-5 text-primary mt-0.5" />
                             <div>
-                              <p className="text-sm text-muted-foreground">تاريخ الإصدار</p>
+                              <p className="text-sm text-muted-foreground">Issue Date</p>
                               <p className="font-semibold">
                                 {verificationResult.issued_at 
-                                  ? format(new Date(verificationResult.issued_at), 'yyyy/MM/dd')
+                                  ? format(new Date(verificationResult.issued_at), 'MMMM dd, yyyy')
                                   : '-'}
                               </p>
                             </div>
@@ -241,7 +241,7 @@ export function VerifyCertificate() {
                       <div className="flex items-center gap-3 text-red-700 dark:text-red-400">
                         <XCircle className="h-8 w-8" />
                         <div>
-                          <h3 className="font-semibold text-lg">فشل التحقق</h3>
+                          <h3 className="font-semibold text-lg">Verification Failed</h3>
                           <p className="text-sm opacity-80">{error}</p>
                         </div>
                       </div>
@@ -254,10 +254,10 @@ export function VerifyCertificate() {
 
           <div className="text-center text-sm text-muted-foreground">
             <p>
-              خدمة التحقق مقدمة من مركز خدمة المجتمع والتنمية - الجامعة الأردنية
+              Verification service provided by the Community Service & Development Center
             </p>
             <p className="mt-1">
-              Community Service & Development Center - University of Jordan
+              University of Jordan
             </p>
           </div>
         </div>
