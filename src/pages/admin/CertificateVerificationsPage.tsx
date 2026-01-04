@@ -14,7 +14,6 @@ import {
 import { Shield, Search, Loader2, BarChart3, Eye, Clock, TrendingUp, Calendar } from 'lucide-react';
 import { useCertificateVerifications } from '@/hooks/useCertificateVerifications';
 import { format, subDays, startOfDay, endOfDay, isWithinInterval } from 'date-fns';
-import { ar } from 'date-fns/locale';
 
 export function CertificateVerificationsPage() {
   const { verifications, isLoading } = useCertificateVerifications();
@@ -229,7 +228,7 @@ export function CertificateVerificationsPage() {
                       {verification.certificate?.opportunity?.title || '-'}
                     </TableCell>
                     <TableCell className="text-muted-foreground">
-                      {format(new Date(verification.verified_at), 'yyyy/MM/dd HH:mm', { locale: ar })}
+                      {format(new Date(verification.verified_at), 'MMM dd, yyyy HH:mm')}
                     </TableCell>
                     <TableCell className="max-w-[150px] truncate text-xs text-muted-foreground">
                       {verification.user_agent 
