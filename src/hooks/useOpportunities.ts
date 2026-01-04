@@ -251,6 +251,37 @@ export function useOpportunityRegistrations(opportunityId?: string) {
 
   const registerForOpportunity = useMutation({
     mutationFn: async ({ opportunityId, volunteerId }: { opportunityId: string; volunteerId: string }) => {
+      // Check if volunteer has completed all required training courses
+      const { data: requiredCourses } = await supabase
+        .from('training_courses')
+        .select('id')
+        .eq('is_required', true);
+
+      if (requiredCourses && requiredCourses.length > 0) {
+        // Get required quizzes for these courses
+        const { data: requiredQuizzes } = await supabase
+          .from('training_quizzes')
+          .select('id, course_id')
+          .in('course_id', requiredCourses.map(c => c.id))
+          .eq('is_required', true);
+
+        if (requiredQuizzes && requiredQuizzes.length > 0) {
+          // Check if volunteer has passed all required quizzes
+          const { data: passedAttempts } = await supabase
+            .from('volunteer_quiz_attempts')
+            .select('quiz_id')
+            .eq('volunteer_id', volunteerId)
+            .eq('passed', true);
+
+          const passedQuizIds = new Set(passedAttempts?.map(a => a.quiz_id) || []);
+          const allRequiredQuizzesPassed = requiredQuizzes.every(q => passedQuizIds.has(q.id));
+
+          if (!allRequiredQuizzesPassed) {
+            throw new Error('You must complete all required training courses before registering for opportunities');
+          }
+        }
+      }
+
       // Check if opportunity is full
       const { data: opportunity } = await supabase
         .from('opportunities')

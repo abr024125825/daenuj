@@ -74,10 +74,10 @@ export function useQuizzes(courseId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      toast({ title: 'تم إنشاء الاختبار بنجاح' });
+      toast({ title: 'Quiz created successfully' });
     },
     onError: (error) => {
-      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -95,10 +95,10 @@ export function useQuizzes(courseId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      toast({ title: 'تم تحديث الاختبار بنجاح' });
+      toast({ title: 'Quiz updated successfully' });
     },
     onError: (error) => {
-      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -113,10 +113,10 @@ export function useQuizzes(courseId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      toast({ title: 'تم حذف الاختبار بنجاح' });
+      toast({ title: 'Quiz deleted successfully' });
     },
     onError: (error) => {
-      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -133,10 +133,10 @@ export function useQuizzes(courseId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      toast({ title: 'تم إضافة السؤال بنجاح' });
+      toast({ title: 'Question added successfully' });
     },
     onError: (error) => {
-      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -154,10 +154,10 @@ export function useQuizzes(courseId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      toast({ title: 'تم تحديث السؤال بنجاح' });
+      toast({ title: 'Question updated successfully' });
     },
     onError: (error) => {
-      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -172,10 +172,10 @@ export function useQuizzes(courseId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['quizzes'] });
-      toast({ title: 'تم حذف السؤال بنجاح' });
+      toast({ title: 'Question deleted successfully' });
     },
     onError: (error) => {
-      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -282,19 +282,19 @@ export function useMyQuizAttempts() {
       queryClient.invalidateQueries({ queryKey: ['my-quiz-attempts'] });
       if (data.passed) {
         toast({ 
-          title: 'مبروك! 🎉', 
-          description: `لقد اجتزت الاختبار بنجاح بنسبة ${data.score}%` 
+          title: 'Congratulations! 🎉', 
+          description: `You passed the quiz with a score of ${data.score}%` 
         });
       } else {
         toast({ 
-          title: 'حاول مرة أخرى', 
-          description: `نتيجتك ${data.score}%. حاول مرة أخرى للنجاح.`,
+          title: 'Try again', 
+          description: `Your score is ${data.score}%. Try again to pass.`,
           variant: 'destructive'
         });
       }
     },
     onError: (error) => {
-      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     },
   });
 

@@ -141,16 +141,16 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
       <div className="flex items-center justify-between">
         <h4 className="font-medium flex items-center gap-2">
           <ClipboardList className="h-4 w-4" />
-          اختبارات الدورة
+          Course Quizzes
         </h4>
         <Button size="sm" onClick={() => setQuizDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-1" />
-          إضافة اختبار
+          Add Quiz
         </Button>
       </div>
 
       {courseQuizzes.length === 0 ? (
-        <p className="text-sm text-muted-foreground">لا توجد اختبارات لهذه الدورة</p>
+        <p className="text-sm text-muted-foreground">No quizzes for this course</p>
       ) : (
         <div className="space-y-3">
           {courseQuizzes.map((quiz: any) => (
@@ -163,14 +163,14 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
                       {quiz.title}
                     </CardTitle>
                     <CardDescription className="text-xs mt-1">
-                      درجة النجاح: {quiz.passing_score}% | 
-                      {quiz.questions?.length || 0} سؤال | 
-                      {quiz.max_attempts} محاولات
+                      Passing Score: {quiz.passing_score}% | 
+                      {quiz.questions?.length || 0} questions | 
+                      {quiz.max_attempts} attempts
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-1">
                     {quiz.is_required && (
-                      <Badge variant="destructive" className="text-xs">مطلوب</Badge>
+                      <Badge variant="destructive" className="text-xs">Required</Badge>
                     )}
                     <Button size="icon" variant="ghost" onClick={() => openQuestionDialog(quiz.id)}>
                       <Plus className="h-4 w-4" />
@@ -192,7 +192,7 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
                   <Accordion type="single" collapsible className="w-full">
                     <AccordionItem value="questions" className="border-none">
                       <AccordionTrigger className="py-2 text-sm">
-                        عرض الأسئلة ({quiz.questions.length})
+                        View Questions ({quiz.questions.length})
                       </AccordionTrigger>
                       <AccordionContent>
                         <div className="space-y-2">
@@ -236,29 +236,29 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
       <Dialog open={quizDialogOpen} onOpenChange={setQuizDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>إنشاء اختبار جديد</DialogTitle>
+            <DialogTitle>Create New Quiz</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
-              <Label>عنوان الاختبار</Label>
+              <Label>Quiz Title</Label>
               <Input
                 value={newQuiz.title}
                 onChange={(e) => setNewQuiz({ ...newQuiz, title: e.target.value })}
-                placeholder="اختبار المقدمة"
+                placeholder="Introduction Quiz"
               />
             </div>
             <div className="grid gap-2">
-              <Label>الوصف (اختياري)</Label>
+              <Label>Description (optional)</Label>
               <Textarea
                 value={newQuiz.description}
                 onChange={(e) => setNewQuiz({ ...newQuiz, description: e.target.value })}
-                placeholder="وصف الاختبار..."
+                placeholder="Quiz description..."
                 rows={2}
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label>درجة النجاح (%)</Label>
+                <Label>Passing Score (%)</Label>
                 <Input
                   type="number"
                   min={0}
@@ -268,7 +268,7 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
                 />
               </div>
               <div className="grid gap-2">
-                <Label>عدد المحاولات</Label>
+                <Label>Max Attempts</Label>
                 <Input
                   type="number"
                   min={1}
@@ -279,8 +279,8 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
             </div>
             <div className="flex items-center justify-between">
               <div>
-                <Label>اختبار مطلوب</Label>
-                <p className="text-sm text-muted-foreground">يجب اجتيازه لإكمال الدورة</p>
+                <Label>Required Quiz</Label>
+                <p className="text-sm text-muted-foreground">Must be passed to complete the course</p>
               </div>
               <Switch
                 checked={newQuiz.is_required}
@@ -293,7 +293,7 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
               disabled={!newQuiz.title || createQuiz.isPending}
             >
               {createQuiz.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              إنشاء الاختبار
+              Create Quiz
             </Button>
           </div>
         </DialogContent>
@@ -303,19 +303,19 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
       <Dialog open={!!editingQuiz} onOpenChange={() => setEditingQuiz(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>تعديل الاختبار</DialogTitle>
+            <DialogTitle>Edit Quiz</DialogTitle>
           </DialogHeader>
           {editingQuiz && (
             <div className="space-y-4 py-4">
               <div className="grid gap-2">
-                <Label>عنوان الاختبار</Label>
+                <Label>Quiz Title</Label>
                 <Input
                   value={editingQuiz.title}
                   onChange={(e) => setEditingQuiz({ ...editingQuiz, title: e.target.value })}
                 />
               </div>
               <div className="grid gap-2">
-                <Label>الوصف</Label>
+                <Label>Description</Label>
                 <Textarea
                   value={editingQuiz.description || ''}
                   onChange={(e) => setEditingQuiz({ ...editingQuiz, description: e.target.value })}
@@ -324,7 +324,7 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="grid gap-2">
-                  <Label>درجة النجاح (%)</Label>
+                  <Label>Passing Score (%)</Label>
                   <Input
                     type="number"
                     min={0}
@@ -334,7 +334,7 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label>عدد المحاولات</Label>
+                  <Label>Max Attempts</Label>
                   <Input
                     type="number"
                     min={1}
@@ -344,7 +344,7 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <Label>اختبار مطلوب</Label>
+                <Label>Required Quiz</Label>
                 <Switch
                   checked={editingQuiz.is_required}
                   onCheckedChange={(checked) => setEditingQuiz({ ...editingQuiz, is_required: checked })}
@@ -356,7 +356,7 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
                 disabled={updateQuiz.isPending}
               >
                 {updateQuiz.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                حفظ التغييرات
+                Save Changes
               </Button>
             </div>
           )}
@@ -367,20 +367,20 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
       <Dialog open={questionDialogOpen} onOpenChange={setQuestionDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>إضافة سؤال جديد</DialogTitle>
+            <DialogTitle>Add New Question</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="grid gap-2">
-              <Label>السؤال</Label>
+              <Label>Question</Label>
               <Textarea
                 value={newQuestion.question}
                 onChange={(e) => setNewQuestion({ ...newQuestion, question: e.target.value })}
-                placeholder="أدخل نص السؤال..."
+                placeholder="Enter question text..."
                 rows={2}
               />
             </div>
             <div className="grid gap-2">
-              <Label>الخيارات (على الأقل 2)</Label>
+              <Label>Options (at least 2)</Label>
               {newQuestion.options.map((opt, idx) => (
                 <div key={idx} className="flex gap-2">
                   <Input
@@ -390,7 +390,7 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
                       newOptions[idx] = e.target.value;
                       setNewQuestion({ ...newQuestion, options: newOptions });
                     }}
-                    placeholder={`الخيار ${idx + 1}`}
+                    placeholder={`Option ${idx + 1}`}
                   />
                   <Button
                     type="button"
@@ -400,13 +400,13 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
                     disabled={!opt}
                     className="shrink-0"
                   >
-                    صحيح
+                    Correct
                   </Button>
                 </div>
               ))}
             </div>
             <div className="grid gap-2">
-              <Label>النقاط</Label>
+              <Label>Points</Label>
               <Input
                 type="number"
                 min={1}
@@ -425,7 +425,7 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
               }
             >
               {addQuestion.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              إضافة السؤال
+              Add Question
             </Button>
           </div>
         </DialogContent>
@@ -435,16 +435,16 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
       <AlertDialog open={deleteQuizDialogOpen} onOpenChange={setDeleteQuizDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف الاختبار</AlertDialogTitle>
+            <AlertDialogTitle>Delete Quiz</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من حذف هذا الاختبار؟ سيتم حذف جميع الأسئلة والمحاولات المرتبطة به.
+              Are you sure you want to delete this quiz? All questions and attempts will be deleted.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteQuiz}>
               {deleteQuiz.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              حذف
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -454,15 +454,16 @@ export function QuizManager({ courseId, courseName }: QuizManagerProps) {
       <AlertDialog open={deleteQuestionDialogOpen} onOpenChange={setDeleteQuestionDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>حذف السؤال</AlertDialogTitle>
+            <AlertDialogTitle>Delete Question</AlertDialogTitle>
             <AlertDialogDescription>
-              هل أنت متأكد من حذف هذا السؤال؟
+              Are you sure you want to delete this question?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handleDeleteQuestion}>
-              حذف
+              {deleteQuestion.isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

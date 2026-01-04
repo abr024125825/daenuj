@@ -99,7 +99,7 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
       <Card className="border-dashed">
         <CardContent className="py-4 text-center text-muted-foreground">
           <ClipboardList className="h-8 w-8 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">الاختبار غير متاح حالياً</p>
+          <p className="text-sm">Quiz currently unavailable</p>
         </CardContent>
       </Card>
     );
@@ -121,18 +121,18 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
               <div>
                 <CardTitle className="text-base">{quiz.title}</CardTitle>
                 <CardDescription className="text-xs">
-                  {questions.length} أسئلة • درجة النجاح {quiz.passing_score}%
+                  {questions.length} questions • Passing score {quiz.passing_score}%
                 </CardDescription>
               </div>
             </div>
             <div className="flex items-center gap-2">
               {quiz.is_required && (
-                <Badge variant="destructive" className="text-xs">مطلوب</Badge>
+                <Badge variant="destructive" className="text-xs">Required</Badge>
               )}
               {passed && (
                 <Badge className="bg-green-500">
                   <CheckCircle className="h-3 w-3 mr-1" />
-                  ناجح
+                  Passed
                 </Badge>
               )}
             </div>
@@ -140,9 +140,9 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
         </CardHeader>
         <CardFooter className="py-3 border-t flex items-center justify-between">
           <div className="text-sm text-muted-foreground">
-            المحاولات: {attemptCount} / {quiz.max_attempts}
+            Attempts: {attemptCount} / {quiz.max_attempts}
             {lastAttempt && !passed && (
-              <span className="mr-2">• آخر نتيجة: {lastAttempt.score}%</span>
+              <span className="ml-2">• Last score: {lastAttempt.score}%</span>
             )}
           </div>
           <Button 
@@ -152,14 +152,14 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
             variant={passed ? "outline" : "default"}
           >
             {passed ? (
-              <>إعادة المراجعة</>
+              <>Review Quiz</>
             ) : canAttempt ? (
               <>
                 <Play className="h-4 w-4 mr-1" />
-                بدء الاختبار
+                Start Quiz
               </>
             ) : (
-              <>انتهت المحاولات</>
+              <>No Attempts Left</>
             )}
           </Button>
         </CardFooter>
@@ -180,8 +180,8 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
               {/* Progress */}
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>السؤال {currentQuestionIndex + 1} من {questions.length}</span>
-                  <span>{answeredCount} إجابة من {questions.length}</span>
+                  <span>Question {currentQuestionIndex + 1} of {questions.length}</span>
+                  <span>{answeredCount} of {questions.length} answered</span>
                 </div>
                 <Progress value={progress} />
               </div>
@@ -200,9 +200,9 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
                       onValueChange={(value) => handleAnswer(currentQuestion.id, value)}
                     >
                       {currentQuestion.options?.map((option, idx) => (
-                        <div key={idx} className="flex items-center space-x-2 space-x-reverse p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                        <div key={idx} className="flex items-center space-x-2 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                           <RadioGroupItem value={option} id={`option-${idx}`} />
-                          <Label htmlFor={`option-${idx}`} className="flex-1 cursor-pointer">
+                          <Label htmlFor={`option-${idx}`} className="flex-1 cursor-pointer ml-2">
                             {option}
                           </Label>
                         </div>
@@ -219,7 +219,7 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
                   onClick={handlePrevious}
                   disabled={currentQuestionIndex === 0}
                 >
-                  السابق
+                  Previous
                 </Button>
                 
                 <div className="flex gap-1">
@@ -246,11 +246,11 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
                     disabled={answeredCount < questions.length || submitting || passed}
                   >
                     {submitting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                    تقديم الإجابات
+                    Submit Answers
                   </Button>
                 ) : (
                   <Button onClick={handleNext}>
-                    التالي
+                    Next
                   </Button>
                 )}
               </div>
@@ -258,7 +258,7 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
               {answeredCount < questions.length && currentQuestionIndex === questions.length - 1 && (
                 <p className="text-sm text-amber-600 flex items-center gap-1 justify-center">
                   <AlertCircle className="h-4 w-4" />
-                  يرجى الإجابة على جميع الأسئلة قبل التقديم
+                  Please answer all questions before submitting
                 </p>
               )}
             </div>
@@ -272,28 +272,28 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
                   {submitQuiz.data.passed ? (
                     <>
                       <Trophy className="h-16 w-16 mx-auto text-green-500 mb-4" />
-                      <h3 className="text-2xl font-bold text-green-700 mb-2">مبروك! 🎉</h3>
-                      <p className="text-green-600">لقد اجتزت الاختبار بنجاح</p>
+                      <h3 className="text-2xl font-bold text-green-700 mb-2">Congratulations! 🎉</h3>
+                      <p className="text-green-600">You passed the quiz successfully</p>
                     </>
                   ) : (
                     <>
                       <XCircle className="h-16 w-16 mx-auto text-red-500 mb-4" />
-                      <h3 className="text-2xl font-bold text-red-700 mb-2">حاول مرة أخرى</h3>
-                      <p className="text-red-600">لم تصل لدرجة النجاح المطلوبة</p>
+                      <h3 className="text-2xl font-bold text-red-700 mb-2">Try Again</h3>
+                      <p className="text-red-600">You did not reach the required passing score</p>
                     </>
                   )}
                   <div className="mt-4 text-4xl font-bold">
                     {submitQuiz.data.score}%
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    درجة النجاح المطلوبة: {quiz.passing_score}%
+                    Required passing score: {quiz.passing_score}%
                   </p>
                 </div>
               )}
 
               {/* Review Answers */}
               <div className="space-y-3">
-                <h4 className="font-medium">مراجعة الإجابات:</h4>
+                <h4 className="font-medium">Review Answers:</h4>
                 {questions.map((q, idx) => {
                   const userAnswer = answers[q.id];
                   const isCorrect = userAnswer === q.correct_answer;
@@ -310,14 +310,14 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
                           <div className="flex-1">
                             <p className="font-medium text-sm">{idx + 1}. {q.question}</p>
                             <p className="text-sm mt-1">
-                              <span className="text-muted-foreground">إجابتك: </span>
+                              <span className="text-muted-foreground">Your answer: </span>
                               <span className={isCorrect ? 'text-green-600' : 'text-red-600'}>
-                                {userAnswer || 'لم تجب'}
+                                {userAnswer || 'Not answered'}
                               </span>
                             </p>
                             {!isCorrect && (
                               <p className="text-sm text-green-600 mt-1">
-                                الإجابة الصحيحة: {q.correct_answer}
+                                Correct answer: {q.correct_answer}
                               </p>
                             )}
                           </div>
@@ -332,7 +332,7 @@ export function QuizTaker({ quiz }: QuizTakerProps) {
                 className="w-full" 
                 onClick={() => setQuizDialogOpen(false)}
               >
-                إغلاق
+                Close
               </Button>
             </div>
           )}
