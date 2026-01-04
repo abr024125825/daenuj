@@ -72,7 +72,7 @@ export function CertificateVerificationsPage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="سجلات التحقق">
+      <DashboardLayout title="Verification Logs">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -81,13 +81,13 @@ export function CertificateVerificationsPage() {
   }
 
   return (
-    <DashboardLayout title="سجلات التحقق">
+    <DashboardLayout title="Verification Logs">
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-display font-bold">سجلات التحقق من الشهادات</h2>
+            <h2 className="text-2xl font-display font-bold">Certificate Verification Logs</h2>
             <p className="text-muted-foreground">
-              متابعة عمليات التحقق من صحة الشهادات
+              Track certificate verification activities
             </p>
           </div>
         </div>
@@ -102,7 +102,7 @@ export function CertificateVerificationsPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{verifications?.length || 0}</p>
-                  <p className="text-sm text-muted-foreground">إجمالي عمليات التحقق</p>
+                  <p className="text-sm text-muted-foreground">Total Verifications</p>
                 </div>
               </div>
             </CardContent>
@@ -116,7 +116,7 @@ export function CertificateVerificationsPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{todayCount}</p>
-                  <p className="text-sm text-muted-foreground">اليوم</p>
+                  <p className="text-sm text-muted-foreground">Today</p>
                 </div>
               </div>
             </CardContent>
@@ -130,7 +130,7 @@ export function CertificateVerificationsPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{weekCount}</p>
-                  <p className="text-sm text-muted-foreground">آخر 7 أيام</p>
+                  <p className="text-sm text-muted-foreground">Last 7 Days</p>
                 </div>
               </div>
             </CardContent>
@@ -144,7 +144,7 @@ export function CertificateVerificationsPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">{uniqueCertificates}</p>
-                  <p className="text-sm text-muted-foreground">شهادات فريدة</p>
+                  <p className="text-sm text-muted-foreground">Unique Certificates</p>
                 </div>
               </div>
             </CardContent>
@@ -157,10 +157,10 @@ export function CertificateVerificationsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <BarChart3 className="h-5 w-5" />
-                الشهادات الأكثر تحققاً
+                Most Verified Certificates
               </CardTitle>
               <CardDescription>
-                الشهادات التي تم التحقق منها أكثر من مرة
+                Certificates that have been verified multiple times
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -171,7 +171,7 @@ export function CertificateVerificationsPage() {
                       <Badge variant="outline" className="font-mono">{item.certNumber}</Badge>
                       <span className="text-sm">{item.volunteerName}</span>
                     </div>
-                    <Badge variant="secondary">{item.count} مرة</Badge>
+                    <Badge variant="secondary">{item.count} times</Badge>
                   </div>
                 ))}
               </div>
@@ -186,16 +186,16 @@ export function CertificateVerificationsPage() {
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
-                  سجل عمليات التحقق
+                  Verification History
                 </CardTitle>
                 <CardDescription>
-                  آخر 100 عملية تحقق
+                  Last 100 verification attempts
                 </CardDescription>
               </div>
               <div className="relative w-64">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="البحث..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-9"
@@ -207,11 +207,11 @@ export function CertificateVerificationsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>رقم الشهادة</TableHead>
-                  <TableHead>اسم المتطوع</TableHead>
-                  <TableHead>النشاط</TableHead>
-                  <TableHead>تاريخ التحقق</TableHead>
-                  <TableHead>المتصفح</TableHead>
+                  <TableHead>Certificate Number</TableHead>
+                  <TableHead>Volunteer Name</TableHead>
+                  <TableHead>Activity</TableHead>
+                  <TableHead>Verification Date</TableHead>
+                  <TableHead>Browser</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -240,7 +240,7 @@ export function CertificateVerificationsPage() {
                 {(!filteredVerifications || filteredVerifications.length === 0) && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      لا توجد عمليات تحقق بعد
+                      No verification records yet
                     </TableCell>
                   </TableRow>
                 )}
