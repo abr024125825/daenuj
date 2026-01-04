@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 import logoImage from '@/assets/logo.png';
-import JsBarcode from 'jsbarcode';
+import QRCode from 'qrcode';
 
 interface CertificateData {
   volunteerName: string;
@@ -35,17 +35,17 @@ async function getLogoBase64(): Promise<string> {
   });
 }
 
-// Generate Barcode as base64
-function generateBarcodeBase64(certificateNumber: string): string {
-  const canvas = document.createElement('canvas');
-  JsBarcode(canvas, certificateNumber, {
-    format: 'CODE128',
-    width: 2,
-    height: 40,
-    displayValue: false,
-    margin: 5,
+// Generate QR Code as base64
+async function generateQRCodeBase64(certificateNumber: string): Promise<string> {
+  const verifyUrl = `${window.location.origin}/verify?cert=${certificateNumber}`;
+  return await QRCode.toDataURL(verifyUrl, {
+    width: 150,
+    margin: 1,
+    color: {
+      dark: '#1e3a5f',
+      light: '#ffffff'
+    }
   });
-  return canvas.toDataURL('image/png');
 }
 
 // Generate PDF as ArrayBuffer (for ZIP)
@@ -203,16 +203,26 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     doc.setTextColor(slate[0], slate[1], slate[2]);
     doc.text('In recognition of your dedication, commitment, and outstanding service to the community.', pageWidth / 2, 156, { align: 'center' });
 
-    // Barcode
+    // QR Code for verification - bottom right corner of card
     try {
-      const barcodeBase64 = generateBarcodeBase64(data.certificateNumber);
-      doc.addImage(barcodeBase64, 'PNG', pageWidth / 2 - 30, cardMargin + cardHeight - 22, 60, 15);
-      doc.setFont('helvetica', 'normal');
+      const qrCodeBase64 = await generateQRCodeBase64(data.certificateNumber);
+      const qrSize = 22;
+      const qrX = pageWidth - cardMargin - qrSize - 15;
+      const qrY = cardMargin + cardHeight - qrSize - 12;
+      
+      doc.setFillColor(248, 250, 252);
+      doc.roundedRect(qrX - 3, qrY - 3, qrSize + 6, qrSize + 12, 3, 3, 'F');
+      doc.setDrawColor(gold[0], gold[1], gold[2]);
+      doc.setLineWidth(0.8);
+      doc.roundedRect(qrX - 3, qrY - 3, qrSize + 6, qrSize + 12, 3, 3, 'S');
+      
+      doc.addImage(qrCodeBase64, 'PNG', qrX, qrY, qrSize, qrSize);
+      doc.setFont('helvetica', 'bold');
       doc.setFontSize(5);
-      doc.setTextColor(slate[0], slate[1], slate[2]);
-      doc.text('Scan barcode to verify authenticity', pageWidth / 2, cardMargin + cardHeight - 5, { align: 'center' });
+      doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
+      doc.text('Scan to Verify', qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     } catch (error) {
-      console.error('Could not generate barcode:', error);
+      console.error('Could not generate QR code:', error);
     }
 
     // Footer
@@ -338,16 +348,26 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     doc.setTextColor(100, 100, 100);
     doc.text('In recognition of dedication, commitment, and outstanding service to the community.', pageWidth / 2, 165, { align: 'center' });
 
-    // Barcode
+    // QR Code for verification - bottom right corner
     try {
-      const barcodeBase64 = generateBarcodeBase64(data.certificateNumber);
-      doc.addImage(barcodeBase64, 'PNG', pageWidth / 2 - 35, pageHeight - 45, 70, 18);
+      const qrCodeBase64 = await generateQRCodeBase64(data.certificateNumber);
+      const qrSize = 25;
+      const qrX = pageWidth - 50;
+      const qrY = pageHeight - 55;
+      
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 10, 2, 2, 'F');
+      doc.setDrawColor(goldAccent[0], goldAccent[1], goldAccent[2]);
+      doc.setLineWidth(0.5);
+      doc.roundedRect(qrX - 2, qrY - 2, qrSize + 4, qrSize + 10, 2, 2, 'S');
+      
+      doc.addImage(qrCodeBase64, 'PNG', qrX, qrY, qrSize, qrSize);
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(6);
-      doc.setTextColor(100, 100, 100);
-      doc.text('Scan barcode to verify authenticity', pageWidth / 2, pageHeight - 26, { align: 'center' });
+      doc.setFontSize(5);
+      doc.setTextColor(80, 80, 80);
+      doc.text('Scan to Verify', qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     } catch (error) {
-      console.error('Could not generate barcode:', error);
+      console.error('Could not generate QR code:', error);
     }
 
     // Footer
