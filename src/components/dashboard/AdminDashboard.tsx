@@ -18,6 +18,7 @@ import { useVolunteerApplications } from '@/hooks/useApplications';
 import { useOpportunities } from '@/hooks/useOpportunities';
 import { useVolunteers } from '@/hooks/useVolunteers';
 import { useCertificates } from '@/hooks/useCertificates';
+import { AvailabilityStatisticsWidget } from '@/components/admin/AvailabilityStatisticsWidget';
 import { format } from 'date-fns';
 
 export function AdminDashboard() {
@@ -219,6 +220,9 @@ export function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Availability Statistics Widget */}
+        <AvailabilityStatisticsWidget />
 
         {/* Quick Actions */}
         <Card>
