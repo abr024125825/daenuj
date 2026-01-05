@@ -182,7 +182,7 @@ export function VolunteerTrainingPage() {
                     <CardContent className="border-t space-y-3">
                       <h4 className="font-medium flex items-center gap-2 text-sm">
                         <ClipboardList className="h-4 w-4" />
-                        اختبارات الدورة
+                        Course Quizzes
                       </h4>
                       {getCourseQuizzes(course.id).map((quiz: any) => (
                         <QuizTaker key={quiz.id} quiz={quiz} />
@@ -285,7 +285,7 @@ export function VolunteerTrainingPage() {
                     <CardContent className="border-t space-y-3">
                       <h4 className="font-medium flex items-center gap-2 text-sm">
                         <ClipboardList className="h-4 w-4" />
-                        اختبارات الدورة
+                        Course Quizzes
                       </h4>
                       {getCourseQuizzes(course.id).map((quiz: any) => (
                         <QuizTaker key={quiz.id} quiz={quiz} />
