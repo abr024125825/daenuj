@@ -91,11 +91,14 @@ export function useAttendanceReport(opportunityId?: string) {
     queryFn: async () => {
       if (!opportunityId) return null;
 
-      const { data: opportunity } = await supabase
-        .from('opportunities')
-        .select('*')
-        .eq('id', opportunityId)
-        .single();
+       const { data: opportunity, error: opportunityError } = await supabase
+         .from('opportunities')
+         .select('*')
+         .eq('id', opportunityId)
+         .maybeSingle();
+
+       if (opportunityError) throw opportunityError;
+       if (!opportunity) return null;
 
       const { data: registrations } = await supabase
         .from('opportunity_registrations')
@@ -294,18 +297,21 @@ export function useVolunteerDetails(volunteerId?: string) {
     queryFn: async () => {
       if (!volunteerId) return null;
 
-      const { data: volunteer } = await supabase
-        .from('volunteers')
-        .select(`
-          *,
-          application:volunteer_applications(
-            *,
-            faculty:faculties(name),
-            major:majors(name)
-          )
-        `)
-        .eq('id', volunteerId)
-        .single();
+       const { data: volunteer, error: volunteerError } = await supabase
+         .from('volunteers')
+         .select(`
+           *,
+           application:volunteer_applications(
+             *,
+             faculty:faculties(name),
+             major:majors(name)
+           )
+         `)
+         .eq('id', volunteerId)
+         .maybeSingle();
+
+       if (volunteerError) throw volunteerError;
+       if (!volunteer) return null;
 
       const { data: attendance } = await supabase
         .from('attendance')
