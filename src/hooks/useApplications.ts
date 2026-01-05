@@ -108,8 +108,23 @@ export function useSubmitApplication() {
 
   return useMutation({
     mutationFn: async (applicationData: Omit<VolunteerApplication, 'id' | 'user_id' | 'status' | 'rejection_reason' | 'reviewed_at' | 'reviewed_by' | 'created_at' | 'updated_at' | 'faculty' | 'major'>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      
+      if (authError) {
+        console.error('Auth error:', authError);
+        throw new Error('Authentication error: ' + authError.message);
+      }
+      
+      if (!user) {
+        throw new Error('You must be logged in to submit an application');
+      }
+
+      // Validate required fields
+      if (!applicationData.faculty_id || !applicationData.major_id) {
+        throw new Error('Please select your faculty and major');
+      }
+
+      console.log('Submitting application for user:', user.id);
 
       const { data, error } = await supabase
         .from('volunteer_applications')
@@ -120,7 +135,12 @@ export function useSubmitApplication() {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Insert error:', error);
+        throw error;
+      }
+      
+      console.log('Application submitted successfully:', data);
       return data;
     },
     onSuccess: () => {
