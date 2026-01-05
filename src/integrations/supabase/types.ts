@@ -22,7 +22,10 @@ export type Database = {
           end_date: string
           id: string
           is_active: boolean | null
+          is_schedule_open: boolean | null
           name: string
+          schedule_closed_at: string | null
+          schedule_closed_by: string | null
           semester_number: number
           start_date: string
           updated_at: string
@@ -34,7 +37,10 @@ export type Database = {
           end_date: string
           id?: string
           is_active?: boolean | null
+          is_schedule_open?: boolean | null
           name: string
+          schedule_closed_at?: string | null
+          schedule_closed_by?: string | null
           semester_number: number
           start_date: string
           updated_at?: string
@@ -46,7 +52,10 @@ export type Database = {
           end_date?: string
           id?: string
           is_active?: boolean | null
+          is_schedule_open?: boolean | null
           name?: string
+          schedule_closed_at?: string | null
+          schedule_closed_by?: string | null
           semester_number?: number
           start_date?: string
           updated_at?: string
@@ -1064,6 +1073,8 @@ export type Database = {
           is_active: boolean | null
           opportunities_completed: number | null
           rating: number | null
+          schedule_submitted_at: string | null
+          schedule_submitted_for_semester: string | null
           total_hours: number | null
           updated_at: string
           user_id: string
@@ -1075,6 +1086,8 @@ export type Database = {
           is_active?: boolean | null
           opportunities_completed?: number | null
           rating?: number | null
+          schedule_submitted_at?: string | null
+          schedule_submitted_for_semester?: string | null
           total_hours?: number | null
           updated_at?: string
           user_id: string
@@ -1086,6 +1099,8 @@ export type Database = {
           is_active?: boolean | null
           opportunities_completed?: number | null
           rating?: number | null
+          schedule_submitted_at?: string | null
+          schedule_submitted_for_semester?: string | null
           total_hours?: number | null
           updated_at?: string
           user_id?: string
@@ -1096,6 +1111,13 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: true
             referencedRelation: "volunteer_applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "volunteers_schedule_submitted_for_semester_fkey"
+            columns: ["schedule_submitted_for_semester"]
+            isOneToOne: false
+            referencedRelation: "academic_semesters"
             referencedColumns: ["id"]
           },
         ]

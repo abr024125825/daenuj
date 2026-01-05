@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export interface VolunteerCourse {
   id: string;
@@ -34,6 +35,24 @@ export function useVolunteerCourses(volunteerId?: string) {
 
       if (error) throw error;
       return data as (VolunteerCourse & { semester: any })[];
+    },
+    enabled: !!volunteerId,
+  });
+
+  // Get volunteer schedule submission status
+  const { data: volunteerData } = useQuery({
+    queryKey: ['volunteer-schedule-status', volunteerId],
+    queryFn: async () => {
+      if (!volunteerId) return null;
+
+      const { data, error } = await supabase
+        .from('volunteers')
+        .select('schedule_submitted_at, schedule_submitted_for_semester')
+        .eq('id', volunteerId)
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     enabled: !!volunteerId,
   });
@@ -112,6 +131,59 @@ export function useVolunteerCourses(volunteerId?: string) {
     },
   });
 
+  // Submit schedule (lock it)
+  const submitSchedule = useMutation({
+    mutationFn: async (semesterId: string) => {
+      if (!volunteerId) throw new Error('Volunteer ID required');
+
+      const { error } = await supabase
+        .from('volunteers')
+        .update({
+          schedule_submitted_at: new Date().toISOString(),
+          schedule_submitted_for_semester: semesterId,
+        })
+        .eq('id', volunteerId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['volunteer-schedule-status', volunteerId] });
+      toast({ title: 'Success', description: 'Schedule submitted successfully. It is now locked.' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Admin function to unlock a volunteer's schedule
+  const unlockSchedule = useMutation({
+    mutationFn: async () => {
+      if (!volunteerId) throw new Error('Volunteer ID required');
+
+      const { error } = await supabase
+        .from('volunteers')
+        .update({
+          schedule_submitted_at: null,
+          schedule_submitted_for_semester: null,
+        })
+        .eq('id', volunteerId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['volunteer-schedule-status', volunteerId] });
+      toast({ title: 'Success', description: 'Schedule unlocked for editing' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Check if schedule is locked for a semester
+  const isScheduleLocked = (semesterId: string) => {
+    return volunteerData?.schedule_submitted_for_semester === semesterId;
+  };
+
   return {
     courses,
     isLoading,
@@ -119,6 +191,10 @@ export function useVolunteerCourses(volunteerId?: string) {
     updateCourse,
     deleteCourse,
     clearSemesterCourses,
+    submitSchedule,
+    unlockSchedule,
+    isScheduleLocked,
+    scheduleSubmittedAt: volunteerData?.schedule_submitted_at,
   };
 }
 
