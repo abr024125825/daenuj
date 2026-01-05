@@ -68,6 +68,7 @@ import {
   generateOpportunityReportPDF 
 } from '@/lib/generateOpportunityPDF';
 import { VolunteerAvailabilityLists } from '@/components/admin/VolunteerAvailabilityLists';
+import { OpportunityRecommendations } from '@/components/admin/OpportunityRecommendations';
 
 export function OpportunityDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -812,8 +813,12 @@ export function OpportunityDetailsPage() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="volunteers">Volunteers</TabsTrigger>
+            <TabsTrigger value="recommendations" className="gap-1">
+              <Sparkles className="h-3 w-3" />
+              Recommendations
+            </TabsTrigger>
             <TabsTrigger value="availability" className="gap-1">
               <ClockIcon className="h-3 w-3" />
               Availability
@@ -917,7 +922,22 @@ export function OpportunityDetailsPage() {
             </Card>
           </TabsContent>
 
-          {/* Section 3: Availability */}
+          {/* Section 3: Recommendations */}
+          <TabsContent value="recommendations" className="space-y-4">
+            <OpportunityRecommendations
+              opportunityId={id || ''}
+              opportunityDate={opportunity.date}
+              startTime={opportunity.start_time}
+              endTime={opportunity.end_time}
+              targetInterests={opportunity.target_interests || []}
+              registrations={registrations || []}
+              requiredVolunteers={opportunity.required_volunteers}
+              onAutoApprove={handleAutoApproveVolunteer}
+              isProcessing={isProcessing}
+            />
+          </TabsContent>
+
+          {/* Section 4: Availability */}
           <TabsContent value="availability" className="space-y-4">
             <VolunteerAvailabilityLists
               opportunityId={id || ''}
