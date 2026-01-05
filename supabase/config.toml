@@ -1,1 +1,4 @@
 project_id = "dpikcsfygokqkwddunzl"
+
+[functions.send-volunteer-notification]
+verify_jwt = false
