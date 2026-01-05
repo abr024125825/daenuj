@@ -111,6 +111,91 @@ export type Database = {
           },
         ]
       }
+      badge_transactions: {
+        Row: {
+          checkout_code: string
+          checkout_condition: string | null
+          checkout_confirmed_at: string | null
+          checkout_confirmed_by: string | null
+          checkout_time: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          opportunity_id: string
+          registration_id: string
+          return_code: string | null
+          return_condition: string | null
+          return_confirmed_at: string | null
+          return_confirmed_by: string | null
+          return_time: string | null
+          status: string
+          updated_at: string
+          volunteer_id: string
+        }
+        Insert: {
+          checkout_code: string
+          checkout_condition?: string | null
+          checkout_confirmed_at?: string | null
+          checkout_confirmed_by?: string | null
+          checkout_time?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opportunity_id: string
+          registration_id: string
+          return_code?: string | null
+          return_condition?: string | null
+          return_confirmed_at?: string | null
+          return_confirmed_by?: string | null
+          return_time?: string | null
+          status?: string
+          updated_at?: string
+          volunteer_id: string
+        }
+        Update: {
+          checkout_code?: string
+          checkout_condition?: string | null
+          checkout_confirmed_at?: string | null
+          checkout_confirmed_by?: string | null
+          checkout_time?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          opportunity_id?: string
+          registration_id?: string
+          return_code?: string | null
+          return_condition?: string | null
+          return_confirmed_at?: string | null
+          return_confirmed_by?: string | null
+          return_time?: string | null
+          status?: string
+          updated_at?: string
+          volunteer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "badge_transactions_opportunity_id_fkey"
+            columns: ["opportunity_id"]
+            isOneToOne: false
+            referencedRelation: "opportunities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "badge_transactions_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "opportunity_registrations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "badge_transactions_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "volunteers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       certificate_templates: {
         Row: {
           created_at: string
@@ -1020,6 +1105,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_badge_code: { Args: never; Returns: string }
       generate_certificate_number: { Args: never; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
