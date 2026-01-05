@@ -51,7 +51,7 @@ import {
   ChevronDown, ChevronUp, CheckCircle, XCircle, 
   UserMinus, Printer, QrCode, Keyboard, Hash,
   Award, Trash2, Pencil, Download, Loader2, Send,
-  Lock, Unlock, UserPlus, Sparkles, Shield, ClockIcon
+  Lock, Unlock, UserPlus, Sparkles, Shield, ClockIcon, IdCard
 } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
 import { useFaculties } from '@/hooks/useFaculties';
@@ -69,6 +69,7 @@ import {
 } from '@/lib/generateOpportunityPDF';
 import { VolunteerAvailabilityLists } from '@/components/admin/VolunteerAvailabilityLists';
 import { OpportunityRecommendations } from '@/components/admin/OpportunityRecommendations';
+import { BadgeManagement } from '@/components/admin/BadgeManagement';
 
 export function OpportunityDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -813,11 +814,15 @@ export function OpportunityDetailsPage() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="volunteers">Volunteers</TabsTrigger>
             <TabsTrigger value="recommendations" className="gap-1">
               <Sparkles className="h-3 w-3" />
               Recommendations
+            </TabsTrigger>
+            <TabsTrigger value="badges" className="gap-1">
+              <IdCard className="h-3 w-3" />
+              Badges
             </TabsTrigger>
             <TabsTrigger value="availability" className="gap-1">
               <ClockIcon className="h-3 w-3" />
@@ -937,7 +942,16 @@ export function OpportunityDetailsPage() {
             />
           </TabsContent>
 
-          {/* Section 4: Availability */}
+          {/* Section 4: Badges */}
+          <TabsContent value="badges" className="space-y-4">
+            <BadgeManagement
+              opportunityId={id || ''}
+              opportunityTitle={opportunity.title}
+              registrations={registrations || []}
+            />
+          </TabsContent>
+
+          {/* Section 5: Availability */}
           <TabsContent value="availability" className="space-y-4">
             <VolunteerAvailabilityLists
               opportunityId={id || ''}
@@ -950,7 +964,7 @@ export function OpportunityDetailsPage() {
             />
           </TabsContent>
 
-          {/* Section 4: Attendance */}
+          {/* Section 6: Attendance */}
           <TabsContent value="attendance" className="space-y-4">
             {attendanceMethod === null ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

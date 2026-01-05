@@ -15,6 +15,7 @@ import {
   Trophy,
   Target,
   Loader2,
+  IdCard,
 } from 'lucide-react';
 import { useMyRegistrations } from '@/hooks/useOpportunities';
 import { useMyCertificates } from '@/hooks/useCertificates';
@@ -23,6 +24,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { BadgeStatus } from '@/components/volunteer/BadgeStatus';
 
 export function VolunteerDashboard() {
   const navigate = useNavigate();
@@ -270,6 +272,9 @@ export function VolunteerDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Badge Status */}
+        {volunteer && <BadgeStatus volunteerId={volunteer.id} />}
 
         {/* Browse Opportunities CTA */}
         <Card className="border-primary/20 bg-primary/5">
