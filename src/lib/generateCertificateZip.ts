@@ -197,25 +197,37 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
       doc.text(card.value, x, detailsY + 7, { align: 'center' });
     });
 
-    // Appreciation message
+    // QR Code placement (reserve a right-side column so it never overlaps text)
+    const qrSize = 22;
+    const qrX = pageWidth - cardMargin - qrSize - 15;
+    const qrY = cardMargin + cardHeight - qrSize - 12;
+
+    // Appreciation message (left column to avoid QR area)
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(8);
     doc.setTextColor(slate[0], slate[1], slate[2]);
-    doc.text('In recognition of your dedication, commitment, and outstanding service to the community.', pageWidth / 2, 156, { align: 'center' });
+
+    const messageX = cardMargin + 18;
+    const messageMaxWidth = Math.max(60, qrX - messageX - 8);
+    const messageY = 156;
+
+    doc.text(
+      'In recognition of your dedication, commitment, and outstanding service to the community.',
+      messageX,
+      messageY,
+      { maxWidth: messageMaxWidth }
+    );
 
     // QR Code for verification - bottom right corner of card
     try {
       const qrCodeBase64 = await generateQRCodeBase64(data.certificateNumber);
-      const qrSize = 22;
-      const qrX = pageWidth - cardMargin - qrSize - 15;
-      const qrY = cardMargin + cardHeight - qrSize - 12;
-      
+
       doc.setFillColor(248, 250, 252);
       doc.roundedRect(qrX - 3, qrY - 3, qrSize + 6, qrSize + 12, 3, 3, 'F');
       doc.setDrawColor(gold[0], gold[1], gold[2]);
       doc.setLineWidth(0.8);
       doc.roundedRect(qrX - 3, qrY - 3, qrSize + 6, qrSize + 12, 3, 3, 'S');
-      
+
       doc.addImage(qrCodeBase64, 'PNG', qrX, qrY, qrSize, qrSize);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(5);

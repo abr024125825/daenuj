@@ -48,7 +48,9 @@ export function VerifyCertificate() {
     setHasSearched(true);
 
     try {
-      // Fetch certificate with related data
+      const normalizedNumber = numberToVerify.trim();
+
+      // Fetch certificate with related data (case-insensitive match)
       const { data: certificate, error: fetchError } = await supabase
         .from('certificates')
         .select(`
@@ -59,7 +61,7 @@ export function VerifyCertificate() {
           ),
           opportunity:opportunities(title, date, location)
         `)
-        .eq('certificate_number', numberToVerify.trim().toUpperCase())
+        .ilike('certificate_number', normalizedNumber)
         .maybeSingle();
 
       if (fetchError) throw fetchError;

@@ -33,14 +33,12 @@ export function useOpportunities() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('opportunities')
-        .insert({ ...opportunity, created_by: user.id })
-        .select()
-        .single();
-      
+        .insert({ ...opportunity, created_by: user.id });
+
       if (error) throw error;
-      return data;
+      return null;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['opportunities'] });
@@ -53,15 +51,13 @@ export function useOpportunities() {
 
   const updateOpportunity = useMutation({
     mutationFn: async ({ id, ...updates }: OpportunityUpdate & { id: string }) => {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('opportunities')
         .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-      
+        .eq('id', id);
+
       if (error) throw error;
-      return data;
+      return null;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['opportunities'] });

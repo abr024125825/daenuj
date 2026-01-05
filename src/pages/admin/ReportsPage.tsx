@@ -74,7 +74,16 @@ import {
 } from 'recharts';
 import { format } from 'date-fns';
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', 'hsl(var(--warning))', '#10b981', '#8b5cf6', '#f43f5e', '#06b6d4', '#eab308'];
+const COLORS = [
+  'hsl(var(--primary))',
+  'hsl(var(--accent))',
+  'hsl(var(--warning))',
+  'hsl(var(--success))',
+  'hsl(var(--info))',
+  'hsl(var(--muted-foreground))',
+  'hsl(var(--ring))',
+  'hsl(var(--destructive))',
+];
 
 export function ReportsPage() {
   const { stats, monthlyData, facultyBreakdown, topVolunteers, isLoading } = useReportsData();
@@ -273,11 +282,11 @@ export function ReportsPage() {
                 </CardContent>
               </Card>
               
-              <Card className="bg-gradient-to-br from-green-500/10 to-green-500/5 border-green-500/20">
+              <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
                 <CardContent className="p-6">
                   <div className="flex items-center gap-4">
-                    <div className="p-3 rounded-xl bg-green-500/20">
-                      <Award className="h-6 w-6 text-green-500" />
+                    <div className="p-3 rounded-xl bg-success/20">
+                      <Award className="h-6 w-6 text-success" />
                     </div>
                     <div>
                       <p className="text-3xl font-bold">{certificatesData?.totalIssued || stats?.totalCertificates || 0}</p>
@@ -316,7 +325,7 @@ export function ReportsPage() {
               <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium flex items-center gap-2">
-                    <Target className="h-4 w-4 text-green-500" />
+                    <Target className="h-4 w-4 text-success" />
                     Completion Rate
                   </CardTitle>
                 </CardHeader>
@@ -327,7 +336,7 @@ export function ReportsPage() {
                   </div>
                   <div className="mt-2 h-2 bg-muted rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-green-500 rounded-full transition-all" 
+                      className="h-full bg-success rounded-full transition-all" 
                       style={{ width: `${completionRate}%` }}
                     />
                   </div>
@@ -592,9 +601,9 @@ export function ReportsPage() {
                     {topHoursData?.map((v, index) => (
                       <div key={v.id} className="flex items-center gap-4 p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
-                          index === 0 ? 'bg-yellow-500/20 text-yellow-600 ring-2 ring-yellow-500/50' :
-                          index === 1 ? 'bg-gray-300/20 text-gray-600 ring-2 ring-gray-400/50' :
-                          index === 2 ? 'bg-amber-600/20 text-amber-700 ring-2 ring-amber-600/50' :
+                          index === 0 ? 'bg-warning/20 text-warning ring-2 ring-warning/40' :
+                          index === 1 ? 'bg-muted text-muted-foreground ring-2 ring-border' :
+                          index === 2 ? 'bg-accent/15 text-accent ring-2 ring-accent/40' :
                           'bg-muted text-muted-foreground'
                         }`}>
                           {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
@@ -670,7 +679,7 @@ export function ReportsPage() {
                       </Card>
                       <Card>
                         <CardContent className="p-4 text-center">
-                          <p className="text-2xl font-bold text-green-500">{attendanceData.attended}</p>
+                          <p className="text-2xl font-bold text-success">{attendanceData.attended}</p>
                           <p className="text-sm text-muted-foreground">Attended</p>
                         </CardContent>
                       </Card>
@@ -724,7 +733,7 @@ export function ReportsPage() {
             <div className="grid md:grid-cols-3 gap-4">
               <Card>
                 <CardContent className="p-6 text-center">
-                  <Award className="h-10 w-10 mx-auto text-green-500 mb-2" />
+                  <Award className="h-10 w-10 mx-auto text-success mb-2" />
                   <p className="text-3xl font-bold">{certificatesData?.totalIssued || 0}</p>
                   <p className="text-muted-foreground">Certificates Issued</p>
                 </CardContent>
