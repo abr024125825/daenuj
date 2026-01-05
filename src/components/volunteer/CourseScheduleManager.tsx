@@ -93,21 +93,39 @@ export function CourseScheduleManager({ volunteerId, isAdmin = false }: CourseSc
   const handleSubmit = async () => {
     if (!activeSemester) return;
 
-    const courseData = {
-      ...formData,
-      volunteer_id: volunteerId,
-      semester_id: activeSemester.id,
-      location: formData.location || null,
-    };
-
+    // If editing, just update the single course
     if (selectedCourse) {
+      const courseData = {
+        ...formData,
+        volunteer_id: volunteerId,
+        semester_id: activeSemester.id,
+        location: formData.location || null,
+      };
       await updateCourse.mutateAsync({ id: selectedCourse.id, ...courseData });
     } else {
-      await addCourse.mutateAsync(courseData);
+      // If adding new course with a pattern, add to all days in the pattern
+      const selectedPattern = LECTURE_PATTERNS.find(p => p.label === lecturePattern);
+      const daysToAdd = selectedPattern && selectedPattern.days.length > 0 
+        ? selectedPattern.days 
+        : [formData.day_of_week];
+
+      for (const day of daysToAdd) {
+        await addCourse.mutateAsync({
+          volunteer_id: volunteerId,
+          semester_id: activeSemester.id,
+          course_code: formData.course_code,
+          course_name: formData.course_name,
+          day_of_week: day,
+          start_time: formData.start_time,
+          end_time: formData.end_time,
+          location: formData.location || null,
+        });
+      }
     }
 
     setDialogOpen(false);
     resetForm();
+    setLecturePattern('');
   };
 
   const handleEdit = (course: VolunteerCourse) => {
@@ -454,16 +472,56 @@ MATH101,Calculus I,Tuesday,14:00,15:30,Building C Room 301`;
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="course_code">Course Code *</Label>
+                <Input
+                  id="course_code"
+                  placeholder="e.g., CS101"
+                  value={formData.course_code}
+                  onChange={(e) => setFormData(prev => ({ ...prev, course_code: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="course_name">Course Name *</Label>
+                <Input
+                  id="course_name"
+                  placeholder="e.g., Introduction to Computer Science"
+                  value={formData.course_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, course_name: e.target.value }))}
+                />
+              </div>
+
+              {/* Day Selection - Pattern or Single Day */}
+              {!selectedCourse && (
                 <div className="space-y-2">
-                  <Label htmlFor="course_code">Course Code *</Label>
-                  <Input
-                    id="course_code"
-                    placeholder="e.g., CS101"
-                    value={formData.course_code}
-                    onChange={(e) => setFormData(prev => ({ ...prev, course_code: e.target.value }))}
-                  />
+                  <Label>Lecture Pattern *</Label>
+                  <Select
+                    value={lecturePattern}
+                    onValueChange={(value) => {
+                      setLecturePattern(value);
+                      // Clear single day selection if pattern is selected
+                      if (value !== 'Single Day') {
+                        setFormData(prev => ({ ...prev, day_of_week: '' }));
+                      }
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select lecture pattern" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {LECTURE_PATTERNS.map(pattern => (
+                        <SelectItem key={pattern.label} value={pattern.label}>
+                          {pattern.label} {pattern.days.length > 0 && `(${pattern.days.join(', ')})`}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
+              )}
+
+              {/* Show single day selector only when editing or when "Single Day" pattern is selected */}
+              {(selectedCourse || lecturePattern === 'Single Day') && (
                 <div className="space-y-2">
                   <Label htmlFor="day_of_week">Day *</Label>
                   <Select
@@ -480,17 +538,7 @@ MATH101,Calculus I,Tuesday,14:00,15:30,Building C Room 301`;
                     </SelectContent>
                   </Select>
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="course_name">Course Name *</Label>
-                <Input
-                  id="course_name"
-                  placeholder="e.g., Introduction to Computer Science"
-                  value={formData.course_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, course_name: e.target.value }))}
-                />
-              </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -529,7 +577,19 @@ MATH101,Calculus I,Tuesday,14:00,15:30,Building C Room 301`;
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={!formData.course_code || !formData.course_name || !formData.day_of_week || !formData.start_time || !formData.end_time || addCourse.isPending || updateCourse.isPending}
+                disabled={
+                  !formData.course_code || 
+                  !formData.course_name || 
+                  !formData.start_time || 
+                  !formData.end_time || 
+                  // For new courses: require pattern selection, and if Single Day, require day selection
+                  (!selectedCourse && !lecturePattern) ||
+                  (!selectedCourse && lecturePattern === 'Single Day' && !formData.day_of_week) ||
+                  // For editing: require day selection
+                  (selectedCourse && !formData.day_of_week) ||
+                  addCourse.isPending || 
+                  updateCourse.isPending
+                }
               >
                 {(addCourse.isPending || updateCourse.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 {selectedCourse ? 'Update' : 'Add'}
