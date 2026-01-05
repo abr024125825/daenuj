@@ -21,6 +21,7 @@ import {
   MessageSquare,
   Shield,
   BookOpen,
+  IdCard,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -42,6 +43,7 @@ const adminNavItems: NavItem[] = [
   { icon: ClipboardList, label: 'Applications', href: '/dashboard/applications', badge: 5 },
   { icon: Users, label: 'Volunteers', href: '/dashboard/volunteers' },
   { icon: Calendar, label: 'Opportunities', href: '/dashboard/opportunities' },
+  { icon: IdCard, label: 'Badge Tracking', href: '/dashboard/badges' },
   { icon: Award, label: 'Certificates', href: '/dashboard/certificates' },
   { icon: Shield, label: 'Verification Logs', href: '/dashboard/certificate-verifications' },
   { icon: MessageSquare, label: 'Evaluations', href: '/dashboard/evaluations' },
