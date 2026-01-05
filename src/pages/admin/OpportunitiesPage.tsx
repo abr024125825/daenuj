@@ -312,14 +312,14 @@ export function OpportunitiesPage() {
                 <div>
                   <Label>Faculty Restriction</Label>
                   <Select
-                    value={formData.faculty_restriction}
-                    onValueChange={(value) => setFormData({ ...formData, faculty_restriction: value })}
+                    value={formData.faculty_restriction || "none"}
+                    onValueChange={(value) => setFormData({ ...formData, faculty_restriction: value === "none" ? "" : value })}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="No restriction" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">No restriction</SelectItem>
+                      <SelectItem value="none">No restriction</SelectItem>
                       {faculties?.map((f: any) => (
                         <SelectItem key={f.id} value={f.id}>{f.name}</SelectItem>
                       ))}
