@@ -17,6 +17,7 @@ import { VolunteersPage } from "./pages/admin/VolunteersPage";
 import { ReportsPage } from "./pages/admin/ReportsPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { CertificateVerificationsPage } from "./pages/admin/CertificateVerificationsPage";
+import { SchedulePage } from "./pages/volunteer/SchedulePage";
 import NotFound from "./pages/NotFound";
 import { VerifyCertificate } from "./pages/VerifyCertificate";
 
@@ -40,6 +41,7 @@ const App = () => (
             <Route path="/dashboard/certificate-verifications" element={<CertificateVerificationsPage />} />
             <Route path="/dashboard/evaluations" element={<EvaluationsRouter />} />
             <Route path="/dashboard/training" element={<TrainingRouter />} />
+            <Route path="/dashboard/schedule" element={<SchedulePage />} />
             <Route path="/dashboard/volunteers" element={<VolunteersPage />} />
             <Route path="/dashboard/reports" element={<ReportsPage />} />
             <Route path="/dashboard/settings" element={<SettingsPage />} />

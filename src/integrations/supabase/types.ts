@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      academic_semesters: {
+        Row: {
+          academic_year: string
+          created_at: string
+          created_by: string
+          end_date: string
+          id: string
+          is_active: boolean | null
+          name: string
+          semester_number: number
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year: string
+          created_at?: string
+          created_by: string
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          semester_number: number
+          start_date: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year?: string
+          created_at?: string
+          created_by?: string
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          semester_number?: number
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       attendance: {
         Row: {
           check_in_method: string | null
@@ -777,6 +816,63 @@ export type Database = {
             columns: ["major_id"]
             isOneToOne: false
             referencedRelation: "majors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      volunteer_courses: {
+        Row: {
+          course_code: string
+          course_name: string
+          created_at: string
+          day_of_week: string
+          end_time: string
+          id: string
+          location: string | null
+          semester_id: string
+          start_time: string
+          updated_at: string
+          volunteer_id: string
+        }
+        Insert: {
+          course_code: string
+          course_name: string
+          created_at?: string
+          day_of_week: string
+          end_time: string
+          id?: string
+          location?: string | null
+          semester_id: string
+          start_time: string
+          updated_at?: string
+          volunteer_id: string
+        }
+        Update: {
+          course_code?: string
+          course_name?: string
+          created_at?: string
+          day_of_week?: string
+          end_time?: string
+          id?: string
+          location?: string | null
+          semester_id?: string
+          start_time?: string
+          updated_at?: string
+          volunteer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "volunteer_courses_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "academic_semesters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "volunteer_courses_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "volunteers"
             referencedColumns: ["id"]
           },
         ]

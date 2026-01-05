@@ -29,12 +29,13 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Users, Shield, Settings, Search, Loader2, UserCog } from 'lucide-react';
+import { Users, Shield, Settings, Search, Loader2, UserCog, Calendar } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { SemesterManagement } from '@/components/admin/SemesterManagement';
 
 export function SettingsPage() {
   const { users, isLoading, updateUserRole, toggleUserActive } = useUsers();
@@ -144,6 +145,10 @@ export function SettingsPage() {
               <Users className="h-4 w-4" />
               User Management
             </TabsTrigger>
+            <TabsTrigger value="semesters" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              Academic Semesters
+            </TabsTrigger>
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4" />
               Configuration
@@ -251,6 +256,10 @@ export function SettingsPage() {
                 </Table>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="semesters" className="space-y-4">
+            <SemesterManagement />
           </TabsContent>
 
           <TabsContent value="config" className="space-y-4">

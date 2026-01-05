@@ -20,6 +20,7 @@ import {
   ClipboardList,
   MessageSquare,
   Shield,
+  BookOpen,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -52,6 +53,7 @@ const adminNavItems: NavItem[] = [
 const volunteerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Calendar, label: 'Opportunities', href: '/dashboard/opportunities' },
+  { icon: BookOpen, label: 'Course Schedule', href: '/dashboard/schedule' },
   { icon: Award, label: 'My Certificates', href: '/dashboard/certificates' },
   { icon: GraduationCap, label: 'Training', href: '/dashboard/training' },
   { icon: MessageSquare, label: 'Evaluations', href: '/dashboard/evaluations' },

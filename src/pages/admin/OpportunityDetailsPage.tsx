@@ -51,7 +51,7 @@ import {
   ChevronDown, ChevronUp, CheckCircle, XCircle, 
   UserMinus, Printer, QrCode, Keyboard, Hash,
   Award, Trash2, Pencil, Download, Loader2, Send,
-  Lock, Unlock, UserPlus, Sparkles, Shield
+  Lock, Unlock, UserPlus, Sparkles, Shield, ClockIcon
 } from 'lucide-react';
 import { useOpportunities, useOpportunityRegistrations } from '@/hooks/useOpportunities';
 import { useFaculties } from '@/hooks/useFaculties';
@@ -67,6 +67,7 @@ import {
   generateOpportunityListPDF,
   generateOpportunityReportPDF 
 } from '@/lib/generateOpportunityPDF';
+import { VolunteerAvailabilityLists } from '@/components/admin/VolunteerAvailabilityLists';
 
 export function OpportunityDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -775,8 +776,12 @@ export function OpportunityDetailsPage() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="volunteers">Volunteers</TabsTrigger>
+            <TabsTrigger value="availability" className="gap-1">
+              <ClockIcon className="h-3 w-3" />
+              Availability
+            </TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="certificates">Certificates</TabsTrigger>
           </TabsList>
@@ -876,7 +881,20 @@ export function OpportunityDetailsPage() {
             </Card>
           </TabsContent>
 
-          {/* Section 3: Attendance */}
+          {/* Section 3: Availability */}
+          <TabsContent value="availability" className="space-y-4">
+            <VolunteerAvailabilityLists
+              opportunityId={id || ''}
+              opportunityDate={opportunity.date}
+              startTime={opportunity.start_time}
+              endTime={opportunity.end_time}
+              targetInterests={opportunity.target_interests || []}
+              registrations={registrations || []}
+              onAutoApprove={handleAutoApproveVolunteer}
+            />
+          </TabsContent>
+
+          {/* Section 4: Attendance */}
           <TabsContent value="attendance" className="space-y-4">
             {attendanceMethod === null ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
