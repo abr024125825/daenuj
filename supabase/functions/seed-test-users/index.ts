@@ -42,6 +42,36 @@ Deno.serve(async (req) => {
 
     const results = [];
 
+    // Create active semester if none exists
+    const { data: existingSemesters } = await supabaseAdmin
+      .from('academic_semesters')
+      .select('id')
+      .eq('is_active', true)
+      .limit(1);
+
+    if (!existingSemesters || existingSemesters.length === 0) {
+      const { data: createdSemester, error: semesterError } = await supabaseAdmin
+        .from('academic_semesters')
+        .insert({
+          name: 'Second Semester',
+          academic_year: '2025/2026',
+          semester_number: 2,
+          start_date: '2026-02-01',
+          end_date: '2026-06-30',
+          is_active: true,
+          is_schedule_open: true,
+          created_by: '00000000-0000-0000-0000-000000000000'
+        })
+        .select()
+        .single();
+
+      if (semesterError) {
+        console.error('Error creating semester:', semesterError);
+      } else {
+        console.log(`Created active semester: ${createdSemester.name}`);
+      }
+    }
+
     for (const testUser of testUsers) {
       // Check if user already exists
       const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
