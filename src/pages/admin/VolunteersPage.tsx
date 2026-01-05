@@ -23,9 +23,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Users, Search, Loader2, Eye, Clock, Award, Calendar, Star, 
-  UserCheck, UserX, Mail, Phone, GraduationCap
+  UserCheck, UserX, Mail, Phone, GraduationCap, BookOpen
 } from 'lucide-react';
 import { useVolunteers, useVolunteerDetails, useToggleVolunteerActive } from '@/hooks/useVolunteers';
+import { useVolunteerCourses } from '@/hooks/useVolunteerCourses';
+import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
 import { format } from 'date-fns';
 
 export function VolunteersPage() {
@@ -257,6 +259,7 @@ export function VolunteersPage() {
               <Tabs defaultValue="info" className="mt-4">
                 <TabsList>
                   <TabsTrigger value="info">Information</TabsTrigger>
+                  <TabsTrigger value="schedule">Schedule</TabsTrigger>
                   <TabsTrigger value="activity">Activity History</TabsTrigger>
                   <TabsTrigger value="certificates">Certificates</TabsTrigger>
                 </TabsList>
@@ -374,6 +377,10 @@ export function VolunteersPage() {
                   )}
                 </TabsContent>
 
+                <TabsContent value="schedule" className="mt-4">
+                  <VolunteerScheduleView volunteerId={selectedVolunteerId || ''} />
+                </TabsContent>
+
                 <TabsContent value="activity" className="mt-4">
                   <div className="space-y-3">
                     {attendanceHistory?.map((att: any) => (
@@ -419,5 +426,87 @@ export function VolunteersPage() {
         </Dialog>
       </div>
     </DashboardLayout>
+  );
+}
+
+// Component to display volunteer schedule in the details dialog
+function VolunteerScheduleView({ volunteerId }: { volunteerId: string }) {
+  const { courses, isLoading, isScheduleLocked } = useVolunteerCourses(volunteerId);
+  const { activeSemester } = useAcademicSemesters();
+  
+  const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
+  
+  const activeSemesterCourses = courses?.filter(c => c.semester_id === activeSemester?.id) || [];
+  const isLocked = activeSemester ? isScheduleLocked(activeSemester.id) : false;
+  
+  // Group courses by day
+  const coursesByDay = DAYS_OF_WEEK.reduce((acc, day) => {
+    acc[day] = activeSemesterCourses.filter(c => c.day_of_week === day);
+    return acc;
+  }, {} as Record<string, typeof activeSemesterCourses>);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (activeSemesterCourses.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>No schedule submitted yet</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <Badge variant={isLocked ? 'default' : 'secondary'}>
+          {isLocked ? 'Schedule Locked' : 'Schedule Unlocked'}
+        </Badge>
+        <span className="text-sm text-muted-foreground">
+          {activeSemester?.name}
+        </span>
+      </div>
+      
+      {DAYS_OF_WEEK.filter(day => coursesByDay[day].length > 0).map(day => (
+        <div key={day}>
+          <h4 className="font-medium text-sm text-muted-foreground mb-2">{day}</h4>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Code</TableHead>
+                <TableHead>Course Name</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead>Location</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {coursesByDay[day].map(course => (
+                <TableRow key={course.id}>
+                  <TableCell className="font-mono">{course.course_code}</TableCell>
+                  <TableCell>{course.course_name}</TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="gap-1">
+                      <Clock className="h-3 w-3" />
+                      {course.start_time} - {course.end_time}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {course.location && (
+                      <Badge variant="secondary">{course.location}</Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      ))}
+    </div>
   );
 }

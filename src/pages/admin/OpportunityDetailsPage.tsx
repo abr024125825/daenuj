@@ -196,9 +196,10 @@ export function OpportunityDetailsPage() {
   }, [registrations, attendance]);
 
   const pendingApplications = registrations?.filter((r: any) => r.status === 'pending') || [];
-  const waitlistedApplications = registrations?.filter((r: any) => r.status === 'waitlisted') || [];
+  const waitlistedApplications = registrations?.filter((r: any) => r.status === 'waitlisted' && !r.withdrawn_at) || [];
+  const withdrawnApplications = registrations?.filter((r: any) => r.withdrawn_at) || [];
   const approvedVolunteers = registrations?.filter((r: any) => r.status === 'approved') || [];
-  const rejectedApplications = registrations?.filter((r: any) => r.status === 'rejected') || [];
+  const rejectedApplications = registrations?.filter((r: any) => r.status === 'rejected' && !r.withdrawn_at) || [];
 
   const handleUpdate = async () => {
     if (!id) return;
@@ -226,18 +227,20 @@ export function OpportunityDetailsPage() {
       await supabase
         .from('opportunity_registrations')
         .update({ 
-          status: 'rejected',
+          status: 'waitlisted',
+          withdrawn_at: new Date().toISOString(),
+          withdrawal_reason: withdrawReason || 'Withdrawn by admin',
         })
         .eq('id', selectedRegistration.id);
       
-      // Log withdrawal reason if provided
-      if (withdrawReason) {
+      // Notify the volunteer
+      if (selectedRegistration.volunteer?.user_id) {
         await supabase
           .from('notifications')
           .insert({
-            user_id: selectedRegistration.volunteer?.user_id,
+            user_id: selectedRegistration.volunteer.user_id,
             title: 'Withdrawal Recorded',
-            message: `You have been withdrawn from the opportunity. Reason: ${withdrawReason}`,
+            message: `You have been withdrawn from the opportunity. Reason: ${withdrawReason || 'No reason provided'}`,
             type: 'warning',
           });
       }

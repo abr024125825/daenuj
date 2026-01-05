@@ -42,6 +42,7 @@ const adminNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: ClipboardList, label: 'Applications', href: '/dashboard/applications', badge: 5 },
   { icon: Users, label: 'Volunteers', href: '/dashboard/volunteers' },
+  { icon: BookOpen, label: 'Schedules', href: '/dashboard/schedules' },
   { icon: Calendar, label: 'Opportunities', href: '/dashboard/opportunities' },
   { icon: IdCard, label: 'Badge Tracking', href: '/dashboard/badges' },
   { icon: Award, label: 'Certificates', href: '/dashboard/certificates' },

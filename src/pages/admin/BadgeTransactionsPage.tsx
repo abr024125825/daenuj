@@ -21,6 +21,16 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   IdCard,
   Search,
   Download,
@@ -33,12 +43,13 @@ import {
   Calendar,
   MapPin,
   X,
+  Trash2,
 } from 'lucide-react';
 import { useAllBadgeTransactions } from '@/hooks/useAllBadgeTransactions';
 import { format } from 'date-fns';
 
 export function BadgeTransactionsPage() {
-  const { transactions, isLoading, stats, opportunities, refetch } = useAllBadgeTransactions();
+  const { transactions, isLoading, stats, opportunities, refetch, deleteTransaction } = useAllBadgeTransactions();
   
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -46,6 +57,8 @@ export function BadgeTransactionsPage() {
   const [conditionFilter, setConditionFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedTransactionId, setSelectedTransactionId] = useState<string | null>(null);
 
   // Filter transactions
   const filteredTransactions = useMemo(() => {
@@ -121,6 +134,13 @@ export function BadgeTransactionsPage() {
   };
 
   const hasActiveFilters = searchQuery || statusFilter !== 'all' || opportunityFilter !== 'all' || conditionFilter !== 'all' || dateFrom || dateTo;
+
+  const handleDeleteTransaction = async () => {
+    if (!selectedTransactionId) return;
+    await deleteTransaction.mutateAsync(selectedTransactionId);
+    setDeleteDialogOpen(false);
+    setSelectedTransactionId(null);
+  };
 
   const exportToCSV = () => {
     const headers = [
@@ -393,6 +413,7 @@ export function BadgeTransactionsPage() {
                       <TableHead>Checkout</TableHead>
                       <TableHead>Return</TableHead>
                       <TableHead>Notes</TableHead>
+                      <TableHead className="w-16">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -460,6 +481,18 @@ export function BadgeTransactionsPage() {
                             {transaction.notes || '-'}
                           </p>
                         </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedTransactionId(transaction.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -468,6 +501,27 @@ export function BadgeTransactionsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Badge Transaction</AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to delete this badge transaction? This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteTransaction}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

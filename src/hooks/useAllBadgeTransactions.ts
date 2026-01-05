@@ -1,5 +1,6 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 export interface BadgeTransactionWithDetails {
   id: string;
@@ -40,6 +41,9 @@ export interface BadgeTransactionWithDetails {
 }
 
 export function useAllBadgeTransactions() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const { data: transactions, isLoading, refetch } = useQuery({
     queryKey: ['all-badge-transactions'],
     queryFn: async () => {
@@ -72,6 +76,24 @@ export function useAllBadgeTransactions() {
     },
   });
 
+  const deleteTransaction = useMutation({
+    mutationFn: async (transactionId: string) => {
+      const { error } = await supabase
+        .from('badge_transactions')
+        .delete()
+        .eq('id', transactionId);
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['all-badge-transactions'] });
+      toast({ title: 'Success', description: 'Badge transaction deleted' });
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   // Calculate statistics
   const stats = {
     total: transactions?.length || 0,
@@ -97,5 +119,6 @@ export function useAllBadgeTransactions() {
     stats,
     opportunities,
     refetch,
+    deleteTransaction,
   };
 }
