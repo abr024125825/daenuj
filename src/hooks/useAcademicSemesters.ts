@@ -10,6 +10,9 @@ export interface AcademicSemester {
   academic_year: string;
   semester_number: number;
   is_active: boolean;
+  is_schedule_open: boolean;
+  schedule_closed_at: string | null;
+  schedule_closed_by: string | null;
   created_at: string;
   updated_at: string;
   created_by: string;
@@ -132,6 +135,33 @@ export function useAcademicSemesters() {
     },
   });
 
+  const toggleScheduleOpen = useMutation({
+    mutationFn: async ({ semesterId, isOpen }: { semesterId: string; isOpen: boolean }) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      const { error } = await supabase
+        .from('academic_semesters')
+        .update({ 
+          is_schedule_open: isOpen,
+          schedule_closed_at: isOpen ? null : new Date().toISOString(),
+          schedule_closed_by: isOpen ? null : user?.id,
+        })
+        .eq('id', semesterId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, { isOpen }) => {
+      queryClient.invalidateQueries({ queryKey: ['academic-semesters'] });
+      toast({ 
+        title: 'Success', 
+        description: isOpen ? 'Schedule submission is now open' : 'Schedule submission is now closed' 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     semesters,
     activeSemester,
@@ -141,5 +171,6 @@ export function useAcademicSemesters() {
     activateSemester,
     closeSemester,
     deleteSemester,
+    toggleScheduleOpen,
   };
 }

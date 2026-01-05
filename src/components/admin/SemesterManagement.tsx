@@ -37,14 +37,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Calendar, Power, PowerOff, Trash2, Loader2 } from 'lucide-react';
+import { Plus, Calendar, Power, PowerOff, Trash2, Loader2, Lock, Unlock } from 'lucide-react';
 import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 
 export function SemesterManagement() {
   const { user } = useAuth();
-  const { semesters, isLoading, createSemester, activateSemester, closeSemester, deleteSemester } = useAcademicSemesters();
+  const { semesters, isLoading, createSemester, activateSemester, closeSemester, deleteSemester, toggleScheduleOpen } = useAcademicSemesters();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -67,6 +67,9 @@ export function SemesterManagement() {
       start_date: formData.start_date,
       end_date: formData.end_date,
       is_active: false,
+      is_schedule_open: true,
+      schedule_closed_at: null,
+      schedule_closed_by: null,
       created_by: user.id,
     });
 
@@ -141,7 +144,8 @@ export function SemesterManagement() {
                 <TableHead>Semester</TableHead>
                 <TableHead>Period</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-32">Actions</TableHead>
+                <TableHead>Schedule</TableHead>
+                <TableHead className="w-40">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -163,6 +167,14 @@ export function SemesterManagement() {
                     </Badge>
                   </TableCell>
                   <TableCell>
+                    <Badge 
+                      variant={semester.is_schedule_open !== false ? 'outline' : 'secondary'}
+                      className={semester.is_schedule_open !== false ? 'text-green-600 border-green-600' : ''}
+                    >
+                      {semester.is_schedule_open !== false ? 'Open' : 'Closed'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <div className="flex items-center gap-1">
                       {semester.is_active ? (
                         <Button
@@ -181,6 +193,25 @@ export function SemesterManagement() {
                           title="Activate Semester"
                         >
                           <Power className="h-4 w-4 text-green-500" />
+                        </Button>
+                      )}
+                      {semester.is_schedule_open !== false ? (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleScheduleOpen.mutate({ semesterId: semester.id, isOpen: false })}
+                          title="Close Schedule Submission"
+                        >
+                          <Lock className="h-4 w-4 text-orange-500" />
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => toggleScheduleOpen.mutate({ semesterId: semester.id, isOpen: true })}
+                          title="Open Schedule Submission"
+                        >
+                          <Unlock className="h-4 w-4 text-green-500" />
                         </Button>
                       )}
                       <Button

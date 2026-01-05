@@ -37,20 +37,26 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, BookOpen, Loader2, AlertCircle, Upload, Download, FileSpreadsheet } from 'lucide-react';
+import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, BookOpen, Loader2, AlertCircle, Upload, Download, FileSpreadsheet, Lock, Unlock, CheckCircle, ShieldAlert } from 'lucide-react';
 import { useVolunteerCourses, VolunteerCourse } from '@/hooks/useVolunteerCourses';
 import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const LECTURE_PATTERNS = [
+  { label: 'Sun/Tue/Thu', days: ['Sunday', 'Tuesday', 'Thursday'] },
+  { label: 'Mon/Wed', days: ['Monday', 'Wednesday'] },
+  { label: 'Single Day', days: [] },
+];
 
 interface CourseScheduleManagerProps {
   volunteerId: string;
+  isAdmin?: boolean;
 }
 
-export function CourseScheduleManager({ volunteerId }: CourseScheduleManagerProps) {
-  const { courses, isLoading, addCourse, updateCourse, deleteCourse, clearSemesterCourses } = useVolunteerCourses(volunteerId);
+export function CourseScheduleManager({ volunteerId, isAdmin = false }: CourseScheduleManagerProps) {
+  const { courses, isLoading, addCourse, updateCourse, deleteCourse, clearSemesterCourses, submitSchedule, unlockSchedule, isScheduleLocked, scheduleSubmittedAt } = useVolunteerCourses(volunteerId);
   const { semesters, activeSemester, isLoading: semestersLoading } = useAcademicSemesters();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -59,8 +65,11 @@ export function CourseScheduleManager({ volunteerId }: CourseScheduleManagerProp
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [submitDialogOpen, setSubmitDialogOpen] = useState(false);
+  const [unlockDialogOpen, setUnlockDialogOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<VolunteerCourse | null>(null);
   const [isImporting, setIsImporting] = useState(false);
+  const [lecturePattern, setLecturePattern] = useState<string>('');
   const [formData, setFormData] = useState({
     course_code: '',
     course_name: '',
@@ -71,6 +80,15 @@ export function CourseScheduleManager({ volunteerId }: CourseScheduleManagerProp
   });
 
   const activeSemesterCourses = courses?.filter(c => c.semester_id === activeSemester?.id) || [];
+  
+  // Check if schedule is locked (submitted) for current semester
+  const isLocked = activeSemester ? isScheduleLocked(activeSemester.id) : false;
+  
+  // Check if semester is open for schedule submission
+  const isScheduleOpen = activeSemester?.is_schedule_open !== false;
+  
+  // Can edit if: admin OR (schedule is open AND not locked)
+  const canEdit = isAdmin || (isScheduleOpen && !isLocked);
 
   const handleSubmit = async () => {
     if (!activeSemester) return;
@@ -132,7 +150,19 @@ export function CourseScheduleManager({ volunteerId }: CourseScheduleManagerProp
 
   const openAddDialog = () => {
     resetForm();
+    setLecturePattern('');
     setDialogOpen(true);
+  };
+
+  const handleSubmitSchedule = async () => {
+    if (!activeSemester) return;
+    await submitSchedule.mutateAsync(activeSemester.id);
+    setSubmitDialogOpen(false);
+  };
+
+  const handleUnlockSchedule = async () => {
+    await unlockSchedule.mutateAsync();
+    setUnlockDialogOpen(false);
   };
 
   // CSV Import functionality
@@ -271,27 +301,73 @@ MATH101,Calculus I,Tuesday,14:00,15:30,Building C Room 301`;
             <CardTitle className="flex items-center gap-2">
               <BookOpen className="h-5 w-5" />
               Course Schedule
+              {isLocked && (
+                <Badge variant="secondary" className="gap-1">
+                  <Lock className="h-3 w-3" />
+                  Submitted
+                </Badge>
+              )}
             </CardTitle>
             <CardDescription>
-              Manage your course schedule for {activeSemester.name} ({activeSemester.academic_year})
+              {isLocked 
+                ? `Schedule submitted for ${activeSemester.name}. Contact admin for changes.`
+                : `Manage your course schedule for ${activeSemester.name} (${activeSemester.academic_year})`
+              }
             </CardDescription>
           </div>
           <div className="flex items-center gap-2 flex-wrap">
-            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
-              <Upload className="h-4 w-4 mr-2" />
-              Import CSV
-            </Button>
-            <Button variant="outline" onClick={() => setClearDialogOpen(true)}>
-              Clear Schedule
-            </Button>
-            <Button onClick={openAddDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Course
-            </Button>
+            {canEdit && (
+              <>
+                <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+                  <Upload className="h-4 w-4 mr-2" />
+                  Import CSV
+                </Button>
+                <Button variant="outline" onClick={() => setClearDialogOpen(true)}>
+                  Clear Schedule
+                </Button>
+                <Button onClick={openAddDialog}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Course
+                </Button>
+              </>
+            )}
+            {!isLocked && !isAdmin && activeSemesterCourses.length > 0 && isScheduleOpen && (
+              <Button variant="default" onClick={() => setSubmitDialogOpen(true)}>
+                <CheckCircle className="h-4 w-4 mr-2" />
+                Submit Schedule
+              </Button>
+            )}
+            {isLocked && isAdmin && (
+              <Button variant="outline" onClick={() => setUnlockDialogOpen(true)}>
+                <Unlock className="h-4 w-4 mr-2" />
+                Unlock Schedule
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
       <CardContent>
+        {/* Schedule Status Alerts */}
+        {!isScheduleOpen && !isAdmin && (
+          <Alert className="mb-4" variant="destructive">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>Schedule Submission Closed</AlertTitle>
+            <AlertDescription>
+              The schedule submission period has ended. Contact an administrator if you need to make changes.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {isLocked && !isAdmin && (
+          <Alert className="mb-4">
+            <Lock className="h-4 w-4" />
+            <AlertTitle>Schedule Locked</AlertTitle>
+            <AlertDescription>
+              Your schedule has been submitted and is now locked. This schedule is used to determine your availability for volunteer opportunities.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {activeSemesterCourses.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
             <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -333,25 +409,29 @@ MATH101,Calculus I,Tuesday,14:00,15:30,Building C Room 301`;
                           )}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEdit(course)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedCourse(course);
-                                setDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          </div>
+                          {canEdit ? (
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(course)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setSelectedCourse(course);
+                                  setDeleteDialogOpen(true);
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <Lock className="h-4 w-4 text-muted-foreground" />
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -552,6 +632,58 @@ MATH101,Calculus I,Tuesday,14:00,15:30,Building C Room 301`;
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Submit Schedule Confirmation Dialog */}
+        <AlertDialog open={submitDialogOpen} onOpenChange={setSubmitDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Lock className="h-5 w-5" />
+                Submit Schedule
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>
+                  Are you sure you want to submit your schedule? Once submitted, you will <strong>not be able to modify</strong> your course schedule for this semester.
+                </p>
+                <p>
+                  Your submitted schedule will be used to determine your availability for volunteer opportunities.
+                </p>
+                <p className="text-sm">
+                  You have <strong>{activeSemesterCourses.length}</strong> courses in your schedule.
+                </p>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleSubmitSchedule}>
+                <Lock className="h-4 w-4 mr-2" />
+                Submit & Lock Schedule
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Unlock Schedule Confirmation Dialog (Admin only) */}
+        <AlertDialog open={unlockDialogOpen} onOpenChange={setUnlockDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <Unlock className="h-5 w-5" />
+                Unlock Schedule
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to unlock this volunteer's schedule? They will be able to modify their course schedule again.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleUnlockSchedule}>
+                <Unlock className="h-4 w-4 mr-2" />
+                Unlock Schedule
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );
