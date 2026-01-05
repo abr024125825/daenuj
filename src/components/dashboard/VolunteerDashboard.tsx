@@ -25,6 +25,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { BadgeStatus } from '@/components/volunteer/BadgeStatus';
+import { AnnouncementsWidget } from '@/components/volunteer/AnnouncementsWidget';
 
 export function VolunteerDashboard() {
   const navigate = useNavigate();
@@ -272,6 +273,9 @@ export function VolunteerDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Announcements Widget */}
+        <AnnouncementsWidget />
 
         {/* Badge Status */}
         {volunteer && <BadgeStatus volunteerId={volunteer.id} />}
