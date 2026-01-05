@@ -25,15 +25,15 @@ Deno.serve(async (req) => {
 
     const testUsers = [
       {
-        email: 'admin@volunteer.jo',
-        password: 'admin123',
+        email: 'admin@ju.edu.jo',
+        password: 'Admin123!',
         role: 'admin',
         first_name: 'Admin',
         last_name: 'User'
       },
       {
-        email: 'volunteer@volunteer.jo',
-        password: 'volunteer123',
+        email: 'volunteer@ju.edu.jo',
+        password: 'Volunteer123!',
         role: 'volunteer',
         first_name: 'Mohammed',
         last_name: 'Ahmad'

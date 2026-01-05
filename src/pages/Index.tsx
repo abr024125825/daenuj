@@ -23,6 +23,9 @@ const Index = () => {
             <a href="#join" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Join Us
             </a>
+            <Button variant="outline" size="sm" onClick={() => navigate('/verify')}>
+              Verify Certificate
+            </Button>
           </nav>
         </div>
       </header>

@@ -389,19 +389,19 @@ export async function generateModernCertificatePDF(data: CertificateData): Promi
     doc.text(card.value, x, detailsY + 7, { align: 'center' });
   });
 
-  // QR Code placement (reserve a right-side column so it never overlaps text)
-  const qrSize = 22;
-  const qrX = pageWidth - cardMargin - qrSize - 15;
-  const qrY = cardMargin + cardHeight - qrSize - 12;
+  // QR Code placement - bottom right of main content area (safe from text overlap)
+  const qrSize = 24;
+  const qrX = pageWidth - cardMargin - qrSize - 20;
+  const qrY = detailsY + 25;
 
-  // Appreciation message (left column to avoid QR area)
+  // Appreciation message (left-aligned to avoid QR area)
   doc.setFont('helvetica', 'italic');
   doc.setFontSize(8);
   doc.setTextColor(slate[0], slate[1], slate[2]);
 
-  const messageX = cardMargin + 18;
-  const messageMaxWidth = Math.max(60, qrX - messageX - 8);
-  const messageY = 156;
+  const messageX = cardMargin + 25;
+  const messageMaxWidth = qrX - messageX - 15;
+  const messageY = detailsY + 22;
 
   doc.text(
     'In recognition of your dedication, commitment, and outstanding service to the community.',
@@ -412,11 +412,11 @@ export async function generateModernCertificatePDF(data: CertificateData): Promi
   doc.text(
     'Your contribution has made a meaningful impact on society.',
     messageX,
-    messageY + 10,
+    messageY + 8,
     { maxWidth: messageMaxWidth }
   );
 
-  // QR Code for verification - bottom right corner of card
+  // QR Code for verification - positioned to not overlap with any text
   try {
     const qrCodeBase64 = await generateQRCodeBase64(data.certificateNumber);
 
