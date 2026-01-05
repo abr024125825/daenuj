@@ -494,10 +494,25 @@ export function OpportunityDetailsPage() {
 
   // Auto-approve matching volunteers
   const handleAutoApproveVolunteer = async (volunteerId: string) => {
-    if (!id) return;
+    if (!id || !opportunity) return;
     
     setIsProcessing(true);
     try {
+      // Get volunteer details for email
+      const { data: volunteerData } = await supabase
+        .from('volunteers')
+        .select(`
+          id,
+          application:volunteer_applications(
+            first_name,
+            father_name,
+            family_name,
+            university_email
+          )
+        `)
+        .eq('id', volunteerId)
+        .single();
+
       // Register the volunteer with auto-approved status
       const { error } = await supabase
         .from('opportunity_registrations')
@@ -510,6 +525,27 @@ export function OpportunityDetailsPage() {
         });
       
       if (error) throw error;
+      
+      // Send email notification
+      if (volunteerData?.application?.university_email) {
+        try {
+          await supabase.functions.invoke('send-volunteer-notification', {
+            body: {
+              to: volunteerData.application.university_email,
+              volunteerName: `${volunteerData.application.first_name} ${volunteerData.application.father_name}`,
+              opportunityTitle: opportunity.title,
+              opportunityDate: format(new Date(opportunity.date), 'MMM dd, yyyy'),
+              opportunityTime: `${opportunity.start_time} - ${opportunity.end_time}`,
+              opportunityLocation: opportunity.location,
+              type: 'auto_approved',
+            },
+          });
+          console.log('Auto-approval email sent successfully');
+        } catch (emailError) {
+          console.error('Failed to send email notification:', emailError);
+          // Don't fail the whole operation if email fails
+        }
+      }
       
       // Remove from matching list
       setMatchingVolunteers(prev => prev.filter(v => v.id !== volunteerId));

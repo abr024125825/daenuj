@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,10 +37,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, BookOpen, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Calendar, Clock, MapPin, BookOpen, Loader2, AlertCircle, Upload, Download, FileSpreadsheet } from 'lucide-react';
 import { useVolunteerCourses, VolunteerCourse } from '@/hooks/useVolunteerCourses';
 import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/hooks/use-toast';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -51,11 +52,15 @@ interface CourseScheduleManagerProps {
 export function CourseScheduleManager({ volunteerId }: CourseScheduleManagerProps) {
   const { courses, isLoading, addCourse, updateCourse, deleteCourse, clearSemesterCourses } = useVolunteerCourses(volunteerId);
   const { semesters, activeSemester, isLoading: semestersLoading } = useAcademicSemesters();
+  const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [clearDialogOpen, setClearDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<VolunteerCourse | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const [formData, setFormData] = useState({
     course_code: '',
     course_name: '',
@@ -130,6 +135,109 @@ export function CourseScheduleManager({ volunteerId }: CourseScheduleManagerProp
     setDialogOpen(true);
   };
 
+  // CSV Import functionality
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !activeSemester) return;
+
+    setIsImporting(true);
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      // Skip header row if present
+      const startIndex = lines[0].toLowerCase().includes('course') ? 1 : 0;
+      
+      let successCount = 0;
+      let errorCount = 0;
+
+      for (let i = startIndex; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
+        
+        if (values.length >= 5) {
+          const [course_code, course_name, day_of_week, start_time, end_time, location] = values;
+          
+          // Validate day of week
+          const normalizedDay = DAYS_OF_WEEK.find(d => 
+            d.toLowerCase() === day_of_week.toLowerCase() ||
+            d.toLowerCase().startsWith(day_of_week.toLowerCase().substring(0, 3))
+          );
+          
+          if (normalizedDay && course_code && course_name && start_time && end_time) {
+            try {
+              await addCourse.mutateAsync({
+                volunteer_id: volunteerId,
+                semester_id: activeSemester.id,
+                course_code,
+                course_name,
+                day_of_week: normalizedDay,
+                start_time: formatTimeInput(start_time),
+                end_time: formatTimeInput(end_time),
+                location: location || null,
+              });
+              successCount++;
+            } catch {
+              errorCount++;
+            }
+          } else {
+            errorCount++;
+          }
+        }
+      }
+
+      toast({
+        title: 'Import Complete',
+        description: `Successfully imported ${successCount} courses${errorCount > 0 ? `, ${errorCount} failed` : ''}`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Import Failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsImporting(false);
+      setImportDialogOpen(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const formatTimeInput = (time: string): string => {
+    // Handle various time formats: 8:00, 08:00, 8:00 AM, etc.
+    let normalized = time.replace(/\s+/g, '').toUpperCase();
+    
+    // Check for AM/PM
+    const isPM = normalized.includes('PM');
+    const isAM = normalized.includes('AM');
+    normalized = normalized.replace(/AM|PM/g, '');
+    
+    const parts = normalized.split(':');
+    let hours = parseInt(parts[0]);
+    const minutes = parts[1] ? parts[1].padStart(2, '0') : '00';
+    
+    if (isPM && hours < 12) hours += 12;
+    if (isAM && hours === 12) hours = 0;
+    
+    return `${hours.toString().padStart(2, '0')}:${minutes}`;
+  };
+
+  const downloadTemplate = () => {
+    const template = `Course Code,Course Name,Day,Start Time,End Time,Location
+CS101,Introduction to Computer Science,Sunday,08:00,09:30,Building A Room 101
+CS201,Data Structures,Monday,10:00,11:30,Building B Room 205
+MATH101,Calculus I,Tuesday,14:00,15:30,Building C Room 301`;
+    
+    const blob = new Blob([template], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'course_schedule_template.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Group courses by day
   const coursesByDay = DAYS_OF_WEEK.reduce((acc, day) => {
     acc[day] = activeSemesterCourses.filter(c => c.day_of_week === day);
@@ -168,7 +276,11 @@ export function CourseScheduleManager({ volunteerId }: CourseScheduleManagerProp
               Manage your course schedule for {activeSemester.name} ({activeSemester.academic_year})
             </CardDescription>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button variant="outline" onClick={() => setImportDialogOpen(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Import CSV
+            </Button>
             <Button variant="outline" onClick={() => setClearDialogOpen(true)}>
               Clear Schedule
             </Button>
@@ -381,6 +493,65 @@ export function CourseScheduleManager({ volunteerId }: CourseScheduleManagerProp
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Import CSV Dialog */}
+        <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5" />
+                Import Course Schedule
+              </DialogTitle>
+              <DialogDescription>
+                Upload a CSV file with your course schedule. Download the template to see the required format.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center">
+                <Upload className="h-10 w-10 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground mb-4">
+                  Upload a CSV file with columns: Course Code, Course Name, Day, Start Time, End Time, Location
+                </p>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".csv,.txt"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="csv-upload"
+                />
+                <label htmlFor="csv-upload">
+                  <Button variant="outline" asChild disabled={isImporting}>
+                    <span>
+                      {isImporting ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Importing...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Choose File
+                        </>
+                      )}
+                    </span>
+                  </Button>
+                </label>
+              </div>
+              <div className="flex items-center justify-center">
+                <Button variant="link" onClick={downloadTemplate} className="gap-2">
+                  <Download className="h-4 w-4" />
+                  Download Template
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
