@@ -947,6 +947,8 @@ export function OpportunityDetailsPage() {
             <BadgeManagement
               opportunityId={id || ''}
               opportunityTitle={opportunity.title}
+              opportunityDate={opportunity.date}
+              opportunityLocation={opportunity.location}
               registrations={registrations || []}
             />
           </TabsContent>
@@ -960,6 +962,8 @@ export function OpportunityDetailsPage() {
               endTime={opportunity.end_time}
               targetInterests={opportunity.target_interests || []}
               registrations={registrations || []}
+              opportunityTitle={opportunity.title}
+              opportunityLocation={opportunity.location}
               onAutoApprove={handleAutoApproveVolunteer}
             />
           </TabsContent>

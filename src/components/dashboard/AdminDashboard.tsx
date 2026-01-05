@@ -19,6 +19,7 @@ import { useOpportunities } from '@/hooks/useOpportunities';
 import { useVolunteers } from '@/hooks/useVolunteers';
 import { useCertificates } from '@/hooks/useCertificates';
 import { AvailabilityStatisticsWidget } from '@/components/admin/AvailabilityStatisticsWidget';
+import { ScheduleSubmissionsWidget } from '@/components/admin/ScheduleSubmissionsWidget';
 import { format } from 'date-fns';
 
 export function AdminDashboard() {
@@ -266,6 +267,9 @@ export function AdminDashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Schedule Submissions Widget */}
+        <ScheduleSubmissionsWidget />
       </div>
     </DashboardLayout>
   );

@@ -21,10 +21,12 @@ import {
   Loader2,
   Download,
   AlertCircle,
-  Clock
+  Clock,
+  FileText
 } from 'lucide-react';
 import { useVolunteerAvailability } from '@/hooks/useVolunteerCourses';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { generateAvailabilityListPDF } from '@/lib/generateReportsPDF';
 
 interface VolunteerAvailabilityListsProps {
   opportunityId: string;
@@ -33,6 +35,8 @@ interface VolunteerAvailabilityListsProps {
   endTime: string;
   targetInterests: string[];
   registrations: any[];
+  opportunityTitle?: string;
+  opportunityLocation?: string;
   onAutoApprove?: (volunteerId: string) => void;
 }
 
@@ -43,6 +47,8 @@ export function VolunteerAvailabilityLists({
   endTime,
   targetInterests,
   registrations,
+  opportunityTitle = '',
+  opportunityLocation = '',
   onAutoApprove,
 }: VolunteerAvailabilityListsProps) {
   const { availableVolunteers, isLoading } = useVolunteerAvailability(opportunityDate, startTime, endTime);
@@ -112,6 +118,27 @@ export function VolunteerAvailabilityLists({
     URL.revokeObjectURL(url);
   };
 
+  const exportToPDF = async (volunteers: any[], listType: 'available' | 'unavailable' | 'matching') => {
+    await generateAvailabilityListPDF({
+      opportunity: {
+        title: opportunityTitle,
+        date: opportunityDate,
+        startTime,
+        endTime,
+        location: opportunityLocation,
+      },
+      listType,
+      volunteers: volunteers.map((v: any) => ({
+        volunteerName: `${v.application?.first_name || ''} ${v.application?.father_name || ''} ${v.application?.family_name || ''}`,
+        universityId: v.application?.university_id || '',
+        faculty: v.application?.faculty?.name || '',
+        interests: v.application?.interests || [],
+        isAvailable: true,
+        conflictingCourses: [],
+      })),
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-32">
@@ -176,6 +203,7 @@ export function VolunteerAvailabilityLists({
               volunteers={categorizedVolunteers.available}
               showActions={false}
               onExport={() => exportToCSV(categorizedVolunteers.available, 'available-volunteers')}
+              onExportPDF={() => exportToPDF(categorizedVolunteers.available, 'available')}
             />
           </TabsContent>
 
@@ -184,6 +212,7 @@ export function VolunteerAvailabilityLists({
               volunteers={categorizedVolunteers.registered}
               showActions={false}
               onExport={() => exportToCSV(categorizedVolunteers.registered, 'registered-available-volunteers')}
+              onExportPDF={() => exportToPDF(categorizedVolunteers.registered, 'available')}
             />
           </TabsContent>
 
@@ -193,6 +222,7 @@ export function VolunteerAvailabilityLists({
               showActions={!!onAutoApprove}
               onAutoApprove={onAutoApprove}
               onExport={() => exportToCSV(categorizedVolunteers.notRegistered, 'not-registered-volunteers')}
+              onExportPDF={() => exportToPDF(categorizedVolunteers.notRegistered, 'available')}
             />
           </TabsContent>
 
@@ -209,6 +239,7 @@ export function VolunteerAvailabilityLists({
               targetInterests={targetInterests}
               onAutoApprove={onAutoApprove}
               onExport={() => exportToCSV(categorizedVolunteers.matchingInterests, 'matching-interest-volunteers')}
+              onExportPDF={() => exportToPDF(categorizedVolunteers.matchingInterests, 'matching')}
             />
           </TabsContent>
         </Tabs>
@@ -224,6 +255,7 @@ interface VolunteerTableProps {
   targetInterests?: string[];
   onAutoApprove?: (volunteerId: string) => void;
   onExport?: () => void;
+  onExportPDF?: () => void;
 }
 
 function VolunteerTable({ 
@@ -232,7 +264,8 @@ function VolunteerTable({
   showInterests,
   targetInterests = [],
   onAutoApprove,
-  onExport 
+  onExport,
+  onExportPDF
 }: VolunteerTableProps) {
   if (volunteers.length === 0) {
     return (
@@ -245,11 +278,17 @@ function VolunteerTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={onExport}>
           <Download className="h-4 w-4 mr-2" />
-          Export CSV
+          CSV
         </Button>
+        {onExportPDF && (
+          <Button variant="outline" size="sm" onClick={onExportPDF}>
+            <FileText className="h-4 w-4 mr-2" />
+            PDF
+          </Button>
+        )}
       </div>
       <Table>
         <TableHeader>

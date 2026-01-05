@@ -41,19 +41,25 @@ import {
   KeyRound,
   ArrowLeftRight,
   FileSpreadsheet,
+  FileText,
 } from 'lucide-react';
 import { useBadgeTransactions } from '@/hooks/useBadgeTransactions';
 import { format } from 'date-fns';
+import { generateBadgeTransactionsPDF } from '@/lib/generateReportsPDF';
 
 interface BadgeManagementProps {
   opportunityId: string;
   opportunityTitle: string;
+  opportunityDate?: string;
+  opportunityLocation?: string;
   registrations: any[];
 }
 
 export function BadgeManagement({ 
   opportunityId, 
   opportunityTitle,
+  opportunityDate = '',
+  opportunityLocation = '',
   registrations 
 }: BadgeManagementProps) {
   const {
@@ -135,6 +141,31 @@ export function BadgeManagement({
     URL.revokeObjectURL(url);
   };
 
+  const exportToPDF = async () => {
+    if (!transactions) return;
+
+    await generateBadgeTransactionsPDF({
+      opportunity: {
+        title: opportunityTitle,
+        date: opportunityDate,
+        location: opportunityLocation,
+      },
+      transactions: transactions.map((t: any) => ({
+        volunteerName: `${t.volunteer?.application?.first_name || ''} ${t.volunteer?.application?.father_name || ''} ${t.volunteer?.application?.family_name || ''}`,
+        universityId: t.volunteer?.application?.university_id || '',
+        phone: t.volunteer?.application?.phone_number || '',
+        status: t.status,
+        checkoutCode: t.checkout_code,
+        checkoutTime: t.checkout_time ? format(new Date(t.checkout_time), 'MMM dd HH:mm') : null,
+        checkoutCondition: t.checkout_condition,
+        returnTime: t.return_time ? format(new Date(t.return_time), 'MMM dd HH:mm') : null,
+        returnCondition: t.return_condition,
+        notes: t.notes,
+      })),
+      stats,
+    });
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'pending':
@@ -196,7 +227,14 @@ export function BadgeManagement({
               onClick={() => exportToCSV(transactions || [], `badges-${opportunityTitle}`)}
             >
               <Download className="h-4 w-4 mr-2" />
-              Export
+              CSV
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={exportToPDF}
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              PDF
             </Button>
           </div>
         </div>
