@@ -78,6 +78,23 @@ CREATE TYPE public.user_role AS ENUM (
 
 
 --
+-- Name: generate_badge_code(); Type: FUNCTION; Schema: public; Owner: -
+--
+
+CREATE FUNCTION public.generate_badge_code() RETURNS text
+    LANGUAGE plpgsql
+    SET search_path TO 'public'
+    AS $$
+DECLARE
+  code TEXT;
+BEGIN
+  code := upper(substr(md5(random()::text), 1, 6));
+  RETURN code;
+END;
+$$;
+
+
+--
 -- Name: generate_certificate_number(); Type: FUNCTION; Schema: public; Owner: -
 --
 
@@ -166,6 +183,28 @@ $$;
 SET default_table_access_method = heap;
 
 --
+-- Name: academic_semesters; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.academic_semesters (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    name text NOT NULL,
+    start_date date NOT NULL,
+    end_date date NOT NULL,
+    academic_year text NOT NULL,
+    semester_number integer NOT NULL,
+    is_active boolean DEFAULT false,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    created_by uuid NOT NULL,
+    is_schedule_open boolean DEFAULT true,
+    schedule_closed_at timestamp with time zone,
+    schedule_closed_by uuid,
+    CONSTRAINT academic_semesters_semester_number_check CHECK (((semester_number >= 1) AND (semester_number <= 3)))
+);
+
+
+--
 -- Name: attendance; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -179,6 +218,35 @@ CREATE TABLE public.attendance (
     manual_token text,
     recorded_by uuid,
     check_out_time timestamp with time zone
+);
+
+
+--
+-- Name: badge_transactions; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.badge_transactions (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    volunteer_id uuid NOT NULL,
+    opportunity_id uuid NOT NULL,
+    registration_id uuid NOT NULL,
+    checkout_code text NOT NULL,
+    checkout_time timestamp with time zone,
+    checkout_condition text,
+    checkout_confirmed_at timestamp with time zone,
+    checkout_confirmed_by uuid,
+    return_code text,
+    return_time timestamp with time zone,
+    return_condition text,
+    return_confirmed_at timestamp with time zone,
+    return_confirmed_by uuid,
+    status text DEFAULT 'pending'::text NOT NULL,
+    notes text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT badge_transactions_checkout_condition_check CHECK ((checkout_condition = ANY (ARRAY['good'::text, 'damaged'::text]))),
+    CONSTRAINT badge_transactions_return_condition_check CHECK ((return_condition = ANY (ARRAY['good'::text, 'damaged'::text, 'lost'::text]))),
+    CONSTRAINT badge_transactions_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'checked_out'::text, 'returned'::text, 'lost'::text])))
 );
 
 
@@ -475,6 +543,27 @@ CREATE TABLE public.volunteer_applications (
 
 
 --
+-- Name: volunteer_courses; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.volunteer_courses (
+    id uuid DEFAULT gen_random_uuid() NOT NULL,
+    volunteer_id uuid NOT NULL,
+    semester_id uuid NOT NULL,
+    course_code text NOT NULL,
+    course_name text NOT NULL,
+    day_of_week text NOT NULL,
+    start_time time without time zone NOT NULL,
+    end_time time without time zone NOT NULL,
+    location text,
+    created_at timestamp with time zone DEFAULT now() NOT NULL,
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    CONSTRAINT valid_time_range CHECK ((end_time > start_time)),
+    CONSTRAINT volunteer_courses_day_of_week_check CHECK ((day_of_week = ANY (ARRAY['Sunday'::text, 'Monday'::text, 'Tuesday'::text, 'Wednesday'::text, 'Thursday'::text, 'Friday'::text, 'Saturday'::text])))
+);
+
+
+--
 -- Name: volunteer_quiz_attempts; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -516,8 +605,18 @@ CREATE TABLE public.volunteers (
     rating numeric(3,2),
     is_active boolean DEFAULT true,
     created_at timestamp with time zone DEFAULT now() NOT NULL,
-    updated_at timestamp with time zone DEFAULT now() NOT NULL
+    updated_at timestamp with time zone DEFAULT now() NOT NULL,
+    schedule_submitted_at timestamp with time zone,
+    schedule_submitted_for_semester uuid
 );
+
+
+--
+-- Name: academic_semesters academic_semesters_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.academic_semesters
+    ADD CONSTRAINT academic_semesters_pkey PRIMARY KEY (id);
 
 
 --
@@ -534,6 +633,22 @@ ALTER TABLE ONLY public.attendance
 
 ALTER TABLE ONLY public.attendance
     ADD CONSTRAINT attendance_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: badge_transactions badge_transactions_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.badge_transactions
+    ADD CONSTRAINT badge_transactions_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: badge_transactions badge_transactions_volunteer_id_opportunity_id_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.badge_transactions
+    ADD CONSTRAINT badge_transactions_volunteer_id_opportunity_id_key UNIQUE (volunteer_id, opportunity_id);
 
 
 --
@@ -753,6 +868,14 @@ ALTER TABLE ONLY public.volunteer_applications
 
 
 --
+-- Name: volunteer_courses volunteer_courses_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_courses
+    ADD CONSTRAINT volunteer_courses_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: volunteer_quiz_attempts volunteer_quiz_attempts_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -801,6 +924,34 @@ ALTER TABLE ONLY public.volunteers
 
 
 --
+-- Name: idx_academic_semesters_active; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_academic_semesters_active ON public.academic_semesters USING btree (is_active);
+
+
+--
+-- Name: idx_badge_transactions_opportunity; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_badge_transactions_opportunity ON public.badge_transactions USING btree (opportunity_id);
+
+
+--
+-- Name: idx_badge_transactions_status; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_badge_transactions_status ON public.badge_transactions USING btree (status);
+
+
+--
+-- Name: idx_badge_transactions_volunteer; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_badge_transactions_volunteer ON public.badge_transactions USING btree (volunteer_id);
+
+
+--
 -- Name: idx_certificate_verifications_certificate_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -822,10 +973,52 @@ CREATE INDEX idx_opportunities_supervisor ON public.opportunities USING btree (s
 
 
 --
+-- Name: idx_volunteer_courses_day_time; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_volunteer_courses_day_time ON public.volunteer_courses USING btree (day_of_week, start_time, end_time);
+
+
+--
+-- Name: idx_volunteer_courses_semester_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_volunteer_courses_semester_id ON public.volunteer_courses USING btree (semester_id);
+
+
+--
+-- Name: idx_volunteer_courses_volunteer_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_volunteer_courses_volunteer_id ON public.volunteer_courses USING btree (volunteer_id);
+
+
+--
+-- Name: idx_volunteers_schedule_semester; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_volunteers_schedule_semester ON public.volunteers USING btree (schedule_submitted_for_semester);
+
+
+--
+-- Name: academic_semesters update_academic_semesters_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_academic_semesters_updated_at BEFORE UPDATE ON public.academic_semesters FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: volunteer_applications update_applications_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER update_applications_updated_at BEFORE UPDATE ON public.volunteer_applications FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: badge_transactions update_badge_transactions_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_badge_transactions_updated_at BEFORE UPDATE ON public.badge_transactions FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
 
 
 --
@@ -850,10 +1043,25 @@ CREATE TRIGGER update_training_quizzes_updated_at BEFORE UPDATE ON public.traini
 
 
 --
+-- Name: volunteer_courses update_volunteer_courses_updated_at; Type: TRIGGER; Schema: public; Owner: -
+--
+
+CREATE TRIGGER update_volunteer_courses_updated_at BEFORE UPDATE ON public.volunteer_courses FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
 -- Name: volunteers update_volunteers_updated_at; Type: TRIGGER; Schema: public; Owner: -
 --
 
 CREATE TRIGGER update_volunteers_updated_at BEFORE UPDATE ON public.volunteers FOR EACH ROW EXECUTE FUNCTION public.update_updated_at_column();
+
+
+--
+-- Name: academic_semesters academic_semesters_schedule_closed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.academic_semesters
+    ADD CONSTRAINT academic_semesters_schedule_closed_by_fkey FOREIGN KEY (schedule_closed_by) REFERENCES auth.users(id);
 
 
 --
@@ -886,6 +1094,46 @@ ALTER TABLE ONLY public.attendance
 
 ALTER TABLE ONLY public.attendance
     ADD CONSTRAINT attendance_volunteer_id_fkey FOREIGN KEY (volunteer_id) REFERENCES public.volunteers(id) ON DELETE CASCADE;
+
+
+--
+-- Name: badge_transactions badge_transactions_checkout_confirmed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.badge_transactions
+    ADD CONSTRAINT badge_transactions_checkout_confirmed_by_fkey FOREIGN KEY (checkout_confirmed_by) REFERENCES auth.users(id);
+
+
+--
+-- Name: badge_transactions badge_transactions_opportunity_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.badge_transactions
+    ADD CONSTRAINT badge_transactions_opportunity_id_fkey FOREIGN KEY (opportunity_id) REFERENCES public.opportunities(id);
+
+
+--
+-- Name: badge_transactions badge_transactions_registration_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.badge_transactions
+    ADD CONSTRAINT badge_transactions_registration_id_fkey FOREIGN KEY (registration_id) REFERENCES public.opportunity_registrations(id);
+
+
+--
+-- Name: badge_transactions badge_transactions_return_confirmed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.badge_transactions
+    ADD CONSTRAINT badge_transactions_return_confirmed_by_fkey FOREIGN KEY (return_confirmed_by) REFERENCES auth.users(id);
+
+
+--
+-- Name: badge_transactions badge_transactions_volunteer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.badge_transactions
+    ADD CONSTRAINT badge_transactions_volunteer_id_fkey FOREIGN KEY (volunteer_id) REFERENCES public.volunteers(id);
 
 
 --
@@ -1105,6 +1353,22 @@ ALTER TABLE ONLY public.volunteer_applications
 
 
 --
+-- Name: volunteer_courses volunteer_courses_semester_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_courses
+    ADD CONSTRAINT volunteer_courses_semester_id_fkey FOREIGN KEY (semester_id) REFERENCES public.academic_semesters(id) ON DELETE CASCADE;
+
+
+--
+-- Name: volunteer_courses volunteer_courses_volunteer_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteer_courses
+    ADD CONSTRAINT volunteer_courses_volunteer_id_fkey FOREIGN KEY (volunteer_id) REFERENCES public.volunteers(id) ON DELETE CASCADE;
+
+
+--
 -- Name: volunteer_quiz_attempts volunteer_quiz_attempts_quiz_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1153,6 +1417,14 @@ ALTER TABLE ONLY public.volunteers
 
 
 --
+-- Name: volunteers volunteers_schedule_submitted_for_semester_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.volunteers
+    ADD CONSTRAINT volunteers_schedule_submitted_for_semester_fkey FOREIGN KEY (schedule_submitted_for_semester) REFERENCES public.academic_semesters(id);
+
+
+--
 -- Name: volunteers volunteers_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1193,6 +1465,13 @@ CREATE POLICY "Admins can delete evaluations" ON public.evaluations FOR DELETE U
 --
 
 CREATE POLICY "Admins can delete templates" ON public.certificate_templates FOR DELETE USING (public.has_role(auth.uid(), 'admin'::public.user_role));
+
+
+--
+-- Name: badge_transactions Admins can manage badge transactions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage badge transactions" ON public.badge_transactions USING ((public.has_role(auth.uid(), 'admin'::public.user_role) OR public.has_role(auth.uid(), 'supervisor'::public.user_role)));
 
 
 --
@@ -1266,6 +1545,13 @@ CREATE POLICY "Admins can manage roles" ON public.user_roles TO authenticated US
 
 
 --
+-- Name: academic_semesters Admins can manage semesters; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can manage semesters" ON public.academic_semesters USING (public.has_role(auth.uid(), 'admin'::public.user_role));
+
+
+--
 -- Name: certificate_templates Admins can manage templates; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -1322,6 +1608,13 @@ CREATE POLICY "Admins can view all attendance" ON public.attendance FOR SELECT T
 
 
 --
+-- Name: volunteer_courses Admins can view all courses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Admins can view all courses" ON public.volunteer_courses FOR SELECT USING ((public.has_role(auth.uid(), 'admin'::public.user_role) OR public.has_role(auth.uid(), 'supervisor'::public.user_role)));
+
+
+--
 -- Name: evaluations Admins can view all evaluations; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -1363,6 +1656,13 @@ CREATE POLICY "Admins can view verification logs" ON public.certificate_verifica
 --
 
 CREATE POLICY "Anyone can log verifications" ON public.certificate_verifications FOR INSERT WITH CHECK (true);
+
+
+--
+-- Name: academic_semesters Anyone can view active semesters; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Anyone can view active semesters" ON public.academic_semesters FOR SELECT USING (true);
 
 
 --
@@ -1519,6 +1819,24 @@ CREATE POLICY "Users can view own volunteer record" ON public.volunteers FOR SEL
 
 
 --
+-- Name: badge_transactions Volunteers can confirm own transactions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Volunteers can confirm own transactions" ON public.badge_transactions FOR UPDATE USING ((volunteer_id IN ( SELECT volunteers.id
+   FROM public.volunteers
+  WHERE (volunteers.user_id = auth.uid()))));
+
+
+--
+-- Name: volunteer_courses Volunteers can manage own courses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Volunteers can manage own courses" ON public.volunteer_courses USING ((volunteer_id IN ( SELECT volunteers.id
+   FROM public.volunteers
+  WHERE (volunteers.user_id = auth.uid()))));
+
+
+--
 -- Name: volunteer_training_progress Volunteers can record progress; Type: POLICY; Schema: public; Owner: -
 --
 
@@ -1573,10 +1891,28 @@ CREATE POLICY "Volunteers can view own attendance" ON public.attendance FOR SELE
 
 
 --
+-- Name: badge_transactions Volunteers can view own badge transactions; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Volunteers can view own badge transactions" ON public.badge_transactions FOR SELECT USING ((volunteer_id IN ( SELECT volunteers.id
+   FROM public.volunteers
+  WHERE (volunteers.user_id = auth.uid()))));
+
+
+--
 -- Name: certificates Volunteers can view own certificates; Type: POLICY; Schema: public; Owner: -
 --
 
 CREATE POLICY "Volunteers can view own certificates" ON public.certificates FOR SELECT TO authenticated USING ((volunteer_id IN ( SELECT volunteers.id
+   FROM public.volunteers
+  WHERE (volunteers.user_id = auth.uid()))));
+
+
+--
+-- Name: volunteer_courses Volunteers can view own courses; Type: POLICY; Schema: public; Owner: -
+--
+
+CREATE POLICY "Volunteers can view own courses" ON public.volunteer_courses FOR SELECT USING ((volunteer_id IN ( SELECT volunteers.id
    FROM public.volunteers
   WHERE (volunteers.user_id = auth.uid()))));
 
@@ -1609,10 +1945,22 @@ CREATE POLICY "Volunteers can view own registrations" ON public.opportunity_regi
 
 
 --
+-- Name: academic_semesters; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.academic_semesters ENABLE ROW LEVEL SECURITY;
+
+--
 -- Name: attendance; Type: ROW SECURITY; Schema: public; Owner: -
 --
 
 ALTER TABLE public.attendance ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: badge_transactions; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.badge_transactions ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: certificate_templates; Type: ROW SECURITY; Schema: public; Owner: -
@@ -1709,6 +2057,12 @@ ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
 --
 
 ALTER TABLE public.volunteer_applications ENABLE ROW LEVEL SECURITY;
+
+--
+-- Name: volunteer_courses; Type: ROW SECURITY; Schema: public; Owner: -
+--
+
+ALTER TABLE public.volunteer_courses ENABLE ROW LEVEL SECURITY;
 
 --
 -- Name: volunteer_quiz_attempts; Type: ROW SECURITY; Schema: public; Owner: -
