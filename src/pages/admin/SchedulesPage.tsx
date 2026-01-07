@@ -40,7 +40,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CourseScheduleManager } from '@/components/volunteer/CourseScheduleManager';
-import jsPDF from 'jspdf';
+import { generateAllSchedulesPDF } from '@/lib/generateSchedulesPDF';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
 
@@ -157,46 +157,38 @@ export function SchedulesPage() {
 
   // Print all schedules to PDF
   const handlePrintAllSchedules = async () => {
-    const doc = new jsPDF('landscape');
-    const pageWidth = doc.internal.pageSize.getWidth();
+    if (!activeSemester) return;
     
-    doc.setFontSize(18);
-    doc.text('Volunteer Schedules Report', pageWidth / 2, 15, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`Semester: ${activeSemester?.name || ''} (${activeSemester?.academic_year || ''})`, pageWidth / 2, 22, { align: 'center' });
-    doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth / 2, 28, { align: 'center' });
+    const volunteersData = volunteerSchedules.map(vs => ({
+      volunteerName: `${vs.volunteer.application?.first_name || ''} ${vs.volunteer.application?.family_name || ''}`,
+      universityId: vs.volunteer.application?.university_id || '',
+      faculty: (vs.volunteer.application?.faculty as any)?.name || '',
+      major: (vs.volunteer.application?.major as any)?.name || '',
+      submittedAt: vs.isSubmitted ? vs.volunteer.schedule_submitted_at : null,
+      courses: vs.courses.map(c => ({
+        course_code: c.course_code,
+        course_name: c.course_name,
+        day_of_week: c.day_of_week,
+        start_time: c.start_time,
+        end_time: c.end_time,
+        location: c.location,
+      })),
+    }));
+
+    await generateAllSchedulesPDF({
+      semester: {
+        name: activeSemester.name,
+        academicYear: activeSemester.academic_year,
+      },
+      volunteers: volunteersData,
+      stats: {
+        total: volunteers?.length || 0,
+        submitted: volunteerSchedules.filter(vs => vs.isSubmitted).length,
+        pending: volunteerSchedules.filter(vs => !vs.isSubmitted).length,
+        totalCourses: allCourses?.length || 0,
+      },
+    });
     
-    let yPos = 40;
-    
-    for (const vs of volunteerSchedules.filter(v => v.isSubmitted)) {
-      if (yPos > 180) {
-        doc.addPage();
-        yPos = 20;
-      }
-      
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${vs.volunteer.application?.first_name} ${vs.volunteer.application?.family_name} (${vs.volunteer.application?.university_id})`, 14, yPos);
-      yPos += 6;
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'normal');
-      
-      // Group courses by day
-      for (const day of DAYS_OF_WEEK) {
-        const dayCourses = vs.courses.filter(c => c.day_of_week === day);
-        if (dayCourses.length > 0) {
-          doc.text(`${day}:`, 14, yPos);
-          const courseList = dayCourses.map(c => `${c.course_code} (${c.start_time}-${c.end_time})`).join(', ');
-          doc.text(courseList, 40, yPos);
-          yPos += 5;
-        }
-      }
-      
-      yPos += 8;
-    }
-    
-    doc.save(`volunteer-schedules-${activeSemester?.name || 'report'}.pdf`);
     toast({ title: 'Success', description: 'Schedules PDF downloaded' });
   };
 
