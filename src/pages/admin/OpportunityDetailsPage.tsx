@@ -802,11 +802,23 @@ export function OpportunityDetailsPage() {
                     </Table>
                   )}
                   
-                  {/* Print buttons */}
-                  <div className="flex items-center gap-2 pt-4 border-t">
+                  {/* Print buttons - moved to dropdown for cleaner UI */}
+                  <div className="flex items-center gap-2 pt-4 border-t flex-wrap">
                     <Button variant="outline" size="sm" onClick={() => handlePrintList('waitlisted')}>
                       <Printer className="h-4 w-4 mr-2" />
                       Print Waitlist
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handlePrintList('approved')}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Approved
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handlePrintList('rejected')}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Rejected
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => handlePrintList('withdrawn')}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print Withdrawn
                     </Button>
                   </div>
                 </div>
@@ -841,24 +853,10 @@ export function OpportunityDetailsPage() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Approved Volunteers ({approvedVolunteers.length})</CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={handlePrintVolunteers}>
-                      <Printer className="h-4 w-4 mr-2" />
-                      Print All Details
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handlePrintList('approved')}>
-                      <Printer className="h-4 w-4 mr-2" />
-                      Print Approved List
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handlePrintList('rejected')}>
-                      <Printer className="h-4 w-4 mr-2" />
-                      Print Rejected List
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => handlePrintList('withdrawn')}>
-                      <Printer className="h-4 w-4 mr-2" />
-                      Print Withdrawn List
-                    </Button>
-                  </div>
+                  <Button variant="outline" size="sm" onClick={handlePrintVolunteers}>
+                    <Printer className="h-4 w-4 mr-2" />
+                    Print Volunteer Details
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
