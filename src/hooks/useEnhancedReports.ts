@@ -374,3 +374,118 @@ export function useVolunteerDetails(volunteerId?: string) {
     enabled: !!volunteerId,
   });
 }
+
+// Report for volunteers with 5+ consecutive opportunities
+export function useConsecutiveOpportunitiesReport(minConsecutive = 5) {
+  return useQuery({
+    queryKey: ['consecutive-opportunities-report', minConsecutive],
+    queryFn: async () => {
+      // Get all attendance records ordered by date
+      const { data: attendance } = await supabase
+        .from('attendance')
+        .select(`
+          volunteer_id,
+          opportunity_id,
+          check_in_time,
+          volunteer:volunteers(
+            id,
+            total_hours,
+            opportunities_completed,
+            application:volunteer_applications(
+              first_name,
+              father_name,
+              family_name,
+              university_id,
+              faculty:faculties(name)
+            )
+          ),
+          opportunity:opportunities(id, title, date)
+        `)
+        .order('check_in_time', { ascending: true });
+
+      if (!attendance) return { volunteers: [], totalCount: 0 };
+
+      // Group attendance by volunteer
+      const volunteerAttendance: Record<string, Array<{
+        opportunity_id: string;
+        opportunity_title: string;
+        opportunity_date: string;
+        check_in_time: string;
+      }>> = {};
+
+      const volunteerInfo: Record<string, {
+        name: string;
+        university_id: string;
+        faculty: string;
+        total_hours: number;
+        opportunities_completed: number;
+      }> = {};
+
+      attendance.forEach(a => {
+        if (!volunteerAttendance[a.volunteer_id]) {
+          volunteerAttendance[a.volunteer_id] = [];
+          const vol = a.volunteer as any;
+          volunteerInfo[a.volunteer_id] = {
+            name: `${vol?.application?.first_name || ''} ${vol?.application?.father_name || ''} ${vol?.application?.family_name || ''}`,
+            university_id: vol?.application?.university_id || '',
+            faculty: vol?.application?.faculty?.name || 'N/A',
+            total_hours: vol?.total_hours || 0,
+            opportunities_completed: vol?.opportunities_completed || 0,
+          };
+        }
+        
+        const opp = a.opportunity as any;
+        volunteerAttendance[a.volunteer_id].push({
+          opportunity_id: a.opportunity_id,
+          opportunity_title: opp?.title || '',
+          opportunity_date: opp?.date || '',
+          check_in_time: a.check_in_time,
+        });
+      });
+
+      // Find volunteers with 5+ consecutive opportunities
+      const qualifiedVolunteers: Array<{
+        volunteer_id: string;
+        name: string;
+        university_id: string;
+        faculty: string;
+        total_hours: number;
+        opportunities_completed: number;
+        consecutive_count: number;
+        opportunities: Array<{ title: string; date: string }>;
+      }> = [];
+
+      Object.entries(volunteerAttendance).forEach(([volunteerId, records]) => {
+        // Sort by date
+        const sorted = [...records].sort((a, b) => 
+          new Date(a.opportunity_date).getTime() - new Date(b.opportunity_date).getTime()
+        );
+
+        // Get unique opportunities (deduplicate by opportunity_id)
+        const uniqueOpps = sorted.filter((opp, index, self) =>
+          index === self.findIndex(o => o.opportunity_id === opp.opportunity_id)
+        );
+
+        if (uniqueOpps.length >= minConsecutive) {
+          qualifiedVolunteers.push({
+            volunteer_id: volunteerId,
+            ...volunteerInfo[volunteerId],
+            consecutive_count: uniqueOpps.length,
+            opportunities: uniqueOpps.map(o => ({
+              title: o.opportunity_title,
+              date: o.opportunity_date,
+            })),
+          });
+        }
+      });
+
+      // Sort by consecutive count descending
+      qualifiedVolunteers.sort((a, b) => b.consecutive_count - a.consecutive_count);
+
+      return {
+        volunteers: qualifiedVolunteers,
+        totalCount: qualifiedVolunteers.length,
+      };
+    },
+  });
+}
