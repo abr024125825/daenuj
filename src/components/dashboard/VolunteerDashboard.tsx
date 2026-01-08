@@ -153,6 +153,9 @@ export function VolunteerDashboard() {
           </Card>
         )}
 
+        {/* Announcements Widget - Prominent position */}
+        <AnnouncementsWidget />
+
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Upcoming Opportunities */}
           <Card>
@@ -273,9 +276,6 @@ export function VolunteerDashboard() {
             </CardContent>
           </Card>
         </div>
-
-        {/* Announcements Widget */}
-        <AnnouncementsWidget />
 
         {/* Badge Status */}
         {volunteer && <BadgeStatus volunteerId={volunteer.id} />}

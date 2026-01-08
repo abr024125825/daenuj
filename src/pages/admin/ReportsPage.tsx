@@ -41,6 +41,7 @@ import {
   ClipboardCheck,
   AlertCircle,
   Eye,
+  Star,
 } from 'lucide-react';
 import { useReportsData } from '@/hooks/useReports';
 import {
@@ -51,6 +52,7 @@ import {
   useTotalHoursReport,
   useAllVolunteersExport,
   useVolunteerDetails,
+  useConsecutiveOpportunitiesReport,
 } from '@/hooks/useEnhancedReports';
 import { useOpportunities } from '@/hooks/useOpportunities';
 import { generateReportPDF } from '@/lib/generateReportPDF';
@@ -93,6 +95,7 @@ export function ReportsPage() {
   const { data: totalHoursData, isLoading: hoursLoading } = useTotalHoursReport();
   const { data: allVolunteers, isLoading: volunteersLoading } = useAllVolunteersExport();
   const { opportunities } = useOpportunities();
+  const { data: consecutiveData, isLoading: consecutiveLoading } = useConsecutiveOpportunitiesReport(5);
   
   const [selectedOpportunityId, setSelectedOpportunityId] = useState<string>('');
   const [selectedVolunteerId, setSelectedVolunteerId] = useState<string>('');
@@ -221,6 +224,7 @@ export function ReportsPage() {
             <TabsTrigger value="top-hours">Top Hours</TabsTrigger>
             <TabsTrigger value="attendance">Attendance</TabsTrigger>
             <TabsTrigger value="certificates">Certificates</TabsTrigger>
+            <TabsTrigger value="consecutive">5+ Opportunities</TabsTrigger>
             <TabsTrigger value="volunteers">All Volunteers</TabsTrigger>
             <TabsTrigger value="individual">Individual Report</TabsTrigger>
           </TabsList>
@@ -827,6 +831,92 @@ export function ReportsPage() {
                 </Card>
               </TabsContent>
             </Tabs>
+          </TabsContent>
+
+          {/* Consecutive Opportunities Tab (5+) */}
+          <TabsContent value="consecutive" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Star className="h-5 w-5 text-warning" />
+                      Volunteers with 5+ Consecutive Opportunities
+                    </CardTitle>
+                    <CardDescription>
+                      Volunteers who participated in 5 or more opportunities in sequence
+                    </CardDescription>
+                  </div>
+                  <Badge variant="secondary" className="text-lg px-3">
+                    {consecutiveData?.totalCount || 0} volunteers
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {consecutiveLoading ? (
+                  <div className="flex items-center justify-center h-32">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : consecutiveData?.volunteers && consecutiveData.volunteers.length > 0 ? (
+                  <div className="space-y-4">
+                    {consecutiveData.volunteers.map((v, index) => (
+                      <div 
+                        key={v.volunteer_id} 
+                        className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${
+                              index === 0 ? 'bg-warning/20 text-warning ring-2 ring-warning/40' :
+                              index === 1 ? 'bg-muted text-muted-foreground ring-2 ring-border' :
+                              index === 2 ? 'bg-accent/15 text-accent ring-2 ring-accent/40' :
+                              'bg-muted text-muted-foreground'
+                            }`}>
+                              {index === 0 ? '🏆' : index === 1 ? '🥈' : index === 2 ? '🥉' : index + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium">{v.name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {v.university_id} • {v.faculty}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant="default" className="text-lg px-3 py-1">
+                              {v.consecutive_count} opportunities
+                            </Badge>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {v.total_hours} total hours
+                            </p>
+                          </div>
+                        </div>
+                        <div className="mt-3 pt-3 border-t">
+                          <p className="text-xs text-muted-foreground mb-2">Participated opportunities:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {v.opportunities.slice(0, 8).map((opp, i) => (
+                              <Badge key={i} variant="outline" className="text-xs">
+                                {opp.title.length > 25 ? opp.title.slice(0, 25) + '...' : opp.title}
+                              </Badge>
+                            ))}
+                            {v.opportunities.length > 8 && (
+                              <Badge variant="outline" className="text-xs">
+                                +{v.opportunities.length - 8} more
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Star className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>No volunteers with 5+ consecutive opportunities yet</p>
+                    <p className="text-sm">Volunteers will appear here as they participate in more opportunities</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* All Volunteers Tab */}

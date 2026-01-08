@@ -40,7 +40,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { CourseScheduleManager } from '@/components/volunteer/CourseScheduleManager';
-import { generateAllSchedulesPDF } from '@/lib/generateSchedulesPDF';
+import { generateAllSchedulesPDF, generateVolunteerSchedulePDF } from '@/lib/generateSchedulesPDF';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
 
@@ -190,6 +190,35 @@ export function SchedulesPage() {
     });
     
     toast({ title: 'Success', description: 'Schedules PDF downloaded' });
+  };
+
+  // Print individual volunteer schedule PDF
+  const handlePrintVolunteerSchedule = async (volunteerData: typeof volunteerSchedules[0]) => {
+    if (!activeSemester) return;
+    
+    await generateVolunteerSchedulePDF({
+      volunteer: {
+        name: `${volunteerData.volunteer.application?.first_name || ''} ${volunteerData.volunteer.application?.family_name || ''}`,
+        universityId: volunteerData.volunteer.application?.university_id || '',
+        faculty: (volunteerData.volunteer.application?.faculty as any)?.name || '',
+        major: (volunteerData.volunteer.application?.major as any)?.name || '',
+        email: volunteerData.volunteer.application?.university_email || '',
+      },
+      semester: {
+        name: activeSemester.name,
+        academicYear: activeSemester.academic_year,
+      },
+      courses: volunteerData.courses.map(c => ({
+        course_code: c.course_code,
+        course_name: c.course_name,
+        day_of_week: c.day_of_week,
+        start_time: c.start_time,
+        end_time: c.end_time,
+        location: c.location,
+      })),
+    });
+    
+    toast({ title: 'Success', description: 'Volunteer schedule PDF downloaded' });
   };
 
   // Stats
@@ -357,6 +386,14 @@ export function SchedulesPage() {
                       <div className="flex items-center gap-2">
                         <Button size="sm" variant="ghost" onClick={() => handleViewDetails(vs.volunteer.id)}>
                           <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => handlePrintVolunteerSchedule(vs)}
+                          title="Download PDF"
+                        >
+                          <Download className="h-4 w-4" />
                         </Button>
                         {vs.isSubmitted && (
                           <Button 
