@@ -20,6 +20,7 @@ import { useVolunteers } from '@/hooks/useVolunteers';
 import { useCertificates } from '@/hooks/useCertificates';
 import { AvailabilityStatisticsWidget } from '@/components/admin/AvailabilityStatisticsWidget';
 import { ScheduleSubmissionsWidget } from '@/components/admin/ScheduleSubmissionsWidget';
+import { MessagingWidget } from '@/components/admin/MessagingWidget';
 import { format } from 'date-fns';
 
 export function AdminDashboard() {
@@ -221,6 +222,9 @@ export function AdminDashboard() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Messaging & Announcements Widget */}
+        <MessagingWidget />
 
         {/* Availability Statistics Widget */}
         <AvailabilityStatisticsWidget />

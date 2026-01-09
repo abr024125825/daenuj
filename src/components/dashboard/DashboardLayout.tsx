@@ -49,7 +49,6 @@ const adminNavItems: NavItem[] = [
   { icon: Shield, label: 'Verification Logs', href: '/dashboard/certificate-verifications' },
   { icon: MessageSquare, label: 'Evaluations', href: '/dashboard/evaluations' },
   { icon: GraduationCap, label: 'Training', href: '/dashboard/training' },
-  { icon: Bell, label: 'Messaging', href: '/dashboard/messaging' },
   { icon: BarChart3, label: 'Reports', href: '/dashboard/reports' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
