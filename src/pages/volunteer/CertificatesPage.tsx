@@ -2,8 +2,9 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Award, Download, Calendar, MapPin, Clock, Loader2, ChevronDown, FileText } from 'lucide-react';
+import { Award, Download, Calendar, MapPin, Clock, Loader2, ChevronDown, FileText, Lock, AlertCircle } from 'lucide-react';
 import { useMyCertificates } from '@/hooks/useCertificates';
+import { useMyFeedback } from '@/hooks/useEvaluations';
 import { format } from 'date-fns';
 import { generateCertificatePDF, generateModernCertificatePDF } from '@/lib/generateCertificatePDF';
 import {
@@ -15,9 +16,12 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Link } from 'react-router-dom';
 
 export function VolunteerCertificatesPage() {
   const { certificates, isLoading } = useMyCertificates();
+  const { feedback } = useMyFeedback();
   const { user } = useAuth();
 
   // Get volunteer application data for name
@@ -35,9 +39,20 @@ export function VolunteerCertificatesPage() {
     enabled: !!user,
   });
 
+  // Check which opportunities have been evaluated
+  const evaluatedOpportunityIds = new Set(feedback?.map((f: any) => f.opportunity_id) || []);
+
   const totalHours = certificates?.reduce((sum: number, cert: any) => sum + Number(cert.hours), 0) || 0;
+  
+  // Count locked certificates (not yet evaluated)
+  const lockedCount = certificates?.filter((cert: any) => !evaluatedOpportunityIds.has(cert.opportunity_id)).length || 0;
 
   const handleDownload = async (cert: any, isModern: boolean = false) => {
+    // Check if opportunity is evaluated
+    if (!evaluatedOpportunityIds.has(cert.opportunity_id)) {
+      return; // Don't allow download
+    }
+
     const volunteerName = volunteerData 
       ? `${volunteerData.first_name} ${volunteerData.father_name} ${volunteerData.family_name}`
       : 'Volunteer';
@@ -81,6 +96,20 @@ export function VolunteerCertificatesPage() {
           </div>
         </div>
 
+        {/* Info Alert if there are locked certificates */}
+        {lockedCount > 0 && (
+          <Alert className="border-amber-200 bg-amber-50">
+            <AlertCircle className="h-4 w-4 text-amber-600" />
+            <AlertDescription className="text-amber-800">
+              You have {lockedCount} certificate(s) pending. Please{' '}
+              <Link to="/dashboard/evaluations" className="font-medium underline">
+                submit your feedback
+              </Link>{' '}
+              for the opportunity to unlock your certificate.
+            </AlertDescription>
+          </Alert>
+        )}
+
         {/* Stats Card */}
         <Card className="gradient-primary text-primary-foreground">
           <CardContent className="p-6">
@@ -107,65 +136,83 @@ export function VolunteerCertificatesPage() {
 
         {/* Certificates Grid */}
         <div className="grid gap-6 md:grid-cols-2">
-          {certificates?.map((cert: any) => (
-            <Card key={cert.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-lg bg-warning/10 flex items-center justify-center">
-                      <Award className="h-6 w-6 text-warning" />
+          {certificates?.map((cert: any) => {
+            const isLocked = !evaluatedOpportunityIds.has(cert.opportunity_id);
+            
+            return (
+              <Card key={cert.id} className={`hover:shadow-lg transition-shadow ${isLocked ? 'opacity-75' : ''}`}>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${isLocked ? 'bg-muted' : 'bg-warning/10'}`}>
+                        {isLocked ? (
+                          <Lock className="h-6 w-6 text-muted-foreground" />
+                        ) : (
+                          <Award className="h-6 w-6 text-warning" />
+                        )}
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg">{cert.opportunity?.title}</CardTitle>
+                        <p className="text-sm font-mono text-muted-foreground">
+                          {cert.certificate_number}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <CardTitle className="text-lg">{cert.opportunity?.title}</CardTitle>
-                      <p className="text-sm font-mono text-muted-foreground">
-                        {cert.certificate_number}
-                      </p>
+                    <Badge variant={isLocked ? "secondary" : "default"}>{cert.hours} hrs</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4" />
+                      {cert.opportunity?.date 
+                        ? format(new Date(cert.opportunity.date), 'EEEE, MMMM dd, yyyy')
+                        : 'Date not available'}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      {cert.opportunity?.location || 'Location not available'}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Issued on {cert.issued_at 
+                        ? format(new Date(cert.issued_at), 'MMM dd, yyyy')
+                        : 'N/A'}
                     </div>
                   </div>
-                  <Badge variant="secondary">{cert.hours} hrs</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    {cert.opportunity?.date 
-                      ? format(new Date(cert.opportunity.date), 'EEEE, MMMM dd, yyyy')
-                      : 'Date not available'}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4" />
-                    {cert.opportunity?.location || 'Location not available'}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Issued on {cert.issued_at 
-                      ? format(new Date(cert.issued_at), 'MMM dd, yyyy')
-                      : 'N/A'}
-                  </div>
-                </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="w-full gap-2">
-                      <Download className="h-4 w-4" />
-                      Download Certificate
-                      <ChevronDown className="h-4 w-4 ml-auto" />
+                  
+                  {isLocked ? (
+                    <Button variant="outline" className="w-full gap-2" asChild>
+                      <Link to="/dashboard/evaluations">
+                        <Lock className="h-4 w-4" />
+                        Submit Feedback to Unlock
+                      </Link>
                     </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent className="w-full">
-                    <DropdownMenuItem onClick={() => handleDownload(cert, false)}>
-                      <FileText className="h-4 w-4 mr-2" />
-                      Classic Design
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleDownload(cert, true)}>
-                      <Award className="h-4 w-4 mr-2" />
-                      Modern Design
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </CardContent>
-            </Card>
-          ))}
+                  ) : (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" className="w-full gap-2">
+                          <Download className="h-4 w-4" />
+                          Download Certificate
+                          <ChevronDown className="h-4 w-4 ml-auto" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent className="w-full">
+                        <DropdownMenuItem onClick={() => handleDownload(cert, false)}>
+                          <FileText className="h-4 w-4 mr-2" />
+                          Classic Design
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleDownload(cert, true)}>
+                          <Award className="h-4 w-4 mr-2" />
+                          Modern Design
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
 
         {(!certificates || certificates.length === 0) && (
