@@ -44,12 +44,14 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
-import { MessageSquare, Star, Plus, Loader2, MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { MessageSquare, Star, Plus, Loader2, MoreHorizontal, Pencil, Trash2, FileDown } from 'lucide-react';
 import { useEvaluations } from '@/hooks/useEvaluations';
 import { useOpportunities } from '@/hooks/useOpportunities';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { generateEvaluationPDF } from '@/lib/generateEvaluationPDF';
+import { useToast } from '@/hooks/use-toast';
 
 const ratingCategories = [
   { id: 'punctuality', label: 'Punctuality' },
@@ -62,6 +64,7 @@ const ratingCategories = [
 export function EvaluationsPage() {
   const { evaluations, isLoading, createEvaluation, updateEvaluation, deleteEvaluation } = useEvaluations();
   const { opportunities } = useOpportunities();
+  const { toast } = useToast();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -71,6 +74,7 @@ export function EvaluationsPage() {
   const [comments, setComments] = useState('');
   const [evaluationToEdit, setEvaluationToEdit] = useState<any>(null);
   const [evaluationToDelete, setEvaluationToDelete] = useState<any>(null);
+  const [exportingOpportunity, setExportingOpportunity] = useState<string | null>(null);
 
   // Get attendees for selected opportunity
   const { data: attendees } = useQuery({
@@ -158,6 +162,78 @@ export function EvaluationsPage() {
 
   const supervisorRatings = evaluations?.filter((e: any) => e.type === 'supervisor_rating');
   const volunteerFeedback = evaluations?.filter((e: any) => e.type === 'volunteer_feedback');
+
+  // Get unique opportunities with evaluations
+  const opportunitiesWithEvaluations = [...new Set(evaluations?.map((e: any) => e.opportunity?.id))].filter(Boolean);
+  const opportunityMap = new Map(opportunities?.map((o: any) => [o.id, o]) || []);
+
+  const handleExportPDF = async (opportunityId: string) => {
+    try {
+      setExportingOpportunity(opportunityId);
+      const opportunity = opportunityMap.get(opportunityId);
+      if (!opportunity) {
+        toast({ title: 'Opportunity not found', variant: 'destructive' });
+        return;
+      }
+
+      const opportunityEvaluations = evaluations?.filter((e: any) => e.opportunity?.id === opportunityId) || [];
+      
+      if (opportunityEvaluations.length === 0) {
+        toast({ title: 'No evaluations found for this opportunity', variant: 'destructive' });
+        return;
+      }
+
+      // Calculate summary
+      const allRatings: { category: string; score: number }[] = [];
+      opportunityEvaluations.forEach((e: any) => {
+        const ratings = e.ratings as any[];
+        ratings?.forEach(r => allRatings.push(r));
+      });
+
+      const categoryTotals: { [key: string]: { sum: number; count: number } } = {};
+      allRatings.forEach(r => {
+        if (!categoryTotals[r.category]) {
+          categoryTotals[r.category] = { sum: 0, count: 0 };
+        }
+        categoryTotals[r.category].sum += r.score;
+        categoryTotals[r.category].count += 1;
+      });
+
+      const categoryAverages = Object.entries(categoryTotals).map(([category, data]) => ({
+        category,
+        average: data.sum / data.count,
+      }));
+
+      const overallAverage = allRatings.length > 0
+        ? allRatings.reduce((sum, r) => sum + r.score, 0) / allRatings.length
+        : 0;
+
+      await generateEvaluationPDF({
+        opportunityTitle: opportunity.title,
+        opportunityDate: format(new Date(opportunity.date), 'MMMM dd, yyyy'),
+        location: opportunity.location,
+        evaluations: opportunityEvaluations.map((e: any) => ({
+          volunteerName: `${e.volunteer?.application?.first_name || ''} ${e.volunteer?.application?.family_name || ''}`,
+          ratings: e.ratings as { category: string; score: number }[],
+          comments: e.comments,
+          createdAt: e.created_at,
+          type: e.type,
+        })),
+        summary: {
+          totalEvaluations: opportunityEvaluations.length,
+          averageRating: overallAverage,
+          categoryAverages,
+        },
+      });
+
+      toast({ title: 'PDF exported successfully' });
+    } catch (error) {
+      console.error('Error exporting PDF:', error);
+      toast({ title: 'Failed to export PDF', variant: 'destructive' });
+    } finally {
+      setExportingOpportunity(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -264,6 +340,7 @@ export function EvaluationsPage() {
           <TabsList>
             <TabsTrigger value="ratings">Supervisor Ratings</TabsTrigger>
             <TabsTrigger value="feedback">Volunteer Feedback</TabsTrigger>
+            <TabsTrigger value="export">Export by Opportunity</TabsTrigger>
           </TabsList>
 
           <TabsContent value="ratings">
@@ -278,6 +355,51 @@ export function EvaluationsPage() {
             <Card>
               <CardContent className="p-0">
                 {renderEvaluationTable(volunteerFeedback, true)}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="export">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Export Evaluation Reports</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-3">
+                  {opportunitiesWithEvaluations.length === 0 ? (
+                    <p className="text-muted-foreground text-center py-8">No opportunities with evaluations yet</p>
+                  ) : (
+                    opportunitiesWithEvaluations.map((oppId) => {
+                      const opportunity = opportunityMap.get(oppId);
+                      if (!opportunity) return null;
+                      const evalCount = evaluations?.filter((e: any) => e.opportunity?.id === oppId).length || 0;
+                      
+                      return (
+                        <div key={oppId} className="flex items-center justify-between p-4 border rounded-lg">
+                          <div>
+                            <p className="font-medium">{opportunity.title}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {format(new Date(opportunity.date), 'MMM dd, yyyy')} • {evalCount} evaluation{evalCount !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleExportPDF(oppId)}
+                            disabled={exportingOpportunity === oppId}
+                          >
+                            {exportingOpportunity === oppId ? (
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                              <FileDown className="h-4 w-4 mr-2" />
+                            )}
+                            Export PDF
+                          </Button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
