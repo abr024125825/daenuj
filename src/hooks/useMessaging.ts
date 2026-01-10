@@ -372,9 +372,20 @@ export function useMessages(conversationId: string) {
           table: 'messages',
           filter: `conversation_id=eq.${conversationId}`,
         },
-        () => {
+        (payload) => {
           queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
           queryClient.invalidateQueries({ queryKey: ['conversations'] });
+          
+          // Notify if message is from someone else
+          if (payload.new && (payload.new as any).sender_id !== user?.id) {
+            // Trigger notification event
+            window.dispatchEvent(new CustomEvent('new-message', { 
+              detail: { 
+                conversationId, 
+                message: payload.new 
+              } 
+            }));
+          }
         }
       )
       .subscribe();
@@ -382,7 +393,7 @@ export function useMessages(conversationId: string) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, queryClient]);
+  }, [conversationId, queryClient, user?.id]);
 
   const sendMessage = useMutation({
     mutationFn: async (content: string) => {

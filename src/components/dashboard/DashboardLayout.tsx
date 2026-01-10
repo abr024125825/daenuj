@@ -57,9 +57,9 @@ const volunteerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Calendar, label: 'Opportunities', href: '/dashboard/opportunities' },
   { icon: BookOpen, label: 'Course Schedule', href: '/dashboard/schedule' },
+  { icon: MessageSquare, label: 'Messages', href: '/dashboard/messages' },
   { icon: Award, label: 'My Certificates', href: '/dashboard/certificates' },
   { icon: GraduationCap, label: 'Training', href: '/dashboard/training' },
-  { icon: MessageSquare, label: 'Evaluations', href: '/dashboard/evaluations' },
   { icon: Bell, label: 'Notifications', href: '/dashboard/notifications', badge: 3 },
 ];
 
