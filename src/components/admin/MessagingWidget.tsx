@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,12 +11,13 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { useAnnouncements, useConversations, useMessages } from '@/hooks/useMessaging';
+import { useAnnouncements, useConversations, useMessages, useRealtimeAnnouncements } from '@/hooks/useMessaging';
 import { useVolunteers } from '@/hooks/useVolunteers';
 import { useFaculties } from '@/hooks/useFaculties';
 import { useAuth } from '@/contexts/AuthContext';
-import { Megaphone, MessageSquare, Plus, Send, Trash2, Edit, Pin, Users, Loader2, X, ChevronRight, ArrowLeft } from 'lucide-react';
+import { Megaphone, MessageSquare, Plus, Send, Trash2, Edit, Pin, Users, Loader2, X, ChevronRight, ArrowLeft, Bell } from 'lucide-react';
 import { format } from 'date-fns';
+import { useToast } from '@/hooks/use-toast';
 
 type Priority = 'low' | 'normal' | 'high' | 'urgent';
 type TargetAudience = 'all' | 'active_only' | 'faculty_specific';
@@ -34,6 +35,13 @@ interface FormData {
 
 export function MessagingWidget() {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { totalUnread } = useConversations();
+  const { unreadCount: announcementUnread } = useAnnouncements();
+  
+  // Enable realtime updates for announcements
+  useRealtimeAnnouncements();
+  
+  const totalNotifications = totalUnread + announcementUnread;
 
   return (
     <Card className="col-span-full">
@@ -41,6 +49,11 @@ export function MessagingWidget() {
         <CardTitle className="flex items-center gap-2">
           <MessageSquare className="h-5 w-5 text-primary" />
           Messaging & Announcements
+          {totalNotifications > 0 && (
+            <Badge variant="destructive" className="ml-2">
+              {totalNotifications}
+            </Badge>
+          )}
         </CardTitle>
         <Button 
           variant="ghost" 
