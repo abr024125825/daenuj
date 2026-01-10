@@ -15,6 +15,7 @@ import { useAnnouncements, useConversations, useMessages, useRealtimeAnnouncemen
 import { useVolunteers } from '@/hooks/useVolunteers';
 import { useFaculties } from '@/hooks/useFaculties';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotificationSound } from '@/hooks/useNotificationSound';
 import { Megaphone, MessageSquare, Plus, Send, Trash2, Edit, Pin, Users, Loader2, X, ChevronRight, ArrowLeft, Bell } from 'lucide-react';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -37,11 +38,29 @@ export function MessagingWidget() {
   const [isExpanded, setIsExpanded] = useState(false);
   const { totalUnread } = useConversations();
   const { unreadCount: announcementUnread } = useAnnouncements();
+  const { notify, requestNotificationPermission } = useNotificationSound();
   
   // Enable realtime updates for announcements
   useRealtimeAnnouncements();
   
   const totalNotifications = totalUnread + announcementUnread;
+
+  // Request notification permission on mount
+  useEffect(() => {
+    requestNotificationPermission();
+  }, [requestNotificationPermission]);
+
+  // Listen for new message events
+  useEffect(() => {
+    const handleNewMessage = (event: CustomEvent) => {
+      notify('New Message', 'You have received a new message');
+    };
+
+    window.addEventListener('new-message', handleNewMessage as EventListener);
+    return () => {
+      window.removeEventListener('new-message', handleNewMessage as EventListener);
+    };
+  }, [notify]);
 
   return (
     <Card className="col-span-full">
