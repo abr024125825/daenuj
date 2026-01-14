@@ -23,8 +23,7 @@ import {
   Clock,
   Star,
   Loader2,
-  Lock,
-  Edit
+  Lock
 } from 'lucide-react';
 import { format } from 'date-fns';
 
