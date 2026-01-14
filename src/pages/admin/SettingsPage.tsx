@@ -29,13 +29,14 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Users, Shield, Settings, Search, Loader2, UserCog, Calendar } from 'lucide-react';
+import { Users, Shield, Settings, Search, Loader2, UserCog, Calendar, Key, Mail } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { SemesterManagement } from '@/components/admin/SemesterManagement';
+import { usePasswordManagement } from '@/hooks/usePasswordManagement';
 
 export function SettingsPage() {
   const { users, isLoading, updateUserRole, toggleUserActive } = useUsers();
