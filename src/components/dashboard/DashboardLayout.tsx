@@ -55,6 +55,8 @@ const adminNavItems: NavItem[] = [
 
 const volunteerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: Users, label: 'My Profile', href: '/dashboard/profile' },
+  { icon: Calendar, label: 'Calendar', href: '/dashboard/calendar' },
   { icon: Calendar, label: 'Opportunities', href: '/dashboard/opportunities' },
   { icon: BookOpen, label: 'Course Schedule', href: '/dashboard/schedule' },
   { icon: MessageSquare, label: 'Messages', href: '/dashboard/messages' },
