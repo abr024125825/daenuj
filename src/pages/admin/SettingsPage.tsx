@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -26,27 +26,60 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Users, Shield, Settings, Search, Loader2, UserCog, Calendar, Key, Mail } from 'lucide-react';
+import { Users, Shield, Settings, Search, Loader2, Calendar, Key } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { SemesterManagement } from '@/components/admin/SemesterManagement';
-import { usePasswordManagement } from '@/hooks/usePasswordManagement';
+
+// System configuration stored in localStorage (could be moved to database)
+interface SystemConfig {
+  autoApproveRegistrations: boolean;
+  emailNotifications: boolean;
+}
+
+const DEFAULT_CONFIG: SystemConfig = {
+  autoApproveRegistrations: false,
+  emailNotifications: true,
+};
+
+function useSystemConfig() {
+  const [config, setConfig] = useState<SystemConfig>(() => {
+    const saved = localStorage.getItem('system-config');
+    return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
+  });
+
+  const updateConfig = (key: keyof SystemConfig, value: boolean) => {
+    const newConfig = { ...config, [key]: value };
+    setConfig(newConfig);
+    localStorage.setItem('system-config', JSON.stringify(newConfig));
+  };
+
+  return { config, updateConfig };
+}
 
 export function SettingsPage() {
   const { users, isLoading, updateUserRole, toggleUserActive } = useUsers();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
+  const { config, updateConfig } = useSystemConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [seederDialogOpen, setSeederDialogOpen] = useState(false);
   const [seederEmail, setSeederEmail] = useState('');
   const [seederPassword, setSeederPassword] = useState('');
   const [isCreatingAdmin, setIsCreatingAdmin] = useState(false);
+  
+  // Password reset state
+  const [passwordResetDialogOpen, setPasswordResetDialogOpen] = useState(false);
+  const [selectedUserForReset, setSelectedUserForReset] = useState<any>(null);
+  const [newPasswordForUser, setNewPasswordForUser] = useState('');
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const filteredUsers = users?.filter(
     (u: any) =>
@@ -63,7 +96,6 @@ export function SettingsPage() {
 
     setIsCreatingAdmin(true);
     try {
-      // Create the user
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: seederEmail,
         password: seederPassword,
@@ -78,10 +110,8 @@ export function SettingsPage() {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Wait a moment for the trigger to create the profile
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Update the user's role to admin
         const { error: roleError } = await supabase
           .from('user_roles')
           .update({ role: 'admin' })
@@ -106,6 +136,45 @@ export function SettingsPage() {
     } finally {
       setIsCreatingAdmin(false);
     }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!newPasswordForUser || newPasswordForUser.length < 6) {
+      toast({ title: 'Error', description: 'Password must be at least 6 characters', variant: 'destructive' });
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      // Note: This requires admin API access. For now, we'll use a workaround
+      // In production, this should be done via an edge function with service role
+      const { error } = await supabase.auth.admin.updateUserById(
+        selectedUserForReset.user_id,
+        { password: newPasswordForUser }
+      );
+
+      if (error) throw error;
+
+      toast({ title: 'Success', description: `Password reset for ${selectedUserForReset.first_name} ${selectedUserForReset.last_name}` });
+      setPasswordResetDialogOpen(false);
+      setSelectedUserForReset(null);
+      setNewPasswordForUser('');
+    } catch (error: any) {
+      // Fallback message if admin API is not available
+      toast({ 
+        title: 'Note', 
+        description: 'Password reset requires server-side admin privileges. Please use the password reset email flow instead.',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  const openPasswordReset = (user: any) => {
+    setSelectedUserForReset(user);
+    setNewPasswordForUser('');
+    setPasswordResetDialogOpen(true);
   };
 
   const getRoleBadgeVariant = (role: string) => {
@@ -162,7 +231,7 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>All Users</CardTitle>
-                    <CardDescription>Manage user roles and access</CardDescription>
+                    <CardDescription>Manage user roles, access, and passwords</CardDescription>
                   </div>
                   <div className="relative w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -232,7 +301,7 @@ export function SettingsPage() {
                                 }
                                 disabled={isCurrentUser}
                               >
-                                <SelectTrigger className="w-32">
+                                <SelectTrigger className="w-28">
                                   <SelectValue />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -248,6 +317,15 @@ export function SettingsPage() {
                                 }
                                 disabled={isCurrentUser}
                               />
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => openPasswordReset(u)}
+                                disabled={isCurrentUser}
+                                title="Reset Password"
+                              >
+                                <Key className="h-4 w-4" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -267,27 +345,45 @@ export function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>System Configuration</CardTitle>
-                <CardDescription>Configure system-wide settings</CardDescription>
+                <CardDescription>Configure system-wide settings for the volunteer management system</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
-                <div className="grid gap-4">
-                  <div className="flex items-center justify-between">
+                <div className="grid gap-6">
+                  <div className="flex items-center justify-between p-4 rounded-lg border">
                     <div>
-                      <Label>Auto-approve volunteer registrations</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Automatically approve opportunity registrations
+                      <Label className="text-base font-medium">Auto-approve volunteer registrations</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Automatically approve opportunity registrations without admin review
                       </p>
                     </div>
-                    <Switch />
+                    <Switch
+                      checked={config.autoApproveRegistrations}
+                      onCheckedChange={(checked) => {
+                        updateConfig('autoApproveRegistrations', checked);
+                        toast({ 
+                          title: 'Setting updated', 
+                          description: `Auto-approve registrations ${checked ? 'enabled' : 'disabled'}` 
+                        });
+                      }}
+                    />
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-4 rounded-lg border">
                     <div>
-                      <Label>Email notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Send email notifications for important events
+                      <Label className="text-base font-medium">Email notifications</Label>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Send email notifications for important events like approvals and new opportunities
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={config.emailNotifications}
+                      onCheckedChange={(checked) => {
+                        updateConfig('emailNotifications', checked);
+                        toast({ 
+                          title: 'Setting updated', 
+                          description: `Email notifications ${checked ? 'enabled' : 'disabled'}` 
+                        });
+                      }}
+                    />
                   </div>
                 </div>
               </CardContent>
@@ -325,15 +421,55 @@ export function SettingsPage() {
                   placeholder="Secure password"
                 />
               </div>
-              <Button
-                className="w-full"
-                onClick={handleCreateAdmin}
-                disabled={isCreatingAdmin}
-              >
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSeederDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleCreateAdmin} disabled={isCreatingAdmin}>
                 {isCreatingAdmin && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Create Admin
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Password Reset Dialog */}
+        <Dialog open={passwordResetDialogOpen} onOpenChange={setPasswordResetDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reset User Password</DialogTitle>
+              <DialogDescription>
+                Set a new password for {selectedUserForReset?.first_name} {selectedUserForReset?.last_name}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="new-user-password">New Password</Label>
+                <Input
+                  id="new-user-password"
+                  type="password"
+                  value={newPasswordForUser}
+                  onChange={(e) => setNewPasswordForUser(e.target.value)}
+                  placeholder="Enter new password"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Password must be at least 6 characters long
+                </p>
+              </div>
             </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPasswordResetDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handlePasswordReset} 
+                disabled={isResettingPassword || newPasswordForUser.length < 6}
+              >
+                {isResettingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Reset Password
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       </div>

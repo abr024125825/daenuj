@@ -64,43 +64,29 @@ export function CalendarPage() {
     enabled: !!user,
   });
 
-  // Fetch opportunities the volunteer is registered for
-  const { data: registeredOpportunities, isLoading: isOpportunitiesLoading } = useQuery({
-    queryKey: ['my-calendar-opportunities', volunteer?.id],
+  // Fetch all published opportunities
+  const { data: publishedOpportunities, isLoading: isOpportunitiesLoading } = useQuery({
+    queryKey: ['calendar-published-opportunities'],
     queryFn: async () => {
-      if (!volunteer) return [];
-      
       const { data, error } = await supabase
-        .from('opportunity_registrations')
-        .select(`
-          status,
-          opportunity:opportunities(
-            id,
-            title,
-            date,
-            start_time,
-            end_time,
-            location,
-            status
-          )
-        `)
-        .eq('volunteer_id', volunteer.id);
+        .from('opportunities')
+        .select('id, title, date, start_time, end_time, location, status')
+        .eq('status', 'published')
+        .order('date', { ascending: true });
       
       if (error) throw error;
       
-      return data?.map((reg: any) => ({
-        id: reg.opportunity.id,
-        title: reg.opportunity.title,
-        date: reg.opportunity.date,
-        start_time: reg.opportunity.start_time,
-        end_time: reg.opportunity.end_time,
-        location: reg.opportunity.location,
+      return data?.map((opp: any) => ({
+        id: opp.id,
+        title: opp.title,
+        date: opp.date,
+        start_time: opp.start_time,
+        end_time: opp.end_time,
+        location: opp.location,
         type: 'opportunity' as const,
-        status: reg.opportunity.status,
-        registration_status: reg.status
+        status: opp.status
       })) || [];
     },
-    enabled: !!volunteer,
   });
 
   // Fetch volunteer's courses
@@ -158,8 +144,8 @@ export function CalendarPage() {
 
   // Combine all events
   const allEvents = useMemo(() => {
-    return [...(registeredOpportunities || []), ...courseEvents];
-  }, [registeredOpportunities, courseEvents]);
+    return [...(publishedOpportunities || []), ...courseEvents];
+  }, [publishedOpportunities, courseEvents]);
 
   // Get events for a specific date
   const getEventsForDate = (date: Date) => {

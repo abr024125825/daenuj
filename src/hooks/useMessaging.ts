@@ -279,12 +279,25 @@ export function useConversations() {
       participantIds: string[];
       opportunityId?: string;
     }) => {
+      // Get participant names for title if not provided
+      let conversationTitle = title;
+      if (!conversationTitle && participantIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .in('user_id', participantIds);
+        
+        if (profiles && profiles.length > 0) {
+          conversationTitle = profiles.map(p => `${p.first_name} ${p.last_name}`).join(', ');
+        }
+      }
+
       // Create conversation
       const { data: conversation, error: convError } = await supabase
         .from('conversations')
         .insert({
           type,
-          title,
+          title: conversationTitle,
           opportunity_id: opportunityId || null,
           created_by: user?.id,
         })
