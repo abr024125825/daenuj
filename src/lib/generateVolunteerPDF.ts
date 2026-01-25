@@ -37,12 +37,33 @@ interface VolunteerData {
     hours: number;
     issued_at: string;
   }>;
+  courses?: Array<{
+    course_code: string;
+    course_name: string;
+    day_of_week: string;
+    start_time: string;
+    end_time: string;
+    location?: string;
+    semester: string;
+  }>;
+  exams?: Array<{
+    course_name: string;
+    course_code: string;
+    exam_type: string;
+    exam_date: string;
+    start_time: string;
+    end_time: string;
+    location?: string;
+    semester: string;
+  }>;
 }
 
 // Professional color palette - consistent with other reports
 const colors = {
   primary: [16, 78, 58],
   secondary: [34, 197, 94],
+  info: [59, 130, 246],
+  danger: [239, 68, 68],
   dark: [30, 41, 59],
   muted: [100, 116, 139],
   light: [248, 250, 252],
@@ -335,12 +356,171 @@ export async function generateVolunteerPDF(data: VolunteerData): Promise<void> {
     });
   }
 
+  // Academic Schedule Section (Courses)
+  if (data.courses && data.courses.length > 0) {
+    if (yPos > pageHeight - 70) {
+      doc.addPage();
+      yPos = margin + 10;
+    } else {
+      yPos += 8;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+    doc.text('ACADEMIC SCHEDULE - COURSES', margin, yPos);
+    doc.setDrawColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+    doc.line(margin, yPos + 2, margin + 56, yPos + 2);
+    yPos += 6;
+
+    // Display semester info if available
+    if (data.courses[0]?.semester) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+      doc.text(`Semester: ${data.courses[0].semester}`, margin, yPos);
+      yPos += 6;
+    }
+
+    // Table header
+    doc.setFillColor(colors.info[0], colors.info[1], colors.info[2]);
+    doc.roundedRect(margin, yPos, pageWidth - margin * 2, 7, 1, 1, 'F');
+    doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+    doc.setFontSize(7.5);
+    doc.text('Code', margin + 3, yPos + 5);
+    doc.text('Course Name', margin + 20, yPos + 5);
+    doc.text('Day', margin + 80, yPos + 5);
+    doc.text('Time', margin + 105, yPos + 5);
+    doc.text('Location', pageWidth - margin - 5, yPos + 5, { align: 'right' });
+    yPos += 7;
+
+    // Sort courses by day
+    const dayOrder = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const sortedCourses = [...data.courses].sort((a, b) => 
+      dayOrder.indexOf(a.day_of_week) - dayOrder.indexOf(b.day_of_week)
+    );
+
+    doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+    sortedCourses.forEach((course, index) => {
+      if (yPos > pageHeight - 25) {
+        doc.addPage();
+        yPos = margin + 10;
+        
+        // Repeat header on new page
+        doc.setFillColor(colors.info[0], colors.info[1], colors.info[2]);
+        doc.roundedRect(margin, yPos, pageWidth - margin * 2, 7, 1, 1, 'F');
+        doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+        doc.setFontSize(7.5);
+        doc.text('Code', margin + 3, yPos + 5);
+        doc.text('Course Name', margin + 20, yPos + 5);
+        doc.text('Day', margin + 80, yPos + 5);
+        doc.text('Time', margin + 105, yPos + 5);
+        doc.text('Location', pageWidth - margin - 5, yPos + 5, { align: 'right' });
+        yPos += 7;
+        doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+      }
+
+      const bg = index % 2 === 0 ? colors.light : colors.white;
+      doc.setFillColor(bg[0], bg[1], bg[2]);
+      doc.rect(margin, yPos, pageWidth - margin * 2, 6, 'F');
+      
+      doc.setFontSize(7);
+      doc.text(course.course_code, margin + 3, yPos + 4);
+      doc.text(truncateText(doc, course.course_name, 55), margin + 20, yPos + 4);
+      doc.text(course.day_of_week.substring(0, 3), margin + 80, yPos + 4);
+      doc.text(`${course.start_time}-${course.end_time}`, margin + 105, yPos + 4);
+      doc.text(truncateText(doc, course.location || 'N/A', 35), pageWidth - margin - 5, yPos + 4, { align: 'right' });
+      yPos += 6;
+    });
+  }
+
+  // Exam Schedule Section
+  if (data.exams && data.exams.length > 0) {
+    if (yPos > pageHeight - 70) {
+      doc.addPage();
+      yPos = margin + 10;
+    } else {
+      yPos += 8;
+    }
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+    doc.text('EXAM SCHEDULE', margin, yPos);
+    doc.setDrawColor(colors.danger[0], colors.danger[1], colors.danger[2]);
+    doc.line(margin, yPos + 2, margin + 30, yPos + 2);
+    yPos += 6;
+
+    // Display semester info if available
+    if (data.exams[0]?.semester) {
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+      doc.text(`Semester: ${data.exams[0].semester}`, margin, yPos);
+      yPos += 6;
+    }
+
+    // Table header
+    doc.setFillColor(colors.danger[0], colors.danger[1], colors.danger[2]);
+    doc.roundedRect(margin, yPos, pageWidth - margin * 2, 7, 1, 1, 'F');
+    doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+    doc.setFontSize(7.5);
+    doc.text('Course', margin + 3, yPos + 5);
+    doc.text('Type', margin + 55, yPos + 5);
+    doc.text('Date', margin + 75, yPos + 5);
+    doc.text('Time', margin + 100, yPos + 5);
+    doc.text('Location', pageWidth - margin - 5, yPos + 5, { align: 'right' });
+    yPos += 7;
+
+    doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+    data.exams.forEach((exam, index) => {
+      if (yPos > pageHeight - 25) {
+        doc.addPage();
+        yPos = margin + 10;
+        
+        // Repeat header
+        doc.setFillColor(colors.danger[0], colors.danger[1], colors.danger[2]);
+        doc.roundedRect(margin, yPos, pageWidth - margin * 2, 7, 1, 1, 'F');
+        doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+        doc.setFontSize(7.5);
+        doc.text('Course', margin + 3, yPos + 5);
+        doc.text('Type', margin + 55, yPos + 5);
+        doc.text('Date', margin + 75, yPos + 5);
+        doc.text('Time', margin + 100, yPos + 5);
+        doc.text('Location', pageWidth - margin - 5, yPos + 5, { align: 'right' });
+        yPos += 7;
+        doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+      }
+
+      const bg = index % 2 === 0 ? colors.light : colors.white;
+      doc.setFillColor(bg[0], bg[1], bg[2]);
+      doc.rect(margin, yPos, pageWidth - margin * 2, 6, 'F');
+      
+      doc.setFontSize(7);
+      const courseLabel = `${exam.course_code} - ${exam.course_name}`;
+      doc.text(truncateText(doc, courseLabel, 48), margin + 3, yPos + 4);
+      doc.text(exam.exam_type, margin + 55, yPos + 4);
+      doc.text(new Date(exam.exam_date).toLocaleDateString(), margin + 75, yPos + 4);
+      doc.text(`${exam.start_time}-${exam.end_time}`, margin + 100, yPos + 4);
+      doc.text(truncateText(doc, exam.location || 'N/A', 30), pageWidth - margin - 5, yPos + 4, { align: 'right' });
+      yPos += 6;
+    });
+  }
+
   // Footer
-  doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-  doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
-  doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
-  doc.setFontSize(7);
-  doc.text('Community Service & Development Center - University of Jordan', pageWidth / 2, pageHeight - 5, { align: 'center' });
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+    doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+    doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+    doc.setFontSize(7);
+    doc.text('Community Service & Development Center - University of Jordan', pageWidth / 2, pageHeight - 5, { align: 'center' });
+    if (totalPages > 1) {
+      doc.setFontSize(6);
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
+    }
+  }
 
   doc.save(`volunteer-${data.volunteer.university_id}-${new Date().toISOString().split('T')[0]}.pdf`);
 }

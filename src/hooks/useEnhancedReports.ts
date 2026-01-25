@@ -331,6 +331,25 @@ export function useVolunteerDetails(volunteerId?: string) {
         .eq('volunteer_id', volunteerId)
         .order('issued_at', { ascending: false });
 
+  const { data: courses } = await supabase
+    .from('volunteer_courses')
+    .select(`
+      *,
+      semester:academic_semesters(name, academic_year)
+    `)
+    .eq('volunteer_id', volunteerId)
+    .order('day_of_week', { ascending: true });
+
+  const { data: exams } = await supabase
+    .from('exam_schedules')
+    .select(`
+      *,
+      course:volunteer_courses(course_name, course_code),
+      semester:academic_semesters(name, academic_year)
+    `)
+    .eq('volunteer_id', volunteerId)
+    .order('exam_date', { ascending: true });
+
       const app = volunteer?.application as any;
 
       return {
@@ -369,6 +388,25 @@ export function useVolunteerDetails(volunteerId?: string) {
           hours: c.hours,
           issued_at: c.issued_at,
         })) || [],
+    courses: courses?.map(c => ({
+      course_code: c.course_code,
+      course_name: c.course_name,
+      day_of_week: c.day_of_week,
+      start_time: c.start_time,
+      end_time: c.end_time,
+      location: c.location,
+      semester: (c.semester as any)?.name || '',
+    })) || [],
+    exams: exams?.map(e => ({
+      course_name: (e.course as any)?.course_name || '',
+      course_code: (e.course as any)?.course_code || '',
+      exam_type: e.exam_type,
+      exam_date: e.exam_date,
+      start_time: e.start_time,
+      end_time: e.end_time,
+      location: e.location,
+      semester: (e.semester as any)?.name || '',
+    })) || [],
       };
     },
     enabled: !!volunteerId,
