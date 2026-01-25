@@ -25,14 +25,19 @@ import { format } from 'date-fns';
 
 export function AdminDashboard() {
   const navigate = useNavigate();
-  const { data: applications, isLoading: applicationsLoading } = useVolunteerApplications();
+  
+  // Optimize: Only fetch pending applications for dashboard
+  const { data: applications, isLoading: applicationsLoading } = useVolunteerApplications('pending');
+  
+  // Optimize: Get counts without full data
+  const { data: allApplications } = useVolunteerApplications();
   const { opportunities, isLoading: opportunitiesLoading } = useOpportunities();
   const { volunteers, isLoading: volunteersLoading } = useVolunteers();
   const { certificates, isLoading: certificatesLoading } = useCertificates();
 
   const isLoading = applicationsLoading || opportunitiesLoading || volunteersLoading || certificatesLoading;
 
-  const pendingApplications = applications?.filter((a: any) => a.status === 'pending') || [];
+  const pendingApplications = applications || [];
   const totalVolunteers = volunteers?.length || 0;
   const activeOpportunities = opportunities?.filter((o: any) => o.status === 'published') || [];
   const totalCertificates = certificates?.length || 0;

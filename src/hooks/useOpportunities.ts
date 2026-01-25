@@ -13,6 +13,7 @@ export function useOpportunities() {
 
   const { data: opportunities, isLoading, error } = useQuery({
     queryKey: ['opportunities'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       const { data, error } = await supabase
         .from('opportunities')
@@ -225,6 +226,7 @@ export function useOpportunityRegistrations(opportunityId?: string) {
 
   const { data: registrations, isLoading } = useQuery({
     queryKey: ['opportunity-registrations', opportunityId],
+    staleTime: 3 * 60 * 1000, // 3 minutes
     queryFn: async () => {
       if (!opportunityId) return [];
       const { data, error } = await supabase
@@ -455,6 +457,7 @@ export function useOpportunityRegistrations(opportunityId?: string) {
 export function useMyRegistrations() {
   const { data: registrations, isLoading } = useQuery({
     queryKey: ['my-registrations'],
+    staleTime: 3 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return [];
