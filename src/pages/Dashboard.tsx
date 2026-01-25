@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { AdminDashboard } from '@/components/dashboard/AdminDashboard';
 import { SupervisorDashboard } from '@/components/dashboard/SupervisorDashboard';
+import { FacultyCoordinatorDashboard } from '@/components/dashboard/FacultyCoordinatorDashboard';
 import { VolunteerDashboard } from '@/components/dashboard/VolunteerDashboard';
 import { Loader2 } from 'lucide-react';
 
@@ -36,6 +37,11 @@ export default function Dashboard() {
         </div>
       </div>
     );
+  }
+
+  // Faculty coordinator is a supervisor with faculty_id
+  if (profile.role === 'supervisor' && profile.faculty_id) {
+    return <FacultyCoordinatorDashboard />;
   }
 
   switch (profile.role) {

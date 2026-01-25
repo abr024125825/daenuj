@@ -13,6 +13,7 @@ export interface UserProfile {
   role: UserRole;
   is_active: boolean;
   avatar_url?: string;
+  faculty_id?: string;
 }
 
 interface AuthContextType {

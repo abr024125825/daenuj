@@ -849,6 +849,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string
+          faculty_id: string | null
           first_name: string
           id: string
           is_active: boolean | null
@@ -861,6 +862,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email: string
+          faculty_id?: string | null
           first_name: string
           id?: string
           is_active?: boolean | null
@@ -873,6 +875,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string
+          faculty_id?: string | null
           first_name?: string
           id?: string
           is_active?: boolean | null
@@ -881,7 +884,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_faculty_id_fkey"
+            columns: ["faculty_id"]
+            isOneToOne: false
+            referencedRelation: "faculties"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       system_settings: {
         Row: {
