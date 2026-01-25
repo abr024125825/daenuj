@@ -19,6 +19,7 @@ export type Database = {
           academic_year: string
           created_at: string
           created_by: string
+          cumulative_target_hours: number | null
           end_date: string
           id: string
           is_active: boolean | null
@@ -28,12 +29,14 @@ export type Database = {
           schedule_closed_by: string | null
           semester_number: number
           start_date: string
+          target_volunteer_hours: number | null
           updated_at: string
         }
         Insert: {
           academic_year: string
           created_at?: string
           created_by: string
+          cumulative_target_hours?: number | null
           end_date: string
           id?: string
           is_active?: boolean | null
@@ -43,12 +46,14 @@ export type Database = {
           schedule_closed_by?: string | null
           semester_number: number
           start_date: string
+          target_volunteer_hours?: number | null
           updated_at?: string
         }
         Update: {
           academic_year?: string
           created_at?: string
           created_by?: string
+          cumulative_target_hours?: number | null
           end_date?: string
           id?: string
           is_active?: boolean | null
@@ -58,6 +63,7 @@ export type Database = {
           schedule_closed_by?: string | null
           semester_number?: number
           start_date?: string
+          target_volunteer_hours?: number | null
           updated_at?: string
         }
         Relationships: []

@@ -16,6 +16,8 @@ export interface AcademicSemester {
   created_at: string;
   updated_at: string;
   created_by: string;
+  target_volunteer_hours?: number;
+  cumulative_target_hours?: number;
 }
 
 export function useAcademicSemesters() {
