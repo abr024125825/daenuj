@@ -28,6 +28,7 @@ export function useExamSchedules(volunteerId?: string, semesterId?: string) {
 
   const { data: exams, isLoading } = useQuery({
     queryKey: ['exam-schedules', volunteerId, semesterId],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!volunteerId) return [];
 

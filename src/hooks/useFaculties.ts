@@ -17,6 +17,7 @@ export interface Major {
 export function useFaculties() {
   return useQuery({
     queryKey: ['faculties'],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('faculties')
@@ -32,6 +33,7 @@ export function useFaculties() {
 export function useMajors(facultyId?: string) {
   return useQuery({
     queryKey: ['majors', facultyId],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       let query = supabase.from('majors').select('*').order('name');
       

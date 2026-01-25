@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export function useReportsData() {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['reports-stats'],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const [volunteersRes, opportunitiesRes, certificatesRes, attendanceRes] = await Promise.all([
         supabase.from('volunteers').select('id, total_hours, opportunities_completed, is_active, created_at'),
@@ -39,6 +40,7 @@ export function useReportsData() {
 
   const { data: monthlyData, isLoading: monthlyLoading } = useQuery({
     queryKey: ['reports-monthly'],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const sixMonthsAgo = new Date();
       sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -86,6 +88,7 @@ export function useReportsData() {
 
   const { data: facultyBreakdown, isLoading: facultyLoading } = useQuery({
     queryKey: ['reports-faculty'],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data } = await supabase
         .from('volunteer_applications')
@@ -106,6 +109,7 @@ export function useReportsData() {
 
   const { data: topVolunteers, isLoading: topLoading } = useQuery({
     queryKey: ['reports-top-volunteers'],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data } = await supabase
         .from('volunteers')

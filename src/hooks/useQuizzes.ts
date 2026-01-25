@@ -42,6 +42,7 @@ export function useQuizzes(courseId?: string) {
 
   const { data: quizzes, isLoading } = useQuery({
     queryKey: ['quizzes', courseId],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       let query = supabase
         .from('training_quizzes')
@@ -198,6 +199,7 @@ export function useMyQuizAttempts() {
 
   const { data: attempts, isLoading } = useQuery({
     queryKey: ['my-quiz-attempts', user?.id],
+    staleTime: 3 * 60 * 1000,
     queryFn: async () => {
       if (!user) return [];
 
@@ -205,7 +207,7 @@ export function useMyQuizAttempts() {
         .from('volunteers')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!volunteer) return [];
 

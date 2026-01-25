@@ -37,6 +37,7 @@ export function FacultyVolunteersPage() {
   // Fetch only volunteers from the faculty coordinator's faculty
   const { data: volunteers = [], isLoading } = useQuery({
     queryKey: ['faculty-volunteers', profile?.faculty_id],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return [];
       const { data, error } = await supabase
@@ -58,13 +59,14 @@ export function FacultyVolunteersPage() {
   // Fetch faculty info
   const { data: facultyInfo } = useQuery({
     queryKey: ['faculty-info', profile?.faculty_id],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return null;
       const { data, error } = await supabase
         .from('faculties')
         .select('*')
         .eq('id', profile.faculty_id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -74,6 +76,7 @@ export function FacultyVolunteersPage() {
   // Fetch volunteer courses when viewing details
   const { data: volunteerCourses = [] } = useQuery({
     queryKey: ['volunteer-courses', selectedVolunteer?.volunteers?.id],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!selectedVolunteer?.volunteers?.id) return [];
       const { data, error } = await supabase
@@ -90,6 +93,7 @@ export function FacultyVolunteersPage() {
   // Fetch volunteer exams when viewing details
   const { data: volunteerExams = [] } = useQuery({
     queryKey: ['volunteer-exams', selectedVolunteer?.volunteers?.id],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!selectedVolunteer?.volunteers?.id) return [];
       const { data, error } = await supabase

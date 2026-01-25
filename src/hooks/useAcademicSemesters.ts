@@ -24,6 +24,7 @@ export function useAcademicSemesters() {
 
   const { data: semesters, isLoading } = useQuery({
     queryKey: ['academic-semesters'],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('academic_semesters')

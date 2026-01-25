@@ -27,13 +27,14 @@ export function FacultySchedulesPage() {
   // Fetch faculty info
   const { data: facultyInfo } = useQuery({
     queryKey: ['faculty-info', profile?.faculty_id],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return null;
       const { data, error } = await supabase
         .from('faculties')
         .select('*')
         .eq('id', profile.faculty_id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -43,6 +44,7 @@ export function FacultySchedulesPage() {
   // Fetch volunteers with their schedule submission status
   const { data: volunteersWithSchedules = [], isLoading } = useQuery({
     queryKey: ['faculty-volunteers-schedules', profile?.faculty_id],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return [];
       const { data, error } = await supabase
@@ -73,12 +75,13 @@ export function FacultySchedulesPage() {
   // Fetch active semester
   const { data: activeSemester } = useQuery({
     queryKey: ['active-semester'],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('academic_semesters')
         .select('*')
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
       if (error) return null;
       return data;
     },

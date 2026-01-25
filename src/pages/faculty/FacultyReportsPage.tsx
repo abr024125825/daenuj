@@ -16,13 +16,14 @@ export function FacultyReportsPage() {
   // Fetch faculty info
   const { data: facultyInfo, isLoading: facultyLoading } = useQuery({
     queryKey: ['faculty-info', profile?.faculty_id],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return null;
       const { data, error } = await supabase
         .from('faculties')
         .select('*')
         .eq('id', profile.faculty_id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
@@ -32,6 +33,7 @@ export function FacultyReportsPage() {
   // Fetch faculty statistics
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['faculty-statistics', profile?.faculty_id],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return null;
       
@@ -71,6 +73,7 @@ export function FacultyReportsPage() {
   // Fetch majors distribution
   const { data: majorsDistribution = [] } = useQuery({
     queryKey: ['majors-distribution', profile?.faculty_id],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return [];
       const { data, error } = await supabase
