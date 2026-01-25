@@ -33,6 +33,9 @@ import {
   AreaChart,
   Area,
 } from 'recharts';
+import { useAuth } from '@/contexts/AuthContext';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const COLORS = [
   'hsl(var(--primary))',
@@ -45,6 +48,7 @@ const COLORS = [
 
 export function FacultyReportsPage() {
   const { toast } = useToast();
+  const { profile } = useAuth();
   const { 
     facultyInfo, 
     stats, 
@@ -56,6 +60,21 @@ export function FacultyReportsPage() {
   } = useFacultyReportsData();
   
   const [isExporting, setIsExporting] = useState<string | null>(null);
+
+  // Check if user has faculty access
+  if (!profile?.faculty_id) {
+    return (
+      <DashboardLayout title="Faculty Reports">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Access Denied</AlertTitle>
+          <AlertDescription>
+            You need to be assigned to a faculty to view faculty reports. Please contact the administrator.
+          </AlertDescription>
+        </Alert>
+      </DashboardLayout>
+    );
+  }
 
   const handleExportFullReport = async () => {
     if (!facultyInfo || !stats) return;
@@ -139,6 +158,21 @@ export function FacultyReportsPage() {
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Show message if no data
+  if (!stats || !facultyInfo) {
+    return (
+      <DashboardLayout title="Faculty Reports">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Data Available</AlertTitle>
+          <AlertDescription>
+            There is no data available for your faculty yet. This might be because there are no approved volunteer applications.
+          </AlertDescription>
+        </Alert>
       </DashboardLayout>
     );
   }
