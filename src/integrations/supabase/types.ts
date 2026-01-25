@@ -522,6 +522,70 @@ export type Database = {
           },
         ]
       }
+      exam_schedules: {
+        Row: {
+          course_id: string
+          created_at: string
+          end_time: string
+          exam_date: string
+          exam_type: string
+          id: string
+          location: string | null
+          semester_id: string
+          start_time: string
+          updated_at: string
+          volunteer_id: string
+        }
+        Insert: {
+          course_id: string
+          created_at?: string
+          end_time: string
+          exam_date: string
+          exam_type: string
+          id?: string
+          location?: string | null
+          semester_id: string
+          start_time: string
+          updated_at?: string
+          volunteer_id: string
+        }
+        Update: {
+          course_id?: string
+          created_at?: string
+          end_time?: string
+          exam_date?: string
+          exam_type?: string
+          id?: string
+          location?: string | null
+          semester_id?: string
+          start_time?: string
+          updated_at?: string
+          volunteer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "exam_schedules_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "volunteer_courses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_schedules_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "academic_semesters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "exam_schedules_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "volunteers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       faculties: {
         Row: {
           created_at: string
@@ -816,6 +880,30 @@ export type Database = {
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      system_settings: {
+        Row: {
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: string
+          setting_key: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string
+          updated_by?: string | null
         }
         Relationships: []
       }

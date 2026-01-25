@@ -199,6 +199,7 @@ export function useVolunteerCourses(volunteerId?: string) {
 }
 
 // Hook to get all volunteers with their availability for a specific time slot
+// Now includes exam schedule conflicts
 export function useVolunteerAvailability(opportunityDate?: string, startTime?: string, endTime?: string) {
   const { data: availableVolunteers, isLoading } = useQuery({
     queryKey: ['volunteer-availability', opportunityDate, startTime, endTime],
@@ -250,6 +251,13 @@ export function useVolunteerAvailability(opportunityDate?: string, startTime?: s
         .eq('semester_id', activeSemester.id)
         .eq('day_of_week', dayOfWeek);
 
+      // Get all exam schedules for the specific date
+      const { data: allExams } = await supabase
+        .from('exam_schedules')
+        .select('volunteer_id, start_time, end_time')
+        .eq('semester_id', activeSemester.id)
+        .eq('exam_date', opportunityDate);
+
       const coursesMap = new Map<string, Array<{ start: string; end: string }>>();
       allCourses?.forEach(course => {
         const existing = coursesMap.get(course.volunteer_id) || [];
@@ -257,24 +265,39 @@ export function useVolunteerAvailability(opportunityDate?: string, startTime?: s
         coursesMap.set(course.volunteer_id, existing);
       });
 
+      const examsMap = new Map<string, Array<{ start: string; end: string }>>();
+      allExams?.forEach(exam => {
+        const existing = examsMap.get(exam.volunteer_id) || [];
+        existing.push({ start: exam.start_time, end: exam.end_time });
+        examsMap.set(exam.volunteer_id, existing);
+      });
+
       const available: any[] = [];
       const unavailable: any[] = [];
 
       volunteers?.forEach(volunteer => {
         const courses = coursesMap.get(volunteer.id) || [];
+        const exams = examsMap.get(volunteer.id) || [];
         
         // Check if any course conflicts with the opportunity time
-        const hasConflict = courses.some(course => {
-          // Convert times to comparable format
+        const hasCourseConflict = courses.some(course => {
           const courseStart = course.start;
           const courseEnd = course.end;
-          
-          // Check for overlap: course overlaps if it starts before opportunity ends AND ends after opportunity starts
           return courseStart < endTime && courseEnd > startTime;
         });
 
-        if (hasConflict) {
-          unavailable.push(volunteer);
+        // Check if any exam conflicts with the opportunity time
+        const hasExamConflict = exams.some(exam => {
+          const examStart = exam.start;
+          const examEnd = exam.end;
+          return examStart < endTime && examEnd > startTime;
+        });
+
+        if (hasCourseConflict || hasExamConflict) {
+          unavailable.push({
+            ...volunteer,
+            conflictReason: hasCourseConflict ? 'course' : 'exam'
+          });
         } else {
           available.push(volunteer);
         }

@@ -2,16 +2,19 @@ import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { CourseScheduleManager } from '@/components/volunteer/CourseScheduleManager';
 import { WeeklyScheduleGrid } from '@/components/volunteer/WeeklyScheduleGrid';
 import { OpportunityCalendar } from '@/components/volunteer/OpportunityCalendar';
+import { ExamScheduleManager } from '@/components/volunteer/ExamScheduleManager';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2, AlertCircle, GraduationCap, Calendar, BookOpen, Clock } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useSystemSettings } from '@/hooks/useSystemSettings';
 
 export function SchedulePage() {
   const { user } = useAuth();
+  const { settings } = useSystemSettings();
 
   const { data: volunteer, isLoading } = useQuery({
     queryKey: ['my-volunteer-record', user?.id],
@@ -54,6 +57,8 @@ export function SchedulePage() {
     );
   }
 
+  const showExamSchedule = settings?.exam_schedule_enabled ?? false;
+
   return (
     <DashboardLayout title="Schedule">
       <div className="space-y-6">
@@ -65,10 +70,29 @@ export function SchedulePage() {
         </div>
 
         <Tabs defaultValue="calendar" className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="calendar">Opportunities Calendar</TabsTrigger>
-            <TabsTrigger value="grid">Weekly Course View</TabsTrigger>
-            <TabsTrigger value="courses">Manage Courses</TabsTrigger>
+          <TabsList className={`grid w-full ${showExamSchedule ? 'grid-cols-4' : 'grid-cols-3'} lg:w-auto lg:inline-flex`}>
+            <TabsTrigger value="calendar" className="gap-2">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Opportunities Calendar</span>
+              <span className="sm:hidden">Calendar</span>
+            </TabsTrigger>
+            <TabsTrigger value="grid" className="gap-2">
+              <Clock className="h-4 w-4" />
+              <span className="hidden sm:inline">Weekly Course View</span>
+              <span className="sm:hidden">Weekly</span>
+            </TabsTrigger>
+            <TabsTrigger value="courses" className="gap-2">
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Manage Courses</span>
+              <span className="sm:hidden">Courses</span>
+            </TabsTrigger>
+            {showExamSchedule && (
+              <TabsTrigger value="exams" className="gap-2">
+                <GraduationCap className="h-4 w-4" />
+                <span className="hidden sm:inline">Exam Schedule</span>
+                <span className="sm:hidden">Exams</span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="calendar">
@@ -82,6 +106,12 @@ export function SchedulePage() {
           <TabsContent value="courses">
             <CourseScheduleManager volunteerId={volunteer.id} />
           </TabsContent>
+
+          {showExamSchedule && (
+            <TabsContent value="exams">
+              <ExamScheduleManager volunteerId={volunteer.id} />
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </DashboardLayout>
