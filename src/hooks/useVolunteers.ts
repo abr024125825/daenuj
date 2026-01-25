@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 export function useVolunteers() {
   const { data: volunteers, isLoading } = useQuery({
     queryKey: ['volunteers-list'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       const { data, error } = await supabase
         .from('volunteers')
@@ -33,6 +34,7 @@ export function useVolunteers() {
 export function useVolunteerDetails(volunteerId?: string) {
   const { data: volunteer, isLoading } = useQuery({
     queryKey: ['volunteer-details', volunteerId],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!volunteerId) return null;
       
@@ -66,6 +68,7 @@ export function useVolunteerDetails(volunteerId?: string) {
 
   const { data: attendanceHistory } = useQuery({
     queryKey: ['volunteer-attendance', volunteerId],
+    staleTime: 3 * 60 * 1000,
     queryFn: async () => {
       if (!volunteerId) return [];
       
@@ -86,6 +89,7 @@ export function useVolunteerDetails(volunteerId?: string) {
 
   const { data: certificates } = useQuery({
     queryKey: ['volunteer-certificates', volunteerId],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!volunteerId) return [];
       

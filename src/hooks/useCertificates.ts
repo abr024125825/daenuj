@@ -13,6 +13,7 @@ export function useCertificateTemplates() {
 
   const { data: templates, isLoading } = useQuery({
     queryKey: ['certificate-templates'],
+    staleTime: 10 * 60 * 1000, // 10 minutes - templates don't change often
     queryFn: async () => {
       const { data, error } = await supabase
         .from('certificate_templates')
@@ -101,6 +102,7 @@ export function useCertificates() {
 
   const { data: certificates, isLoading } = useQuery({
     queryKey: ['certificates'],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       const { data, error } = await supabase
         .from('certificates')
@@ -230,6 +232,7 @@ export function useMyCertificates() {
 
   const { data: certificates, isLoading } = useQuery({
     queryKey: ['my-certificates', user?.id],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!user) return [];
 

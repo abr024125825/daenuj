@@ -36,6 +36,7 @@ export interface VolunteerApplication {
 export function useVolunteerApplications(status?: 'pending' | 'approved' | 'rejected') {
   return useQuery({
     queryKey: ['volunteer-applications', status],
+    staleTime: 5 * 60 * 1000, // 5 minutes
     queryFn: async () => {
       let query = supabase
         .from('volunteer_applications')
@@ -61,6 +62,7 @@ export function useVolunteerApplications(status?: 'pending' | 'approved' | 'reje
 export function useVolunteerApplication(id: string) {
   return useQuery({
     queryKey: ['volunteer-application', id],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('volunteer_applications')
@@ -82,6 +84,7 @@ export function useVolunteerApplication(id: string) {
 export function useMyApplication() {
   return useQuery({
     queryKey: ['my-application'],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return null;
