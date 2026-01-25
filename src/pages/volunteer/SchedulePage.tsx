@@ -1,6 +1,7 @@
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { CourseScheduleManager } from '@/components/volunteer/CourseScheduleManager';
 import { WeeklyScheduleGrid } from '@/components/volunteer/WeeklyScheduleGrid';
+import { OpportunityCalendar } from '@/components/volunteer/OpportunityCalendar';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -28,7 +29,7 @@ export function SchedulePage() {
 
   if (isLoading) {
     return (
-      <DashboardLayout title="Course Schedule">
+      <DashboardLayout title="Schedule">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
@@ -38,7 +39,7 @@ export function SchedulePage() {
 
   if (!volunteer) {
     return (
-      <DashboardLayout title="Course Schedule">
+      <DashboardLayout title="Schedule">
         <Card>
           <CardContent className="py-12">
             <Alert>
@@ -54,26 +55,31 @@ export function SchedulePage() {
   }
 
   return (
-    <DashboardLayout title="Course Schedule">
+    <DashboardLayout title="Schedule">
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-display font-bold">Course Schedule</h2>
+          <h2 className="text-2xl font-display font-bold">My Schedule</h2>
           <p className="text-muted-foreground">
-            Enter your academic course schedule to help us find volunteering opportunities that fit your availability
+            View your opportunities calendar and manage your course schedule
           </p>
         </div>
 
-        <Tabs defaultValue="grid" className="space-y-4">
+        <Tabs defaultValue="calendar" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="grid">Weekly View</TabsTrigger>
-            <TabsTrigger value="list">Manage Courses</TabsTrigger>
+            <TabsTrigger value="calendar">Opportunities Calendar</TabsTrigger>
+            <TabsTrigger value="grid">Weekly Course View</TabsTrigger>
+            <TabsTrigger value="courses">Manage Courses</TabsTrigger>
           </TabsList>
+
+          <TabsContent value="calendar">
+            <OpportunityCalendar volunteerId={volunteer.id} />
+          </TabsContent>
 
           <TabsContent value="grid">
             <WeeklyScheduleGrid volunteerId={volunteer.id} />
           </TabsContent>
 
-          <TabsContent value="list">
+          <TabsContent value="courses">
             <CourseScheduleManager volunteerId={volunteer.id} />
           </TabsContent>
         </Tabs>

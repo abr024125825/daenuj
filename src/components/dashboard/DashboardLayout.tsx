@@ -56,10 +56,8 @@ const adminNavItems: NavItem[] = [
 const volunteerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Users, label: 'My Profile', href: '/dashboard/profile' },
-  { icon: Calendar, label: 'Calendar', href: '/dashboard/calendar' },
   { icon: Calendar, label: 'Opportunities', href: '/dashboard/opportunities' },
-  { icon: BookOpen, label: 'Course Schedule', href: '/dashboard/schedule' },
-  { icon: MessageSquare, label: 'Messages', href: '/dashboard/messages' },
+  { icon: BookOpen, label: 'Schedule', href: '/dashboard/schedule' },
   { icon: Award, label: 'My Certificates', href: '/dashboard/certificates' },
   { icon: GraduationCap, label: 'Training', href: '/dashboard/training' },
   { icon: Bell, label: 'Notifications', href: '/dashboard/notifications', badge: 3 },
