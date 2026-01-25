@@ -89,7 +89,7 @@ export async function generateOpportunityVolunteersPDF(data: {
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text(`📅 ${data.opportunity.date}  |  📍 ${data.opportunity.location}`, 40, 32);
+  doc.text(`Date: ${data.opportunity.date}  |  Location: ${data.opportunity.location}`, 40, 32);
   doc.text(`Total Volunteers: ${data.volunteers.length}`, 40, 38);
 
   yPos = 58;
@@ -146,7 +146,7 @@ export async function generateOpportunityVolunteersPDF(data: {
     doc.setFillColor(255, 243, 224);
     doc.roundedRect(col1X - 2, yPos + 41, pageWidth - margin * 2 - 16, 10, 1, 1, 'F');
     doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
-    doc.text(`⚠️ Emergency: ${vol.emergency_contact} - ${vol.emergency_phone}`, col1X, yPos + 48);
+    doc.text(`Emergency: ${vol.emergency_contact} - ${vol.emergency_phone}`, col1X, yPos + 48);
 
     yPos += 60;
   });
@@ -194,10 +194,10 @@ export async function generateOpportunityListPDF(data: {
   let yPos = margin;
 
   const listConfig: Record<string, { title: string; color: number[]; icon: string }> = {
-    approved: { title: 'APPROVED VOLUNTEERS', color: [34, 197, 94], icon: '✓' },
-    rejected: { title: 'REJECTED APPLICATIONS', color: [239, 68, 68], icon: '✗' },
-    waitlisted: { title: 'WAITLISTED VOLUNTEERS', color: [234, 179, 8], icon: '⏳' },
-    withdrawn: { title: 'WITHDRAWN VOLUNTEERS', color: [156, 163, 175], icon: '↩' },
+    approved: { title: 'APPROVED VOLUNTEERS', color: [34, 197, 94], icon: '[OK]' },
+    rejected: { title: 'REJECTED APPLICATIONS', color: [239, 68, 68], icon: '[X]' },
+    waitlisted: { title: 'WAITLISTED VOLUNTEERS', color: [234, 179, 8], icon: '[W]' },
+    withdrawn: { title: 'WITHDRAWN VOLUNTEERS', color: [156, 163, 175], icon: '[R]' },
   };
 
   const config = listConfig[data.listType];
@@ -416,9 +416,9 @@ export async function generateOpportunityReportPDF(data: {
 
   // Details grid
   const detailsBox = [
-    ['📅 Date', data.opportunity.date],
-    ['⏰ Time', `${data.opportunity.start_time} - ${data.opportunity.end_time}`],
-    ['📍 Location', data.opportunity.location],
+    ['Date:', data.opportunity.date],
+    ['Time:', `${data.opportunity.start_time} - ${data.opportunity.end_time}`],
+    ['Location:', data.opportunity.location],
   ];
 
   doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
