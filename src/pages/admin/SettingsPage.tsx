@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,45 +30,22 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Users, Shield, Settings, Search, Loader2, Calendar, Key } from 'lucide-react';
+import { Users, Shield, Settings, Search, Loader2, Calendar, Key, Mail } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { SemesterManagement } from '@/components/admin/SemesterManagement';
-
-// System configuration stored in localStorage (could be moved to database)
-interface SystemConfig {
-  autoApproveRegistrations: boolean;
-  emailNotifications: boolean;
-}
-
-const DEFAULT_CONFIG: SystemConfig = {
-  autoApproveRegistrations: false,
-  emailNotifications: true,
-};
-
-function useSystemConfig() {
-  const [config, setConfig] = useState<SystemConfig>(() => {
-    const saved = localStorage.getItem('system-config');
-    return saved ? JSON.parse(saved) : DEFAULT_CONFIG;
-  });
-
-  const updateConfig = (key: keyof SystemConfig, value: boolean) => {
-    const newConfig = { ...config, [key]: value };
-    setConfig(newConfig);
-    localStorage.setItem('system-config', JSON.stringify(newConfig));
-  };
-
-  return { config, updateConfig };
-}
+import { SystemConfigurationPanel } from '@/components/admin/SystemConfigurationPanel';
+import { PasswordManagementPanel } from '@/components/admin/PasswordManagementPanel';
+import { usePasswordManagement } from '@/hooks/usePasswordManagement';
 
 export function SettingsPage() {
   const { users, isLoading, updateUserRole, toggleUserActive } = useUsers();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
-  const { config, updateConfig } = useSystemConfig();
+  const { resetUserPassword, isUpdating: isResettingPassword } = usePasswordManagement();
   const [searchQuery, setSearchQuery] = useState('');
   const [seederDialogOpen, setSeederDialogOpen] = useState(false);
   const [seederEmail, setSeederEmail] = useState('');
@@ -78,8 +55,6 @@ export function SettingsPage() {
   // Password reset state
   const [passwordResetDialogOpen, setPasswordResetDialogOpen] = useState(false);
   const [selectedUserForReset, setSelectedUserForReset] = useState<any>(null);
-  const [newPasswordForUser, setNewPasswordForUser] = useState('');
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   const filteredUsers = users?.filter(
     (u: any) =>
@@ -139,41 +114,17 @@ export function SettingsPage() {
   };
 
   const handlePasswordReset = async () => {
-    if (!newPasswordForUser || newPasswordForUser.length < 6) {
-      toast({ title: 'Error', description: 'Password must be at least 6 characters', variant: 'destructive' });
-      return;
-    }
-
-    setIsResettingPassword(true);
-    try {
-      // Note: This requires admin API access. For now, we'll use a workaround
-      // In production, this should be done via an edge function with service role
-      const { error } = await supabase.auth.admin.updateUserById(
-        selectedUserForReset.user_id,
-        { password: newPasswordForUser }
-      );
-
-      if (error) throw error;
-
-      toast({ title: 'Success', description: `Password reset for ${selectedUserForReset.first_name} ${selectedUserForReset.last_name}` });
+    if (!selectedUserForReset) return;
+    
+    const result = await resetUserPassword(selectedUserForReset.email);
+    if (result) {
       setPasswordResetDialogOpen(false);
       setSelectedUserForReset(null);
-      setNewPasswordForUser('');
-    } catch (error: any) {
-      // Fallback message if admin API is not available
-      toast({ 
-        title: 'Note', 
-        description: 'Password reset requires server-side admin privileges. Please use the password reset email flow instead.',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsResettingPassword(false);
     }
   };
 
   const openPasswordReset = (user: any) => {
     setSelectedUserForReset(user);
-    setNewPasswordForUser('');
     setPasswordResetDialogOpen(true);
   };
 
@@ -210,28 +161,36 @@ export function SettingsPage() {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList>
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
-              User Management
+              <span className="hidden sm:inline">User Management</span>
+              <span className="sm:hidden">Users</span>
             </TabsTrigger>
             <TabsTrigger value="semesters" className="gap-2">
               <Calendar className="h-4 w-4" />
-              Academic Semesters
+              <span className="hidden sm:inline">Academic Semesters</span>
+              <span className="sm:hidden">Semesters</span>
             </TabsTrigger>
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4" />
-              Configuration
+              <span className="hidden sm:inline">Configuration</span>
+              <span className="sm:hidden">Config</span>
+            </TabsTrigger>
+            <TabsTrigger value="security" className="gap-2">
+              <Key className="h-4 w-4" />
+              <span className="hidden sm:inline">Security</span>
+              <span className="sm:hidden">Security</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-4">
                   <div>
                     <CardTitle>All Users</CardTitle>
-                    <CardDescription>Manage user roles, access, and passwords</CardDescription>
+                    <CardDescription>Manage user roles, access, and send password reset emails</CardDescription>
                   </div>
                   <div className="relative w-64">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -245,94 +204,96 @@ export function SettingsPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>User</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Joined</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredUsers?.map((u: any) => {
-                      const userRole = u.role || 'volunteer';
-                      const isCurrentUser = u.user_id === currentUser?.id;
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Joined</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredUsers?.map((u: any) => {
+                        const userRole = u.role || 'volunteer';
+                        const isCurrentUser = u.user_id === currentUser?.id;
 
-                      return (
-                        <TableRow key={u.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                <span className="text-xs font-medium text-primary">
-                                  {u.first_name?.[0]}{u.last_name?.[0]}
+                        return (
+                          <TableRow key={u.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                  <span className="text-xs font-medium text-primary">
+                                    {u.first_name?.[0]}{u.last_name?.[0]}
+                                  </span>
+                                </div>
+                                <span className="font-medium">
+                                  {u.first_name} {u.last_name}
                                 </span>
                               </div>
-                              <span className="font-medium">
-                                {u.first_name} {u.last_name}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                          <TableCell>
-                            <Badge variant={getRoleBadgeVariant(userRole)}>
-                              {userRole}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={u.is_active ? 'outline' : 'secondary'}>
-                              {u.is_active ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-muted-foreground">
-                            {format(new Date(u.created_at), 'MMM dd, yyyy')}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={userRole}
-                                onValueChange={(value) => 
-                                  updateUserRole.mutate({ 
-                                    userId: u.user_id, 
-                                    role: value as any 
-                                  })
-                                }
-                                disabled={isCurrentUser}
-                              >
-                                <SelectTrigger className="w-28">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="volunteer">Volunteer</SelectItem>
-                                  <SelectItem value="supervisor">Supervisor</SelectItem>
-                                  <SelectItem value="admin">Admin</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <Switch
-                                checked={u.is_active}
-                                onCheckedChange={(checked) =>
-                                  toggleUserActive.mutate({ userId: u.user_id, isActive: checked })
-                                }
-                                disabled={isCurrentUser}
-                              />
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => openPasswordReset(u)}
-                                disabled={isCurrentUser}
-                                title="Reset Password"
-                              >
-                                <Key className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                            <TableCell>
+                              <Badge variant={getRoleBadgeVariant(userRole)}>
+                                {userRole}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={u.is_active ? 'outline' : 'secondary'}>
+                                {u.is_active ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-muted-foreground">
+                              {format(new Date(u.created_at), 'MMM dd, yyyy')}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Select
+                                  value={userRole}
+                                  onValueChange={(value) => 
+                                    updateUserRole.mutate({ 
+                                      userId: u.user_id, 
+                                      role: value as any 
+                                    })
+                                  }
+                                  disabled={isCurrentUser}
+                                >
+                                  <SelectTrigger className="w-28">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="volunteer">Volunteer</SelectItem>
+                                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                                    <SelectItem value="admin">Admin</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Switch
+                                  checked={u.is_active}
+                                  onCheckedChange={(checked) =>
+                                    toggleUserActive.mutate({ userId: u.user_id, isActive: checked })
+                                  }
+                                  disabled={isCurrentUser}
+                                />
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => openPasswordReset(u)}
+                                  disabled={isCurrentUser}
+                                  title="Send Password Reset Email"
+                                >
+                                  <Mail className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -342,52 +303,11 @@ export function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="config" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Configuration</CardTitle>
-                <CardDescription>Configure system-wide settings for the volunteer management system</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid gap-6">
-                  <div className="flex items-center justify-between p-4 rounded-lg border">
-                    <div>
-                      <Label className="text-base font-medium">Auto-approve volunteer registrations</Label>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Automatically approve opportunity registrations without admin review
-                      </p>
-                    </div>
-                    <Switch
-                      checked={config.autoApproveRegistrations}
-                      onCheckedChange={(checked) => {
-                        updateConfig('autoApproveRegistrations', checked);
-                        toast({ 
-                          title: 'Setting updated', 
-                          description: `Auto-approve registrations ${checked ? 'enabled' : 'disabled'}` 
-                        });
-                      }}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg border">
-                    <div>
-                      <Label className="text-base font-medium">Email notifications</Label>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Send email notifications for important events like approvals and new opportunities
-                      </p>
-                    </div>
-                    <Switch
-                      checked={config.emailNotifications}
-                      onCheckedChange={(checked) => {
-                        updateConfig('emailNotifications', checked);
-                        toast({ 
-                          title: 'Setting updated', 
-                          description: `Email notifications ${checked ? 'enabled' : 'disabled'}` 
-                        });
-                      }}
-                    />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <SystemConfigurationPanel />
+          </TabsContent>
+
+          <TabsContent value="security" className="space-y-4">
+            <PasswordManagementPanel />
           </TabsContent>
         </Tabs>
 
@@ -438,36 +358,43 @@ export function SettingsPage() {
         <Dialog open={passwordResetDialogOpen} onOpenChange={setPasswordResetDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Reset User Password</DialogTitle>
+              <DialogTitle className="flex items-center gap-2">
+                <Mail className="h-5 w-5" />
+                Send Password Reset Email
+              </DialogTitle>
               <DialogDescription>
-                Set a new password for {selectedUserForReset?.first_name} {selectedUserForReset?.last_name}
+                A password reset link will be sent to{' '}
+                <strong>{selectedUserForReset?.email}</strong>
               </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="grid gap-2">
-                <Label htmlFor="new-user-password">New Password</Label>
-                <Input
-                  id="new-user-password"
-                  type="password"
-                  value={newPasswordForUser}
-                  onChange={(e) => setNewPasswordForUser(e.target.value)}
-                  placeholder="Enter new password"
-                />
-                <p className="text-xs text-muted-foreground">
-                  Password must be at least 6 characters long
-                </p>
+            <div className="py-4">
+              <div className="p-4 rounded-lg border bg-muted/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-sm font-medium text-primary">
+                      {selectedUserForReset?.first_name?.[0]}{selectedUserForReset?.last_name?.[0]}
+                    </span>
+                  </div>
+                  <div>
+                    <p className="font-medium">
+                      {selectedUserForReset?.first_name} {selectedUserForReset?.last_name}
+                    </p>
+                    <p className="text-sm text-muted-foreground">{selectedUserForReset?.email}</p>
+                  </div>
+                </div>
               </div>
+              <p className="text-sm text-muted-foreground mt-4">
+                The user will receive an email with a link to reset their password. 
+                The link is valid for a limited time.
+              </p>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setPasswordResetDialogOpen(false)}>
                 Cancel
               </Button>
-              <Button 
-                onClick={handlePasswordReset} 
-                disabled={isResettingPassword || newPasswordForUser.length < 6}
-              >
+              <Button onClick={handlePasswordReset} disabled={isResettingPassword}>
                 {isResettingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Reset Password
+                Send Reset Email
               </Button>
             </DialogFooter>
           </DialogContent>
