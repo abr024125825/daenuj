@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Users, Shield, Settings, Search, Loader2, Calendar, Key, Mail, GraduationCap } from 'lucide-react';
+import { Users, Shield, Settings, Search, Loader2, Calendar, Key, Mail, GraduationCap, Target, Building2 } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -40,6 +40,8 @@ import { SemesterManagement } from '@/components/admin/SemesterManagement';
 import { SystemConfigurationPanel } from '@/components/admin/SystemConfigurationPanel';
 import { PasswordManagementPanel } from '@/components/admin/PasswordManagementPanel';
 import { FacultyManagement } from '@/components/admin/FacultyManagement';
+import { FacultyCoordinatorCreator } from '@/components/admin/FacultyCoordinatorCreator';
+import { VolunteerHoursTargetSettings } from '@/components/admin/VolunteerHoursTargetSettings';
 import { usePasswordManagement } from '@/hooks/usePasswordManagement';
 
 export function SettingsPage() {
@@ -162,10 +164,14 @@ export function SettingsPage() {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
+            </TabsTrigger>
+            <TabsTrigger value="coordinators" className="gap-2">
+              <Building2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Coordinators</span>
             </TabsTrigger>
             <TabsTrigger value="faculties" className="gap-2">
               <GraduationCap className="h-4 w-4" />
@@ -174,6 +180,10 @@ export function SettingsPage() {
             <TabsTrigger value="semesters" className="gap-2">
               <Calendar className="h-4 w-4" />
               <span className="hidden sm:inline">Semesters</span>
+            </TabsTrigger>
+            <TabsTrigger value="targets" className="gap-2">
+              <Target className="h-4 w-4" />
+              <span className="hidden sm:inline">Targets</span>
             </TabsTrigger>
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4" />
@@ -299,12 +309,20 @@ export function SettingsPage() {
             </Card>
           </TabsContent>
 
+          <TabsContent value="coordinators" className="space-y-4">
+            <FacultyCoordinatorCreator />
+          </TabsContent>
+
           <TabsContent value="faculties" className="space-y-4">
             <FacultyManagement />
           </TabsContent>
 
           <TabsContent value="semesters" className="space-y-4">
             <SemesterManagement />
+          </TabsContent>
+
+          <TabsContent value="targets" className="space-y-4">
+            <VolunteerHoursTargetSettings />
           </TabsContent>
 
           <TabsContent value="config" className="space-y-4">
