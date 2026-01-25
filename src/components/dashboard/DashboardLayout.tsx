@@ -53,6 +53,16 @@ const adminNavItems: NavItem[] = [
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
 
+// Faculty coordinator has limited access - only their faculty data
+const facultyCoordinatorNavItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: Users, label: 'Faculty Volunteers', href: '/dashboard/faculty-volunteers' },
+  { icon: ClipboardList, label: 'Applications', href: '/dashboard/faculty-applications' },
+  { icon: BookOpen, label: 'Schedules', href: '/dashboard/faculty-schedules' },
+  { icon: BarChart3, label: 'Faculty Reports', href: '/dashboard/faculty-reports' },
+  { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
+];
+
 const volunteerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Users, label: 'My Profile', href: '/dashboard/profile' },
@@ -69,7 +79,19 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const navItems = profile?.role === 'admin' || profile?.role === 'supervisor' ? adminNavItems : volunteerNavItems;
+  // Determine navigation based on role and faculty assignment
+  const isFacultyCoordinator = profile?.role === 'supervisor' && profile?.faculty_id;
+  
+  let navItems: NavItem[];
+  if (profile?.role === 'admin') {
+    navItems = adminNavItems;
+  } else if (isFacultyCoordinator) {
+    navItems = facultyCoordinatorNavItems;
+  } else if (profile?.role === 'supervisor') {
+    navItems = adminNavItems; // Regular supervisors get admin nav
+  } else {
+    navItems = volunteerNavItems;
+  }
 
   const handleLogout = () => {
     logout();

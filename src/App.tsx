@@ -24,6 +24,12 @@ import { ProfilePage } from "./pages/volunteer/ProfilePage";
 import NotFound from "./pages/NotFound";
 import { VerifyCertificate } from "./pages/VerifyCertificate";
 
+// Faculty Coordinator Pages
+import { FacultyVolunteersPage } from "./pages/faculty/FacultyVolunteersPage";
+import { FacultyApplicationsPage } from "./pages/faculty/FacultyApplicationsPage";
+import { FacultySchedulesPage } from "./pages/faculty/FacultySchedulesPage";
+import { FacultyReportsPage } from "./pages/faculty/FacultyReportsPage";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -59,6 +65,13 @@ const App = () => (
             <Route path="/dashboard/reports" element={<ReportsPage />} />
             <Route path="/dashboard/settings" element={<SettingsPage />} />
             <Route path="/dashboard/notifications" element={<NotificationsPage />} />
+            
+            {/* Faculty Coordinator Routes */}
+            <Route path="/dashboard/faculty-volunteers" element={<FacultyVolunteersPage />} />
+            <Route path="/dashboard/faculty-applications" element={<FacultyApplicationsPage />} />
+            <Route path="/dashboard/faculty-schedules" element={<FacultySchedulesPage />} />
+            <Route path="/dashboard/faculty-reports" element={<FacultyReportsPage />} />
+            
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
