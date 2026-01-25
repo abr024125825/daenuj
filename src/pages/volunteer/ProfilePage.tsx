@@ -25,7 +25,6 @@ import {
   Loader2,
   Lock
 } from 'lucide-react';
-import { format } from 'date-fns';
 
 export function ProfilePage() {
   const { user } = useAuth();
@@ -69,49 +68,6 @@ export function ProfilePage() {
       return data;
     },
     enabled: !!user,
-  });
-
-  // Fetch attendance history
-  const { data: attendanceHistory } = useQuery({
-    queryKey: ['my-attendance-history', user?.id],
-    queryFn: async () => {
-      if (!volunteerData) return [];
-      
-      const { data, error } = await supabase
-        .from('attendance')
-        .select(`
-          *,
-          opportunity:opportunities(title, date, location)
-        `)
-        .eq('volunteer_id', volunteerData.id)
-        .order('check_in_time', { ascending: false })
-        .limit(10);
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!volunteerData,
-  });
-
-  // Fetch certificates
-  const { data: certificates } = useQuery({
-    queryKey: ['my-certificates-profile', user?.id],
-    queryFn: async () => {
-      if (!volunteerData) return [];
-      
-      const { data, error } = await supabase
-        .from('certificates')
-        .select(`
-          *,
-          opportunity:opportunities(title, date)
-        `)
-        .eq('volunteer_id', volunteerData.id)
-        .order('issued_at', { ascending: false });
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!volunteerData,
   });
 
   const handlePasswordChange = async () => {
@@ -244,7 +200,7 @@ export function ProfilePage() {
                   <Award className="h-6 w-6 text-purple-500" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{certificates?.length || 0}</p>
+                  <p className="text-2xl font-bold">-</p>
                   <p className="text-sm text-muted-foreground">Certificates</p>
                 </div>
               </div>
@@ -257,7 +213,6 @@ export function ProfilePage() {
           <TabsList>
             <TabsTrigger value="personal">Personal Info</TabsTrigger>
             <TabsTrigger value="academic">Academic Info</TabsTrigger>
-            <TabsTrigger value="activity">Activity History</TabsTrigger>
           </TabsList>
 
           <TabsContent value="personal">
@@ -366,47 +321,6 @@ export function ProfilePage() {
               </CardContent>
             </Card>
           </TabsContent>
-
-          <TabsContent value="activity">
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <CardDescription>Your volunteer activity history</CardDescription>
-              </CardHeader>
-              <CardContent>
-                {attendanceHistory && attendanceHistory.length > 0 ? (
-                  <div className="space-y-3">
-                    {attendanceHistory.map((record: any) => (
-                      <div key={record.id} className="flex items-center justify-between p-3 rounded-lg border">
-                        <div>
-                          <p className="font-medium">{record.opportunity?.title}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {record.opportunity?.date && format(new Date(record.opportunity.date), 'MMM d, yyyy')}
-                            {' • '}
-                            {record.opportunity?.location}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm">
-                            {format(new Date(record.check_in_time), 'h:mm a')}
-                            {record.check_out_time && ` - ${format(new Date(record.check_out_time), 'h:mm a')}`}
-                          </p>
-                          <Badge variant="outline" className="text-xs">
-                            {record.check_in_method || 'Manual'}
-                          </Badge>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>No activity recorded yet</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
       </div>
 
@@ -443,7 +357,7 @@ export function ProfilePage() {
               Cancel
             </Button>
             <Button onClick={handlePasswordChange} disabled={isUpdating}>
-              {isUpdating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              {isUpdating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Update Password
             </Button>
           </DialogFooter>
