@@ -56,6 +56,16 @@ interface CourseData {
   location?: string | null;
 }
 
+interface ExamData {
+  course_code: string;
+  course_name: string;
+  exam_type: string;
+  exam_date: string;
+  start_time: string;
+  end_time: string;
+  location?: string | null;
+}
+
 interface VolunteerScheduleData {
   volunteerName: string;
   universityId: string;
@@ -63,6 +73,7 @@ interface VolunteerScheduleData {
   major: string;
   submittedAt: string | null;
   courses: CourseData[];
+  exams?: ExamData[];
 }
 
 const DAYS_ORDER = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
@@ -114,6 +125,7 @@ export async function generateVolunteerSchedulePDF(data: {
     academicYear: string;
   };
   courses: CourseData[];
+  exams?: ExamData[];
 }): Promise<void> {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -233,15 +245,110 @@ export async function generateVolunteerSchedulePDF(data: {
     doc.setFont('helvetica', 'italic');
     doc.setFontSize(10);
     doc.text('No courses registered for this semester.', margin, yPos + 10);
+    yPos += 18;
+  }
+
+  // Exam Schedule Section
+  if (data.exams && data.exams.length > 0) {
+    yPos += 10;
+    
+    // Check if we need a new page
+    if (yPos > pageHeight - 60) {
+      doc.addPage();
+      yPos = margin;
+    }
+
+    doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(`Exam Schedule (${data.exams.length} exams)`, margin, yPos);
+    doc.setDrawColor(colors.info[0], colors.info[1], colors.info[2]);
+    doc.setLineWidth(0.8);
+    doc.line(margin, yPos + 3, margin + 55, yPos + 3);
+    
+    yPos += 12;
+
+    // Exam table header
+    doc.setFillColor(colors.info[0], colors.info[1], colors.info[2]);
+    doc.rect(margin, yPos, pageWidth - margin * 2, 10, 'F');
+    doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    
+    const examColX = {
+      type: margin + 5,
+      date: margin + 30,
+      code: margin + 60,
+      name: margin + 90,
+      time: margin + 140,
+      location: margin + 165,
+    };
+    
+    doc.text('Type', examColX.type, yPos + 7);
+    doc.text('Date', examColX.date, yPos + 7);
+    doc.text('Code', examColX.code, yPos + 7);
+    doc.text('Course', examColX.name, yPos + 7);
+    doc.text('Time', examColX.time, yPos + 7);
+    doc.text('Location', examColX.location, yPos + 7);
+    
+    yPos += 10;
+
+    // Exam rows
+    const sortedExams = [...data.exams].sort((a, b) => 
+      new Date(a.exam_date).getTime() - new Date(b.exam_date).getTime()
+    );
+
+    sortedExams.forEach((exam, index) => {
+      if (yPos > pageHeight - 25) {
+        doc.addPage();
+        yPos = margin;
+        
+        // Repeat header on new page
+        doc.setFillColor(colors.info[0], colors.info[1], colors.info[2]);
+        doc.rect(margin, yPos, pageWidth - margin * 2, 10, 'F');
+        doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9);
+        doc.text('Type', examColX.type, yPos + 7);
+        doc.text('Date', examColX.date, yPos + 7);
+        doc.text('Code', examColX.code, yPos + 7);
+        doc.text('Course', examColX.name, yPos + 7);
+        doc.text('Time', examColX.time, yPos + 7);
+        doc.text('Location', examColX.location, yPos + 7);
+        yPos += 10;
+      }
+
+      const bg = index % 2 === 0 ? colors.white : colors.light;
+      doc.setFillColor(bg[0], bg[1], bg[2]);
+      doc.rect(margin, yPos, pageWidth - margin * 2, 8, 'F');
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+      
+      const typeLabel = exam.exam_type.charAt(0).toUpperCase() + exam.exam_type.slice(1);
+      doc.text(typeLabel, examColX.type, yPos + 5.5);
+      doc.text(format(new Date(exam.exam_date), 'MMM dd'), examColX.date, yPos + 5.5);
+      doc.text(truncateText(doc, exam.course_code, 25), examColX.code, yPos + 5.5);
+      doc.text(truncateText(doc, exam.course_name, 45), examColX.name, yPos + 5.5);
+      doc.text(`${exam.start_time} - ${exam.end_time}`, examColX.time, yPos + 5.5);
+      doc.text(truncateText(doc, exam.location || '-', 20), examColX.location, yPos + 5.5);
+      
+      yPos += 8;
+    });
   }
 
   // Footer
-  doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
-  doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-  doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
-  doc.setFontSize(8);
-  doc.text('Community Service & Development Center - University of Jordan', margin, pageHeight - 6);
-  doc.text(`Page 1 of 1  |  ${format(new Date(), 'MMM dd, yyyy')}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
+  const totalPages = doc.getNumberOfPages();
+  for (let i = 1; i <= totalPages; i++) {
+    doc.setPage(i);
+    doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+    doc.rect(0, pageHeight - 15, pageWidth, 15, 'F');
+    doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
+    doc.setFontSize(8);
+    doc.text('Community Service & Development Center - University of Jordan', margin, pageHeight - 6);
+    doc.text(`Page ${i} of ${totalPages}  |  ${format(new Date(), 'MMM dd, yyyy')}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
+  }
 
   doc.save(`schedule-${data.volunteer.universityId}-${data.semester.name.replace(/\s+/g, '-')}.pdf`);
 }

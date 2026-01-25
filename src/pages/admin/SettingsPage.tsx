@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Users, Shield, Settings, Search, Loader2, Calendar, Key, Mail } from 'lucide-react';
+import { Users, Shield, Settings, Search, Loader2, Calendar, Key, Mail, GraduationCap } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,6 +39,7 @@ import { format } from 'date-fns';
 import { SemesterManagement } from '@/components/admin/SemesterManagement';
 import { SystemConfigurationPanel } from '@/components/admin/SystemConfigurationPanel';
 import { PasswordManagementPanel } from '@/components/admin/PasswordManagementPanel';
+import { FacultyManagement } from '@/components/admin/FacultyManagement';
 import { usePasswordManagement } from '@/hooks/usePasswordManagement';
 
 export function SettingsPage() {
@@ -161,26 +162,26 @@ export function SettingsPage() {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-flex">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">User Management</span>
-              <span className="sm:hidden">Users</span>
+              <span className="hidden sm:inline">Users</span>
+            </TabsTrigger>
+            <TabsTrigger value="faculties" className="gap-2">
+              <GraduationCap className="h-4 w-4" />
+              <span className="hidden sm:inline">Faculties</span>
             </TabsTrigger>
             <TabsTrigger value="semesters" className="gap-2">
               <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">Academic Semesters</span>
-              <span className="sm:hidden">Semesters</span>
+              <span className="hidden sm:inline">Semesters</span>
             </TabsTrigger>
             <TabsTrigger value="config" className="gap-2">
               <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Configuration</span>
-              <span className="sm:hidden">Config</span>
+              <span className="hidden sm:inline">Config</span>
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-2">
               <Key className="h-4 w-4" />
               <span className="hidden sm:inline">Security</span>
-              <span className="sm:hidden">Security</span>
             </TabsTrigger>
           </TabsList>
 
@@ -296,6 +297,10 @@ export function SettingsPage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="faculties" className="space-y-4">
+            <FacultyManagement />
           </TabsContent>
 
           <TabsContent value="semesters" className="space-y-4">
