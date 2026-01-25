@@ -1,46 +1,30 @@
-import { useState } from 'react';
 import { DashboardLayout } from './DashboardLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Input } from '@/components/ui/input';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Users,
-  Calendar,
-  GraduationCap,
-  Award,
-  TrendingUp,
   Clock,
-  Search,
-  Download,
-  Eye,
+  Award,
   FileText,
   BarChart3,
   BookOpen,
   CheckCircle2,
-  XCircle,
   AlertCircle,
+  Loader2,
+  ArrowRight,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
 export function FacultyCoordinatorDashboard() {
   const { profile } = useAuth();
-  const [searchTerm, setSearchTerm] = useState('');
+  const navigate = useNavigate();
 
   // Fetch faculty info
-  const { data: facultyInfo } = useQuery({
+  const { data: facultyInfo, isLoading: facultyLoading } = useQuery({
     queryKey: ['faculty-info', profile?.faculty_id],
     queryFn: async () => {
       if (!profile?.faculty_id) return null;
@@ -48,81 +32,88 @@ export function FacultyCoordinatorDashboard() {
         .from('faculties')
         .select('*')
         .eq('id', profile.faculty_id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
     enabled: !!profile?.faculty_id,
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Fetch faculty volunteers
-  const { data: facultyVolunteers = [] } = useQuery({
-    queryKey: ['faculty-volunteers', profile?.faculty_id],
+  // Fetch faculty statistics - optimized single query
+  const { data: stats, isLoading: statsLoading } = useQuery({
+    queryKey: ['faculty-dashboard-stats', profile?.faculty_id],
     queryFn: async () => {
-      if (!profile?.faculty_id) return [];
-      const { data, error } = await supabase
-        .from('volunteer_applications')
-        .select(`
-          *,
-          volunteers(id, total_hours, opportunities_completed, is_active, rating),
-          major:majors(name)
-        `)
-        .eq('faculty_id', profile.faculty_id)
-        .eq('status', 'approved');
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!profile?.faculty_id,
-  });
-
-  // Fetch pending applications
-  const { data: pendingApplications = [] } = useQuery({
-    queryKey: ['faculty-pending-applications', profile?.faculty_id],
-    queryFn: async () => {
-      if (!profile?.faculty_id) return [];
-      const { data, error } = await supabase
-        .from('volunteer_applications')
-        .select(`*, major:majors(name)`)
-        .eq('faculty_id', profile.faculty_id)
-        .eq('status', 'pending');
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!profile?.faculty_id,
-  });
-
-  // Fetch faculty statistics
-  const { data: statistics } = useQuery({
-    queryKey: ['faculty-statistics', profile?.faculty_id],
-    queryFn: async () => {
-      if (!profile?.faculty_id) return { totalVolunteers: 0, totalHours: 0, avgRating: 0, completedOpportunities: 0 };
+      if (!profile?.faculty_id) return { 
+        totalVolunteers: 0, 
+        totalHours: 0, 
+        completedOpportunities: 0,
+        pendingApplications: 0,
+        activeVolunteers: 0
+      };
       
+      // Get approved volunteers with stats
       const { data: volunteers } = await supabase
         .from('volunteer_applications')
-        .select('volunteers(total_hours, opportunities_completed, rating)')
+        .select('volunteers(total_hours, opportunities_completed, is_active)')
         .eq('faculty_id', profile.faculty_id)
         .eq('status', 'approved');
 
+      // Get pending applications count
+      const { count: pendingCount } = await supabase
+        .from('volunteer_applications')
+        .select('id', { count: 'exact', head: true })
+        .eq('faculty_id', profile.faculty_id)
+        .eq('status', 'pending');
+
       const totalVolunteers = volunteers?.length || 0;
+      const activeVolunteers = volunteers?.filter(v => v.volunteers?.is_active).length || 0;
       const totalHours = volunteers?.reduce((sum, v) => sum + (v.volunteers?.total_hours || 0), 0) || 0;
       const completedOpportunities = volunteers?.reduce((sum, v) => sum + (v.volunteers?.opportunities_completed || 0), 0) || 0;
-      const ratings = volunteers?.filter(v => v.volunteers?.rating).map(v => v.volunteers?.rating) || [];
-      const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 0;
 
-      return { totalVolunteers, totalHours, avgRating, completedOpportunities };
+      return { 
+        totalVolunteers, 
+        totalHours, 
+        completedOpportunities,
+        pendingApplications: pendingCount || 0,
+        activeVolunteers
+      };
     },
     enabled: !!profile?.faculty_id,
+    staleTime: 2 * 60 * 1000,
   });
 
-  const filteredVolunteers = facultyVolunteers.filter(v => 
-    `${v.first_name} ${v.family_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.university_id.includes(searchTerm)
-  );
+  if (facultyLoading || statsLoading) {
+    return (
+      <DashboardLayout title="Faculty Coordinator Dashboard">
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
-    <DashboardLayout title={`${facultyInfo?.name || 'Faculty'} Coordinator Dashboard`}>
+    <DashboardLayout title={`${facultyInfo?.name || 'Faculty'} - Coordinator Dashboard`}>
       <div className="space-y-6">
-        {/* Header Stats */}
+        {/* Welcome Banner */}
+        <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">Welcome, {profile?.first_name}!</h2>
+                <p className="text-muted-foreground mt-1">
+                  Managing volunteers for {facultyInfo?.name}
+                </p>
+              </div>
+              <Badge variant="outline" className="text-lg px-4 py-2">
+                Faculty Coordinator
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
             <CardContent className="p-4">
@@ -132,7 +123,7 @@ export function FacultyCoordinatorDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Volunteers</p>
-                  <p className="text-2xl font-bold">{statistics?.totalVolunteers || 0}</p>
+                  <p className="text-2xl font-bold">{stats?.totalVolunteers || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -146,7 +137,7 @@ export function FacultyCoordinatorDashboard() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Total Hours</p>
-                  <p className="text-2xl font-bold">{statistics?.totalHours || 0}</p>
+                  <p className="text-2xl font-bold">{stats?.totalHours || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -159,8 +150,8 @@ export function FacultyCoordinatorDashboard() {
                   <Award className="h-5 w-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Avg Rating</p>
-                  <p className="text-2xl font-bold">{(statistics?.avgRating || 0).toFixed(1)}</p>
+                  <p className="text-sm text-muted-foreground">Completed</p>
+                  <p className="text-2xl font-bold">{stats?.completedOpportunities || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -173,8 +164,8 @@ export function FacultyCoordinatorDashboard() {
                   <CheckCircle2 className="h-5 w-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Completed</p>
-                  <p className="text-2xl font-bold">{statistics?.completedOpportunities || 0}</p>
+                  <p className="text-sm text-muted-foreground">Active</p>
+                  <p className="text-2xl font-bold">{stats?.activeVolunteers || 0}</p>
                 </div>
               </div>
             </CardContent>
@@ -182,7 +173,7 @@ export function FacultyCoordinatorDashboard() {
         </div>
 
         {/* Pending Applications Alert */}
-        {pendingApplications.length > 0 && (
+        {(stats?.pendingApplications || 0) > 0 && (
           <Card className="border-amber-500/50 bg-amber-500/5">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -191,295 +182,135 @@ export function FacultyCoordinatorDashboard() {
                   <div>
                     <p className="font-medium">Pending Applications</p>
                     <p className="text-sm text-muted-foreground">
-                      {pendingApplications.length} applications awaiting review from your faculty
+                      {stats?.pendingApplications} application(s) awaiting review
                     </p>
                   </div>
                 </div>
-                <Badge variant="outline" className="bg-amber-500/10 text-amber-700 border-amber-500/30">
-                  {pendingApplications.length} Pending
-                </Badge>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => navigate('/dashboard/faculty-applications')}
+                >
+                  View Applications
+                </Button>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="volunteers" className="space-y-4">
-          <TabsList className="grid grid-cols-4 w-full max-w-lg">
-            <TabsTrigger value="volunteers" className="gap-2">
-              <Users className="h-4 w-4" />
-              Volunteers
-            </TabsTrigger>
-            <TabsTrigger value="applications" className="gap-2">
-              <FileText className="h-4 w-4" />
-              Applications
-            </TabsTrigger>
-            <TabsTrigger value="reports" className="gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Reports
-            </TabsTrigger>
-            <TabsTrigger value="majors" className="gap-2">
-              <BookOpen className="h-4 w-4" />
-              Majors
-            </TabsTrigger>
-          </TabsList>
+        {/* Quick Actions */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/dashboard/faculty-volunteers')}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Users className="h-5 w-5 text-primary" />
+                Faculty Volunteers
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-3">
+                View and manage volunteers from your faculty
+              </p>
+              <Button variant="ghost" size="sm" className="gap-1 p-0">
+                View All <ArrowRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="volunteers" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
-                    <GraduationCap className="h-5 w-5 text-primary" />
-                    Faculty Volunteers
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search volunteers..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-9 w-64"
-                      />
-                    </div>
-                    <Button variant="outline" size="icon">
-                      <Download className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>University ID</TableHead>
-                      <TableHead>Major</TableHead>
-                      <TableHead>Hours</TableHead>
-                      <TableHead>Completed</TableHead>
-                      <TableHead>Rating</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredVolunteers.map((volunteer) => (
-                      <TableRow key={volunteer.id}>
-                        <TableCell className="font-medium">
-                          {volunteer.first_name} {volunteer.father_name} {volunteer.family_name}
-                        </TableCell>
-                        <TableCell>{volunteer.university_id}</TableCell>
-                        <TableCell>{volunteer.major?.name || '-'}</TableCell>
-                        <TableCell>{volunteer.volunteers?.total_hours || 0}</TableCell>
-                        <TableCell>{volunteer.volunteers?.opportunities_completed || 0}</TableCell>
-                        <TableCell>
-                          {volunteer.volunteers?.rating ? (
-                            <div className="flex items-center gap-1">
-                              <Award className="h-4 w-4 text-amber-500" />
-                              {volunteer.volunteers.rating.toFixed(1)}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {volunteer.volunteers?.is_active ? (
-                            <Badge className="bg-green-500/10 text-green-700 border-green-500/30">
-                              Active
-                            </Badge>
-                          ) : (
-                            <Badge variant="secondary">Inactive</Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm">
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {filteredVolunteers.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
-                          No volunteers found in your faculty
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/dashboard/faculty-applications')}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileText className="h-5 w-5 text-primary" />
+                Applications
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-3">
+                Review applications from faculty students
+              </p>
+              <Button variant="ghost" size="sm" className="gap-1 p-0">
+                View All <ArrowRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="applications" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5 text-primary" />
-                  Pending Applications
-                </CardTitle>
-                <CardDescription>
-                  Review and manage volunteer applications from your faculty
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Applicant</TableHead>
-                      <TableHead>University ID</TableHead>
-                      <TableHead>Major</TableHead>
-                      <TableHead>Academic Year</TableHead>
-                      <TableHead>Applied On</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {pendingApplications.map((app) => (
-                      <TableRow key={app.id}>
-                        <TableCell className="font-medium">
-                          {app.first_name} {app.father_name} {app.family_name}
-                        </TableCell>
-                        <TableCell>{app.university_id}</TableCell>
-                        <TableCell>{app.major?.name || '-'}</TableCell>
-                        <TableCell>{app.academic_year}</TableCell>
-                        <TableCell>{format(new Date(app.created_at), 'MMM dd, yyyy')}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button variant="ghost" size="sm" className="text-green-600">
-                              <CheckCircle2 className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm" className="text-red-600">
-                              <XCircle className="h-4 w-4" />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {pendingApplications.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          No pending applications
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/dashboard/faculty-schedules')}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BookOpen className="h-5 w-5 text-primary" />
+                Schedules
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-3">
+                Track schedule submissions from volunteers
+              </p>
+              <Button variant="ghost" size="sm" className="gap-1 p-0">
+                View All <ArrowRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="reports" className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <TrendingUp className="h-5 w-5 text-primary" />
-                    Monthly Statistics
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-48 flex items-center justify-center text-muted-foreground">
-                    <p>Statistics charts will be displayed here</p>
-                  </div>
-                </CardContent>
-              </Card>
+          <Card 
+            className="cursor-pointer hover:shadow-md transition-shadow"
+            onClick={() => navigate('/dashboard/faculty-reports')}
+          >
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <BarChart3 className="h-5 w-5 text-primary" />
+                Reports
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground mb-3">
+                View faculty statistics and export reports
+              </p>
+              <Button variant="ghost" size="sm" className="gap-1 p-0">
+                View Reports <ArrowRight className="h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart3 className="h-5 w-5 text-primary" />
-                    Hours Distribution
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-48 flex items-center justify-center text-muted-foreground">
-                    <p>Hours distribution chart will be displayed here</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Generate Reports</CardTitle>
-                <CardDescription>Export detailed reports for your faculty</CardDescription>
-              </CardHeader>
-              <CardContent className="flex flex-wrap gap-3">
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Volunteer List PDF
-                </Button>
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Hours Summary
-                </Button>
-                <Button variant="outline" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Applications Report
-                </Button>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="majors" className="space-y-4">
-            <MajorsDistribution facultyId={profile?.faculty_id} />
-          </TabsContent>
-        </Tabs>
+        {/* Info Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Your Role</CardTitle>
+            <CardDescription>
+              As a Faculty Coordinator, you have access to:
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-sm text-muted-foreground">
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                View and monitor volunteers from {facultyInfo?.name}
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                Track volunteer applications from your faculty
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                Monitor schedule submissions
+              </li>
+              <li className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                Generate faculty-specific reports
+              </li>
+            </ul>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
-  );
-}
-
-function MajorsDistribution({ facultyId }: { facultyId?: string }) {
-  const { data: majorsData = [] } = useQuery({
-    queryKey: ['majors-distribution', facultyId],
-    queryFn: async () => {
-      if (!facultyId) return [];
-      const { data, error } = await supabase
-        .from('majors')
-        .select(`
-          id,
-          name,
-          volunteer_applications(count)
-        `)
-        .eq('faculty_id', facultyId);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!facultyId,
-  });
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <BookOpen className="h-5 w-5 text-primary" />
-          Volunteers by Major
-        </CardTitle>
-        <CardDescription>
-          Distribution of volunteers across different majors in your faculty
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {majorsData.map((major: any) => {
-            const count = major.volunteer_applications?.[0]?.count || 0;
-            return (
-              <div key={major.id} className="flex items-center justify-between p-3 rounded-lg border bg-card">
-                <span className="font-medium">{major.name}</span>
-                <Badge variant="secondary">{count} volunteers</Badge>
-              </div>
-            );
-          })}
-          {majorsData.length === 0 && (
-            <p className="text-center text-muted-foreground py-8">No majors found</p>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
