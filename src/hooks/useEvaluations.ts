@@ -15,6 +15,7 @@ export function useEvaluations() {
 
   const { data: evaluations, isLoading } = useQuery({
     queryKey: ['evaluations'],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('evaluations')
@@ -162,6 +163,7 @@ export function useMyFeedback() {
 
   const { data: feedback, isLoading } = useQuery({
     queryKey: ['my-feedback', user?.id],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       if (!user) return [];
 
@@ -169,7 +171,7 @@ export function useMyFeedback() {
         .from('volunteers')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!volunteer) return [];
 

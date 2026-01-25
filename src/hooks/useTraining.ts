@@ -10,6 +10,7 @@ export function useTrainingCourses() {
 
   const { data: courses, isLoading } = useQuery({
     queryKey: ['training-courses'],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('training_courses')
@@ -142,6 +143,7 @@ export function useMyTraining() {
 
   const { data: courses, isLoading: coursesLoading } = useQuery({
     queryKey: ['training-courses'],
+    staleTime: 5 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('training_courses')
@@ -158,6 +160,7 @@ export function useMyTraining() {
 
   const { data: progress, isLoading: progressLoading } = useQuery({
     queryKey: ['my-training-progress', user?.id],
+    staleTime: 3 * 60 * 1000,
     queryFn: async () => {
       if (!user) return [];
 
@@ -165,7 +168,7 @@ export function useMyTraining() {
         .from('volunteers')
         .select('id')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (!volunteer) return [];
 

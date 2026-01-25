@@ -26,6 +26,7 @@ export function FacultyCoordinatorDashboard() {
   // Fetch faculty info
   const { data: facultyInfo, isLoading: facultyLoading } = useQuery({
     queryKey: ['faculty-info', profile?.faculty_id],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return null;
       const { data, error } = await supabase
@@ -37,12 +38,12 @@ export function FacultyCoordinatorDashboard() {
       return data;
     },
     enabled: !!profile?.faculty_id,
-    staleTime: 5 * 60 * 1000,
   });
 
   // Fetch faculty statistics - optimized single query
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['faculty-dashboard-stats', profile?.faculty_id],
+    staleTime: 3 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return { 
         totalVolunteers: 0, 
@@ -80,7 +81,6 @@ export function FacultyCoordinatorDashboard() {
       };
     },
     enabled: !!profile?.faculty_id,
-    staleTime: 2 * 60 * 1000,
   });
 
   if (facultyLoading || statsLoading) {

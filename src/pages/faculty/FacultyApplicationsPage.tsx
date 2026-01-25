@@ -43,6 +43,7 @@ export function FacultyApplicationsPage() {
   // Fetch pending applications from the faculty
   const { data: applications = [], isLoading } = useQuery({
     queryKey: ['faculty-applications', profile?.faculty_id],
+    staleTime: 3 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return [];
       const { data, error } = await supabase
@@ -63,13 +64,14 @@ export function FacultyApplicationsPage() {
   // Fetch faculty info
   const { data: facultyInfo } = useQuery({
     queryKey: ['faculty-info', profile?.faculty_id],
+    staleTime: 10 * 60 * 1000,
     queryFn: async () => {
       if (!profile?.faculty_id) return null;
       const { data, error } = await supabase
         .from('faculties')
         .select('*')
         .eq('id', profile.faculty_id)
-        .single();
+        .maybeSingle();
       if (error) throw error;
       return data;
     },
