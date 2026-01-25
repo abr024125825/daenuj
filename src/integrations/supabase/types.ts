@@ -1418,15 +1418,29 @@ export type Database = {
     Functions: {
       generate_badge_code: { Args: never; Returns: string }
       generate_certificate_number: { Args: never; Returns: string }
+      get_application_faculty_id: {
+        Args: { _application_id: string }
+        Returns: string
+      }
+      get_user_faculty_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
         Args: { _user_id: string }
         Returns: Database["public"]["Enums"]["user_role"]
       }
+      get_volunteer_faculty_id: {
+        Args: { _volunteer_id: string }
+        Returns: string
+      }
+      get_volunteer_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["user_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      is_faculty_coordinator: {
+        Args: { _faculty_id: string; _user_id: string }
         Returns: boolean
       }
     }
