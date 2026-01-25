@@ -89,19 +89,42 @@ export function SchedulesPage() {
     enabled: !!activeSemester,
   });
 
+  // Fetch all exam schedules for the active semester
+  const { data: allExams, isLoading: examsLoading } = useQuery({
+    queryKey: ['all-exam-schedules', activeSemester?.id],
+    queryFn: async () => {
+      if (!activeSemester) return [];
+      
+      const { data, error } = await supabase
+        .from('exam_schedules')
+        .select(`
+          *,
+          course:volunteer_courses(course_code, course_name)
+        `)
+        .eq('semester_id', activeSemester.id);
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!activeSemester,
+  });
+
   // Group courses by volunteer
   const volunteerSchedules = useMemo(() => {
     if (!volunteers || !activeSemester) return [];
     
     return volunteers.map((v: any) => {
       const courses = allCourses?.filter(c => c.volunteer_id === v.id) || [];
+      const exams = allExams?.filter(e => e.volunteer_id === v.id) || [];
       const isSubmitted = v.schedule_submitted_for_semester === activeSemester.id;
       
       return {
         volunteer: v,
         courses,
+        exams,
         isSubmitted,
         courseCount: courses.length,
+        examCount: exams.length,
       };
     }).filter(vs => {
       // Filter by search
@@ -114,7 +137,7 @@ export function SchedulesPage() {
       if (filterStatus === 'pending') return matchesSearch && !vs.isSubmitted;
       return matchesSearch;
     });
-  }, [volunteers, allCourses, activeSemester, searchQuery, filterStatus]);
+  }, [volunteers, allCourses, allExams, activeSemester, searchQuery, filterStatus]);
 
   const unlockSchedule = useMutation({
     mutationFn: async (volunteerId: string) => {
@@ -216,6 +239,15 @@ export function SchedulesPage() {
         end_time: c.end_time,
         location: c.location,
       })),
+      exams: volunteerData.exams?.map((e: any) => ({
+        course_code: e.course?.course_code || '',
+        course_name: e.course?.course_name || '',
+        exam_type: e.exam_type,
+        exam_date: e.exam_date,
+        start_time: e.start_time,
+        end_time: e.end_time,
+        location: e.location,
+      })),
     });
     
     toast({ title: 'Success', description: 'Volunteer schedule PDF downloaded' });
@@ -227,9 +259,10 @@ export function SchedulesPage() {
     submitted: volunteerSchedules.filter(vs => vs.isSubmitted).length,
     pending: volunteerSchedules.filter(vs => !vs.isSubmitted).length,
     totalCourses: allCourses?.length || 0,
+    totalExams: allExams?.length || 0,
   };
 
-  if (volunteersLoading || semestersLoading || coursesLoading) {
+  if (volunteersLoading || semestersLoading || coursesLoading || examsLoading) {
     return (
       <DashboardLayout title="Volunteer Schedules">
         <div className="flex items-center justify-center h-64">

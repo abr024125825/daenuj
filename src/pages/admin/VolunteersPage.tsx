@@ -28,6 +28,8 @@ import {
 import { useVolunteers, useVolunteerDetails, useToggleVolunteerActive } from '@/hooks/useVolunteers';
 import { useVolunteerCourses } from '@/hooks/useVolunteerCourses';
 import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
 export function VolunteersPage() {
@@ -436,6 +438,26 @@ function VolunteerScheduleView({ volunteerId }: { volunteerId: string }) {
   
   const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
   
+  // Fetch exams for this volunteer
+  const { data: exams, isLoading: examsLoading } = useQuery({
+    queryKey: ['volunteer-exams', volunteerId, activeSemester?.id],
+    queryFn: async () => {
+      if (!activeSemester) return [];
+      const { data, error } = await supabase
+        .from('exam_schedules')
+        .select(`
+          *,
+          course:volunteer_courses(course_code, course_name)
+        `)
+        .eq('volunteer_id', volunteerId)
+        .eq('semester_id', activeSemester.id)
+        .order('exam_date');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!volunteerId && !!activeSemester,
+  });
+  
   const activeSemesterCourses = courses?.filter(c => c.semester_id === activeSemester?.id) || [];
   const isLocked = activeSemester ? isScheduleLocked(activeSemester.id) : false;
   
@@ -445,7 +467,7 @@ function VolunteerScheduleView({ volunteerId }: { volunteerId: string }) {
     return acc;
   }, {} as Record<string, typeof activeSemesterCourses>);
 
-  if (isLoading) {
+  if (isLoading || examsLoading) {
     return (
       <div className="flex items-center justify-center py-8">
         <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -453,7 +475,7 @@ function VolunteerScheduleView({ volunteerId }: { volunteerId: string }) {
     );
   }
 
-  if (activeSemesterCourses.length === 0) {
+  if (activeSemesterCourses.length === 0 && (!exams || exams.length === 0)) {
     return (
       <div className="text-center py-8 text-muted-foreground">
         <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -463,7 +485,7 @@ function VolunteerScheduleView({ volunteerId }: { volunteerId: string }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <div className="flex items-center justify-between mb-4">
         <Badge variant={isLocked ? 'default' : 'secondary'}>
           {isLocked ? 'Schedule Locked' : 'Schedule Unlocked'}
@@ -473,32 +495,93 @@ function VolunteerScheduleView({ volunteerId }: { volunteerId: string }) {
         </span>
       </div>
       
-      {DAYS_OF_WEEK.filter(day => coursesByDay[day].length > 0).map(day => (
-        <div key={day}>
-          <h4 className="font-medium text-sm text-muted-foreground mb-2">{day}</h4>
+      {/* Course Schedule */}
+      {activeSemesterCourses.length > 0 && (
+        <div>
+          <h4 className="font-semibold text-sm flex items-center gap-2 mb-3">
+            <BookOpen className="h-4 w-4 text-primary" />
+            Course Schedule ({activeSemesterCourses.length} courses)
+          </h4>
+          {DAYS_OF_WEEK.filter(day => coursesByDay[day].length > 0).map(day => (
+            <div key={day} className="mb-4">
+              <h5 className="font-medium text-sm text-muted-foreground mb-2">{day}</h5>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Course Name</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Location</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {coursesByDay[day].map(course => (
+                    <TableRow key={course.id}>
+                      <TableCell className="font-mono">{course.course_code}</TableCell>
+                      <TableCell>{course.course_name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="gap-1">
+                          <Clock className="h-3 w-3" />
+                          {course.start_time} - {course.end_time}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {course.location && (
+                          <Badge variant="secondary">{course.location}</Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Exam Schedule */}
+      {exams && exams.length > 0 && (
+        <div>
+          <h4 className="font-semibold text-sm flex items-center gap-2 mb-3">
+            <GraduationCap className="h-4 w-4 text-warning" />
+            Exam Schedule ({exams.length} exams)
+          </h4>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Code</TableHead>
-                <TableHead>Course Name</TableHead>
+                <TableHead>Type</TableHead>
+                <TableHead>Course</TableHead>
+                <TableHead>Date</TableHead>
                 <TableHead>Time</TableHead>
                 <TableHead>Location</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {coursesByDay[day].map(course => (
-                <TableRow key={course.id}>
-                  <TableCell className="font-mono">{course.course_code}</TableCell>
-                  <TableCell>{course.course_name}</TableCell>
+              {exams.map((exam: any) => (
+                <TableRow key={exam.id}>
                   <TableCell>
-                    <Badge variant="outline" className="gap-1">
-                      <Clock className="h-3 w-3" />
-                      {course.start_time} - {course.end_time}
+                    <Badge variant="outline" className="capitalize">
+                      {exam.exam_type}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {course.location && (
-                      <Badge variant="secondary">{course.location}</Badge>
+                    <div>
+                      <span className="font-mono text-xs">{exam.course?.course_code}</span>
+                      <p className="text-sm">{exam.course?.course_name}</p>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {format(new Date(exam.exam_date), 'MMM dd, yyyy')}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="gap-1">
+                      <Clock className="h-3 w-3" />
+                      {exam.start_time} - {exam.end_time}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {exam.location && (
+                      <Badge variant="secondary">{exam.location}</Badge>
                     )}
                   </TableCell>
                 </TableRow>
@@ -506,7 +589,7 @@ function VolunteerScheduleView({ volunteerId }: { volunteerId: string }) {
             </TableBody>
           </Table>
         </div>
-      ))}
+      )}
     </div>
   );
 }
