@@ -28,10 +28,9 @@ import {
 import { format } from 'date-fns';
 
 export function ProfilePage() {
-  const { user, profile, refreshProfile } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
@@ -136,7 +135,6 @@ export function ProfilePage() {
 
       toast({ title: 'Success', description: 'Password updated successfully' });
       setIsPasswordDialogOpen(false);
-      setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
     } catch (error: any) {

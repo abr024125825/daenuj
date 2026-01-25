@@ -20,10 +20,7 @@ import { CertificateVerificationsPage } from "./pages/admin/CertificateVerificat
 import { BadgeTransactionsPage } from "./pages/admin/BadgeTransactionsPage";
 import { SchedulePage } from "./pages/volunteer/SchedulePage";
 import { SchedulesPage } from "./pages/admin/SchedulesPage";
-import MessagingPage from "./pages/admin/MessagingPage";
-import { VolunteerMessagesPage } from "./pages/volunteer/MessagesPage";
 import { ProfilePage } from "./pages/volunteer/ProfilePage";
-import { CalendarPage } from "./pages/volunteer/CalendarPage";
 import NotFound from "./pages/NotFound";
 import { VerifyCertificate } from "./pages/VerifyCertificate";
 
@@ -50,10 +47,7 @@ const App = () => (
             <Route path="/dashboard/training" element={<TrainingRouter />} />
             <Route path="/dashboard/schedule" element={<SchedulePage />} />
             <Route path="/dashboard/schedules" element={<SchedulesPage />} />
-            <Route path="/dashboard/messaging" element={<MessagingPage />} />
-            <Route path="/dashboard/messages" element={<VolunteerMessagesPage />} />
             <Route path="/dashboard/profile" element={<ProfilePage />} />
-            <Route path="/dashboard/calendar" element={<CalendarPage />} />
             <Route path="/dashboard/volunteers" element={<VolunteersPage />} />
             <Route path="/dashboard/reports" element={<ReportsPage />} />
             <Route path="/dashboard/settings" element={<SettingsPage />} />
