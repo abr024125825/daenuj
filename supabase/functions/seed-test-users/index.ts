@@ -23,20 +23,39 @@ Deno.serve(async (req) => {
       }
     );
 
+    // Get first faculty for faculty coordinator
+    const { data: faculties } = await supabaseAdmin
+      .from('faculties')
+      .select('id, name')
+      .limit(1);
+
+    const facultyId = faculties?.[0]?.id;
+    const facultyName = faculties?.[0]?.name || 'Faculty';
+
     const testUsers = [
       {
         email: 'admin@ju.edu.jo',
         password: 'Admin123!',
         role: 'admin',
         first_name: 'Admin',
-        last_name: 'User'
+        last_name: 'User',
+        faculty_id: null
+      },
+      {
+        email: 'coordinator@ju.edu.jo',
+        password: 'Coordinator123!',
+        role: 'supervisor',
+        first_name: 'Faculty',
+        last_name: 'Coordinator',
+        faculty_id: facultyId
       },
       {
         email: 'volunteer@ju.edu.jo',
         password: 'Volunteer123!',
         role: 'volunteer',
         first_name: 'Mohammed',
-        last_name: 'Ahmad'
+        last_name: 'Ahmad',
+        faculty_id: facultyId
       }
     ];
 
@@ -78,7 +97,14 @@ Deno.serve(async (req) => {
       const existingUser = existingUsers?.users?.find(u => u.email === testUser.email);
 
       if (existingUser) {
-        console.log(`User ${testUser.email} already exists, skipping...`);
+        // Update the faculty_id for existing coordinator
+        if (testUser.role === 'supervisor' && testUser.faculty_id) {
+          await supabaseAdmin
+            .from('profiles')
+            .update({ faculty_id: testUser.faculty_id })
+            .eq('user_id', existingUser.id);
+        }
+        console.log(`User ${testUser.email} already exists, updated faculty_id if applicable`);
         results.push({ email: testUser.email, status: 'already_exists' });
         continue;
       }
@@ -102,7 +128,7 @@ Deno.serve(async (req) => {
 
       console.log(`Created user ${testUser.email} with ID ${authData.user.id}`);
 
-      // Create profile
+      // Create profile with faculty_id
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .insert({
@@ -111,7 +137,8 @@ Deno.serve(async (req) => {
           first_name: testUser.first_name,
           last_name: testUser.last_name,
           role: testUser.role,
-          is_active: true
+          is_active: true,
+          faculty_id: testUser.faculty_id
         });
 
       if (profileError) {
@@ -132,18 +159,13 @@ Deno.serve(async (req) => {
 
       // If volunteer, create volunteer application and record
       if (testUser.role === 'volunteer') {
-        // Get a faculty and major
-        const { data: faculties } = await supabaseAdmin
-          .from('faculties')
-          .select('id')
-          .limit(1);
-        
         const { data: majors } = await supabaseAdmin
           .from('majors')
           .select('id')
+          .eq('faculty_id', testUser.faculty_id)
           .limit(1);
 
-        if (faculties?.length && majors?.length) {
+        if (testUser.faculty_id && majors?.length) {
           const { data: application, error: appError } = await supabaseAdmin
             .from('volunteer_applications')
             .insert({
@@ -155,7 +177,7 @@ Deno.serve(async (req) => {
               university_email: testUser.email,
               phone_number: '0791234567',
               university_id: '2020123456',
-              faculty_id: faculties[0].id,
+              faculty_id: testUser.faculty_id,
               major_id: majors[0].id,
               academic_year: 'Third Year',
               emergency_contact_name: 'Emergency Contact',
@@ -177,8 +199,8 @@ Deno.serve(async (req) => {
                 user_id: authData.user.id,
                 application_id: application.id,
                 is_active: true,
-                total_hours: 0,
-                opportunities_completed: 0
+                total_hours: 25,
+                opportunities_completed: 5
               });
 
             if (volError) {
@@ -196,7 +218,12 @@ Deno.serve(async (req) => {
         success: true, 
         message: 'Test users created successfully',
         results,
-        credentials: testUsers.map(u => ({ email: u.email, password: u.password }))
+        credentials: testUsers.map(u => ({ 
+          email: u.email, 
+          password: u.password, 
+          role: u.role,
+          faculty: u.faculty_id ? facultyName : null
+        }))
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
