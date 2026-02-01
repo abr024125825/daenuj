@@ -26,6 +26,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { BadgeStatus } from '@/components/volunteer/BadgeStatus';
 import { AnnouncementsWidget } from '@/components/volunteer/AnnouncementsWidget';
+import { HoursProgressWidget } from '@/components/volunteer/HoursProgressWidget';
 
 export function VolunteerDashboard() {
   const navigate = useNavigate();
@@ -155,6 +156,9 @@ export function VolunteerDashboard() {
 
         {/* Announcements Widget - Prominent position */}
         <AnnouncementsWidget />
+
+        {/* Hours Progress Widget */}
+        <HoursProgressWidget />
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Upcoming Opportunities */}

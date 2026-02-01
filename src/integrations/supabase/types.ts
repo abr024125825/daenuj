@@ -68,6 +68,96 @@ export type Database = {
         }
         Relationships: []
       }
+      achievement_badges: {
+        Row: {
+          badge_type: string
+          created_at: string
+          earned_at: string
+          hours_at_achievement: number | null
+          id: string
+          semester_id: string | null
+          volunteer_id: string
+        }
+        Insert: {
+          badge_type: string
+          created_at?: string
+          earned_at?: string
+          hours_at_achievement?: number | null
+          id?: string
+          semester_id?: string | null
+          volunteer_id: string
+        }
+        Update: {
+          badge_type?: string
+          created_at?: string
+          earned_at?: string
+          hours_at_achievement?: number | null
+          id?: string
+          semester_id?: string | null
+          volunteer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievement_badges_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "academic_semesters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievement_badges_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "volunteers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      achievement_certificates: {
+        Row: {
+          achievement_type: string
+          badge_id: string
+          certificate_number: string
+          hours_achieved: number
+          id: string
+          issued_at: string
+          volunteer_id: string
+        }
+        Insert: {
+          achievement_type: string
+          badge_id: string
+          certificate_number: string
+          hours_achieved: number
+          id?: string
+          issued_at?: string
+          volunteer_id: string
+        }
+        Update: {
+          achievement_type?: string
+          badge_id?: string
+          certificate_number?: string
+          hours_achieved?: number
+          id?: string
+          issued_at?: string
+          volunteer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievement_certificates_badge_id_fkey"
+            columns: ["badge_id"]
+            isOneToOne: false
+            referencedRelation: "achievement_badges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievement_certificates_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "volunteers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcement_reads: {
         Row: {
           announcement_id: string
@@ -1422,6 +1512,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_achievement_cert_number: { Args: never; Returns: string }
       generate_badge_code: { Args: never; Returns: string }
       generate_certificate_number: { Args: never; Returns: string }
       get_application_faculty_id: {
