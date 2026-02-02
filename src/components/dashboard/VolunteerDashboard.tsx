@@ -29,6 +29,7 @@ import { AnnouncementsWidget } from '@/components/volunteer/AnnouncementsWidget'
 import { HoursProgressWidget } from '@/components/volunteer/HoursProgressWidget';
 import { LeaderboardWidget } from '@/components/volunteer/LeaderboardWidget';
 import { HoursProgressChart } from '@/components/volunteer/HoursProgressChart';
+import { OpportunityRecommendations } from '@/components/volunteer/OpportunityRecommendations';
 
 export function VolunteerDashboard() {
   const navigate = useNavigate();
@@ -158,6 +159,9 @@ export function VolunteerDashboard() {
 
         {/* Announcements Widget - Prominent position */}
         <AnnouncementsWidget />
+
+        {/* Smart Opportunity Recommendations */}
+        <OpportunityRecommendations />
 
         {/* Hours Progress Widget */}
         <HoursProgressWidget />
