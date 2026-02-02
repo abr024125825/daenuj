@@ -27,6 +27,8 @@ import { format } from 'date-fns';
 import { BadgeStatus } from '@/components/volunteer/BadgeStatus';
 import { AnnouncementsWidget } from '@/components/volunteer/AnnouncementsWidget';
 import { HoursProgressWidget } from '@/components/volunteer/HoursProgressWidget';
+import { LeaderboardWidget } from '@/components/volunteer/LeaderboardWidget';
+import { HoursProgressChart } from '@/components/volunteer/HoursProgressChart';
 
 export function VolunteerDashboard() {
   const navigate = useNavigate();
@@ -159,6 +161,12 @@ export function VolunteerDashboard() {
 
         {/* Hours Progress Widget */}
         <HoursProgressWidget />
+
+        {/* Animated Hours Progress Chart */}
+        <HoursProgressChart volunteerId={volunteer?.id} />
+
+        {/* Leaderboard */}
+        <LeaderboardWidget currentVolunteerId={volunteer?.id} limit={10} />
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Upcoming Opportunities */}
