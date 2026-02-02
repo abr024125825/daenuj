@@ -23,6 +23,7 @@ import { SchedulesPage } from "./pages/admin/SchedulesPage";
 import { ProfilePage } from "./pages/volunteer/ProfilePage";
 import NotFound from "./pages/NotFound";
 import { VerifyCertificate } from "./pages/VerifyCertificate";
+import { KioskPage } from "./pages/KioskPage";
 
 // Faculty Coordinator Pages
 import { FacultyVolunteersPage } from "./pages/faculty/FacultyVolunteersPage";
@@ -49,6 +50,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/verify" element={<VerifyCertificate />} />
+            <Route path="/kiosk" element={<KioskPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/applications" element={<ApplicationsPage />} />

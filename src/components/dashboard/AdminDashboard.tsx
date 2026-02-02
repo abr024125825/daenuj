@@ -21,6 +21,7 @@ import { useCertificates } from '@/hooks/useCertificates';
 import { AvailabilityStatisticsWidget } from '@/components/admin/AvailabilityStatisticsWidget';
 import { ScheduleSubmissionsWidget } from '@/components/admin/ScheduleSubmissionsWidget';
 import { AnnouncementsWidget } from '@/components/admin/AnnouncementsWidget';
+import { AvailabilityHeatmap } from '@/components/admin/AvailabilityHeatmap';
 import { format } from 'date-fns';
 
 export function AdminDashboard() {
@@ -233,6 +234,9 @@ export function AdminDashboard() {
 
         {/* Availability Statistics Widget */}
         <AvailabilityStatisticsWidget />
+
+        {/* Volunteer Availability Heatmap */}
+        <AvailabilityHeatmap />
 
         {/* Quick Actions */}
         <Card>
