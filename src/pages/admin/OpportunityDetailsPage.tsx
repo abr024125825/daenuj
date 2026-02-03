@@ -694,6 +694,16 @@ export function OpportunityDetailsPage() {
               Recommend
             </Button>
             
+            {/* Kiosk Mode Button */}
+            <Button 
+              variant="outline" 
+              onClick={() => navigate('/kiosk')}
+              className="gap-2"
+            >
+              <QrCode className="h-4 w-4" />
+              Kiosk Mode
+            </Button>
+            
             {opportunity.status === 'draft' && (
               <Button onClick={() => publishOpportunity.mutate(opportunity.id)}>
                 <Send className="h-4 w-4 mr-2" />
