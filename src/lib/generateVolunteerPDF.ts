@@ -515,7 +515,7 @@ export async function generateVolunteerPDF(data: VolunteerData): Promise<void> {
     doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
     doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
     doc.setFontSize(7);
-    doc.text('Community Service & Development Center - University of Jordan', pageWidth / 2, pageHeight - 5, { align: 'center' });
+    doc.text('Dean of Student Affairs - University of Jordan', pageWidth / 2, pageHeight - 5, { align: 'center' });
     if (totalPages > 1) {
       doc.setFontSize(6);
       doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
@@ -667,7 +667,7 @@ export async function generateAttendanceReportPDF(data: {
     doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
     doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
     doc.setFontSize(7);
-    doc.text('Community Service & Development Center - University of Jordan', margin, pageHeight - 5);
+    doc.text('Dean of Student Affairs - University of Jordan', margin, pageHeight - 5);
     doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - 5, { align: 'right' });
   };
 
@@ -799,7 +799,7 @@ export async function generateAllVolunteersPDF(volunteers: Array<{
     doc.rect(0, pageHeight - 10, pageWidth, 10, 'F');
     doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
     doc.setFontSize(7);
-    doc.text('Community Service & Development Center - University of Jordan', margin, pageHeight - 4);
+    doc.text('Dean of Student Affairs - University of Jordan', margin, pageHeight - 4);
     doc.text(`Page ${pageNum} of ${totalPages}`, pageWidth - margin, pageHeight - 4, { align: 'right' });
   };
 

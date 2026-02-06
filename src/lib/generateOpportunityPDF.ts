@@ -157,7 +157,7 @@ export async function generateOpportunityVolunteersPDF(data: {
     doc.rect(0, pageHeight - 14, pageWidth, 14, 'F');
     doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
     doc.setFontSize(7);
-    doc.text('Community Service & Development Center - University of Jordan', margin, pageHeight - 6);
+    doc.text('Dean of Student Affairs - University of Jordan', margin, pageHeight - 6);
     doc.text(`Page ${pageNum} of ${totalPages}  |  Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
   };
 
@@ -243,7 +243,7 @@ export async function generateOpportunityListPDF(data: {
     doc.rect(0, pageHeight - 14, pageWidth, 14, 'F');
     doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
     doc.setFontSize(7);
-    doc.text('Community Service & Development Center', margin, pageHeight - 6);
+    doc.text('Dean of Student Affairs', margin, pageHeight - 6);
     doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
     
     doc.save(`${data.listType}-${data.opportunity.title.replace(/\s+/g, '-').substring(0, 20)}-${data.opportunity.date}.pdf`);
@@ -327,7 +327,7 @@ export async function generateOpportunityListPDF(data: {
   doc.rect(0, pageHeight - 14, pageWidth, 14, 'F');
   doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
   doc.setFontSize(7);
-  doc.text('Community Service & Development Center - University of Jordan', margin, pageHeight - 6);
+  doc.text('Dean of Student Affairs - University of Jordan', margin, pageHeight - 6);
   doc.text(`Generated: ${new Date().toLocaleDateString()}`, pageWidth - margin, pageHeight - 6, { align: 'right' });
 
   doc.save(`${data.listType}-${data.opportunity.title.replace(/\s+/g, '-').substring(0, 20)}-${data.opportunity.date}.pdf`);
@@ -546,7 +546,7 @@ export async function generateOpportunityReportPDF(data: {
   doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
   doc.setFontSize(8);
   doc.setFont('helvetica', 'bold');
-  doc.text('Community Service & Development Center', pageWidth / 2, pageHeight - 10, { align: 'center' });
+  doc.text('Dean of Student Affairs', pageWidth / 2, pageHeight - 10, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(7);
   doc.text('University of Jordan', pageWidth / 2, pageHeight - 5, { align: 'center' });

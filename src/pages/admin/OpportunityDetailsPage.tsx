@@ -934,20 +934,7 @@ export function OpportunityDetailsPage() {
             </Card>
           </TabsContent>
 
-          {/* Section 3: Recommendations */}
-          <TabsContent value="recommendations" className="space-y-4">
-            <OpportunityRecommendations
-              opportunityId={id || ''}
-              opportunityDate={opportunity.date}
-              startTime={opportunity.start_time}
-              endTime={opportunity.end_time}
-              targetInterests={opportunity.target_interests || []}
-              registrations={registrations || []}
-              requiredVolunteers={opportunity.required_volunteers}
-              onAutoApprove={handleAutoApproveVolunteer}
-              isProcessing={isProcessing}
-            />
-          </TabsContent>
+          {/* Recommendations now only accessible via the Recommend button */}
 
           {/* Section 4: Badges */}
           <TabsContent value="badges" className="space-y-4">

@@ -98,7 +98,7 @@ export async function generateFacultyReportPDF(data: FacultyReportData): Promise
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Community Service & Development Center', 42, 40);
+  doc.text('Dean of Student Affairs', 42, 40);
   doc.text('University of Jordan', 42, 46);
 
   const reportDate = new Date().toLocaleDateString('en-US', {
@@ -326,7 +326,7 @@ export async function generateFacultyReportPDF(data: FacultyReportData): Promise
   
   doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
   doc.setFontSize(7);
-  doc.text('Community Service & Development Center - University of Jordan', pageWidth / 2, pageHeight - 8, { align: 'center' });
+  doc.text('Dean of Student Affairs - University of Jordan', pageWidth / 2, pageHeight - 8, { align: 'center' });
   doc.setFontSize(6);
   doc.text(`Faculty Report - Generated on ${reportDate}`, pageWidth / 2, pageHeight - 4, { align: 'center' });
 
@@ -455,7 +455,7 @@ export async function generateFacultyVolunteersListPDF(data: {
   
   doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
   doc.setFontSize(7);
-  doc.text('Community Service & Development Center - University of Jordan', pageWidth / 2, pageHeight - 5, { align: 'center' });
+  doc.text('Dean of Student Affairs - University of Jordan', pageWidth / 2, pageHeight - 5, { align: 'center' });
 
   doc.save(`${data.facultyName.replace(/\s+/g, '-').toLowerCase()}-volunteers-list-${new Date().toISOString().split('T')[0]}.pdf`);
 }
@@ -563,7 +563,7 @@ export async function generateFacultyHoursReportPDF(data: {
   
   doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
   doc.setFontSize(7);
-  doc.text('Community Service & Development Center - University of Jordan', pageWidth / 2, pageHeight - 5, { align: 'center' });
+  doc.text('Dean of Student Affairs - University of Jordan', pageWidth / 2, pageHeight - 5, { align: 'center' });
 
   doc.save(`${data.facultyName.replace(/\s+/g, '-').toLowerCase()}-hours-report-${new Date().toISOString().split('T')[0]}.pdf`);
 }

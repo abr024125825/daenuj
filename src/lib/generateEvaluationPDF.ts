@@ -104,7 +104,7 @@ export async function generateEvaluationPDF(data: EvaluationData): Promise<void>
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Community Service & Development Center', 42, 38);
+  doc.text('Dean of Student Affairs', 42, 38);
   doc.text('University of Jordan', 42, 44);
 
   // Report date on right
@@ -310,7 +310,7 @@ export async function generateEvaluationPDF(data: EvaluationData): Promise<void>
   
   doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
   doc.setFontSize(7);
-  doc.text('Community Service & Development Center - University of Jordan', pageWidth / 2, pageHeight - 8, { align: 'center' });
+  doc.text('Dean of Student Affairs - University of Jordan', pageWidth / 2, pageHeight - 8, { align: 'center' });
   doc.setFontSize(6);
   doc.text('Evaluation Report - Generated automatically', pageWidth / 2, pageHeight - 4, { align: 'center' });
 
