@@ -29,6 +29,7 @@ import { AnnouncementsWidget } from '@/components/volunteer/AnnouncementsWidget'
 import { HoursProgressWidget } from '@/components/volunteer/HoursProgressWidget';
 import { LeaderboardWidget } from '@/components/volunteer/LeaderboardWidget';
 import { HoursProgressChart } from '@/components/volunteer/HoursProgressChart';
+import { MyDisabilityAssignmentsWidget } from '@/components/volunteer/MyDisabilityAssignmentsWidget';
 import { OpportunityRecommendations } from '@/components/volunteer/OpportunityRecommendations';
 
 export function VolunteerDashboard() {
@@ -159,6 +160,9 @@ export function VolunteerDashboard() {
 
         {/* Announcements Widget - Prominent position */}
         <AnnouncementsWidget />
+
+        {/* Disability Support Assignments Widget */}
+        <MyDisabilityAssignmentsWidget />
 
         {/* Smart Opportunity Recommendations */}
         <OpportunityRecommendations />

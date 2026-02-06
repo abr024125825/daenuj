@@ -22,6 +22,7 @@ import { AvailabilityStatisticsWidget } from '@/components/admin/AvailabilitySta
 import { ScheduleSubmissionsWidget } from '@/components/admin/ScheduleSubmissionsWidget';
 import { AnnouncementsWidget } from '@/components/admin/AnnouncementsWidget';
 import { AvailabilityHeatmap } from '@/components/admin/AvailabilityHeatmap';
+import { DisabilityExamsWidget } from '@/components/admin/DisabilityExamsWidget';
 import { format } from 'date-fns';
 
 export function AdminDashboard() {
@@ -231,6 +232,9 @@ export function AdminDashboard() {
 
         {/* Announcements Widget */}
         <AnnouncementsWidget />
+
+        {/* Disability Exams Widget */}
+        <DisabilityExamsWidget />
 
         {/* Availability Statistics Widget */}
         <AvailabilityStatisticsWidget />
