@@ -45,7 +45,7 @@ import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { ExcelUploadDialog } from './ExcelUploadDialog';
-import { parseExamsExcel, ParsedExam } from '@/lib/excelParser';
+import { parseExamsExcel, ParsedExam, generateExamsTemplate } from '@/lib/excelParser';
 import { useToast } from '@/hooks/use-toast';
 
 const SPECIAL_NEEDS: { value: SpecialNeedType; label: string }[] = [
@@ -555,6 +555,10 @@ export function DisabilityExamsManager() {
           type="exams"
           onUpload={(data) => handleBulkUpload(data as ParsedExam[])}
           parseFile={parseExamsExcel}
+          students={students?.filter(s => s.is_active).map(s => ({
+            university_id: s.university_id,
+            student_name: s.student_name,
+          }))}
         />
       </CardContent>
     </Card>
