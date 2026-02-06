@@ -58,10 +58,10 @@ interface VolunteerData {
   }>;
 }
 
-// Professional color palette - consistent with other reports
+// Professional color palette - Dean of Student Affairs Theme
 const colors = {
-  primary: [16, 78, 58],
-  secondary: [34, 197, 94],
+  primary: [25, 130, 160],
+  secondary: [59, 160, 190],
   info: [59, 130, 246],
   danger: [239, 68, 68],
   dark: [30, 41, 59],

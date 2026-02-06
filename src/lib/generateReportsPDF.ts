@@ -23,10 +23,10 @@ async function getLogoBase64(): Promise<string> {
   });
 }
 
-// Professional color palette
+// Professional color palette - Dean of Student Affairs Theme
 const colors = {
-  primary: [16, 78, 58],
-  secondary: [34, 197, 94],
+  primary: [25, 130, 160],
+  secondary: [59, 160, 190],
   accent: [234, 179, 8],
   dark: [30, 41, 59],
   muted: [100, 116, 139],

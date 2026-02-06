@@ -60,9 +60,9 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
   const pageHeight = doc.internal.pageSize.getHeight();
 
   if (design === 'modern') {
-    // Modern design
-    const deepGreen = [16, 78, 58];
-    const brightGreen = [34, 197, 94];
+    // Modern design - Dean of Student Affairs Theme
+    const deepBlue = [20, 80, 100];
+    const brightBlue = [25, 150, 180];
     const gold = [234, 179, 8];
     const slate = [51, 65, 85];
     const white = [255, 255, 255];
@@ -70,9 +70,9 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     // Gradient background
     for (let i = 0; i < pageHeight; i += 2) {
       const ratio = i / pageHeight;
-      const r = Math.floor(deepGreen[0] + (255 - deepGreen[0]) * ratio * 0.3);
-      const g = Math.floor(deepGreen[1] + (255 - deepGreen[1]) * ratio * 0.3);
-      const b = Math.floor(deepGreen[2] + (255 - deepGreen[2]) * ratio * 0.3);
+      const r = Math.floor(deepBlue[0] + (255 - deepBlue[0]) * ratio * 0.3);
+      const g = Math.floor(deepBlue[1] + (255 - deepBlue[1]) * ratio * 0.3);
+      const b = Math.floor(deepBlue[2] + (255 - deepBlue[2]) * ratio * 0.3);
       doc.setFillColor(r, g, b);
       doc.rect(0, i, pageWidth, 2, 'F');
     }
@@ -119,15 +119,15 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(10);
-    doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-    doc.text('COMMUNITY SERVICE & DEVELOPMENT CENTER', pageWidth / 2, 53, { align: 'center' });
+    doc.setTextColor(deepBlue[0], deepBlue[1], deepBlue[2]);
+    doc.text('DEAN OF STUDENT AFFAIRS', pageWidth / 2, 53, { align: 'center' });
     
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8);
     doc.setTextColor(slate[0], slate[1], slate[2]);
     doc.text('University of Jordan', pageWidth / 2, 59, { align: 'center' });
 
-    doc.setFillColor(deepGreen[0], deepGreen[1], deepGreen[2]);
+    doc.setFillColor(deepBlue[0], deepBlue[1], deepBlue[2]);
     doc.roundedRect(pageWidth / 2 - 60, 64, 120, 14, 3, 3, 'F');
     
     doc.setFont('helvetica', 'bold');
@@ -151,11 +151,11 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(20);
-    doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
+    doc.setTextColor(deepBlue[0], deepBlue[1], deepBlue[2]);
     doc.text(data.volunteerName, pageWidth / 2, 102, { align: 'center' });
     
     const nameWidth = doc.getTextWidth(data.volunteerName);
-    doc.setDrawColor(brightGreen[0], brightGreen[1], brightGreen[2]);
+    doc.setDrawColor(brightBlue[0], brightBlue[1], brightBlue[2]);
     doc.setLineWidth(1.2);
     doc.line(pageWidth / 2 - nameWidth / 2, 105, pageWidth / 2 + nameWidth / 2, 105);
 
@@ -166,7 +166,7 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(12);
-    doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
+    doc.setTextColor(deepBlue[0], deepBlue[1], deepBlue[2]);
     doc.text(data.opportunityTitle, pageWidth / 2, 123, { align: 'center' });
 
     // Details grid
@@ -193,7 +193,7 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
       
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(8);
-      doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
+      doc.setTextColor(deepBlue[0], deepBlue[1], deepBlue[2]);
       doc.text(card.value, x, detailsY + 7, { align: 'center' });
     });
 
@@ -231,14 +231,14 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
       doc.addImage(qrCodeBase64, 'PNG', qrX, qrY, qrSize, qrSize);
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(5);
-      doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
+      doc.setTextColor(deepBlue[0], deepBlue[1], deepBlue[2]);
       doc.text('Scan to Verify', qrX + qrSize / 2, qrY + qrSize + 5, { align: 'center' });
     } catch (error) {
       console.error('Could not generate QR code:', error);
     }
 
     // Footer
-    doc.setFillColor(deepGreen[0], deepGreen[1], deepGreen[2]);
+    doc.setFillColor(deepBlue[0], deepBlue[1], deepBlue[2]);
     doc.rect(0, pageHeight - 14, pageWidth, 14, 'F');
     
     doc.setFont('helvetica', 'normal');
@@ -249,11 +249,11 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     doc.text('This certificate validates genuine volunteer service', pageWidth / 2, pageHeight - 5, { align: 'center' });
 
   } else {
-    // Classic design
-    const primaryGreen = [0, 100, 60];
-    const accentRed = [180, 40, 40];
-    const goldAccent = [180, 140, 60];
-    const darkSlate = [30, 41, 59];
+    // Classic design - Dean of Student Affairs Theme
+    const primaryBlue = [25, 130, 160];
+    const accentGold = [234, 179, 8];
+    const goldAccent = [234, 179, 8];
+    const darkBlue = [20, 80, 100];
 
     doc.setFillColor(253, 251, 245);
     doc.rect(0, 0, pageWidth, pageHeight, 'F');
@@ -262,11 +262,11 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     doc.setLineWidth(4);
     doc.rect(8, 8, pageWidth - 16, pageHeight - 16, 'S');
 
-    doc.setDrawColor(30, 30, 30);
+    doc.setDrawColor(darkBlue[0], darkBlue[1], darkBlue[2]);
     doc.setLineWidth(1);
     doc.rect(14, 14, pageWidth - 28, pageHeight - 28, 'S');
 
-    doc.setDrawColor(goldAccent[0], goldAccent[1], goldAccent[2]);
+    doc.setDrawColor(accentGold[0], accentGold[1], accentGold[2]);
     doc.setLineWidth(0.5);
     doc.rect(18, 18, pageWidth - 36, pageHeight - 36, 'S');
 
@@ -279,8 +279,8 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
 
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
-    doc.setTextColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
-    doc.text('COMMUNITY SERVICE & DEVELOPMENT CENTER', pageWidth / 2, 58, { align: 'center' });
+    doc.setTextColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
+    doc.text('DEAN OF STUDENT AFFAIRS', pageWidth / 2, 58, { align: 'center' });
     
     doc.setFontSize(10);
     doc.setTextColor(100, 100, 100);
@@ -288,11 +288,11 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
 
     doc.setFont('times', 'bold');
     doc.setFontSize(36);
-    doc.setTextColor(darkSlate[0], darkSlate[1], darkSlate[2]);
+    doc.setTextColor(darkBlue[0], darkBlue[1], darkBlue[2]);
     doc.text('CERTIFICATE', pageWidth / 2, 80, { align: 'center' });
 
     doc.setFontSize(16);
-    doc.setTextColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
+    doc.setTextColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
     doc.text('OF VOLUNTEER SERVICE', pageWidth / 2, 89, { align: 'center' });
 
     doc.setDrawColor(goldAccent[0], goldAccent[1], goldAccent[2]);
@@ -306,7 +306,7 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
 
     doc.setFont('times', 'bold');
     doc.setFontSize(24);
-    doc.setTextColor(accentRed[0], accentRed[1], accentRed[2]);
+    doc.setTextColor(darkBlue[0], darkBlue[1], darkBlue[2]);
     doc.text(data.volunteerName, pageWidth / 2, 115, { align: 'center' });
 
     const nameWidth = doc.getTextWidth(data.volunteerName);
@@ -321,7 +321,7 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
 
     doc.setFont('times', 'bold');
     doc.setFontSize(14);
-    doc.setTextColor(darkSlate[0], darkSlate[1], darkSlate[2]);
+    doc.setTextColor(darkBlue[0], darkBlue[1], darkBlue[2]);
     doc.text(data.opportunityTitle, pageWidth / 2, 137, { align: 'center' });
 
     // Details section
@@ -345,7 +345,7 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     doc.setFont('helvetica', 'normal');
     doc.text('Hours Completed:', rightCol - 40, detailsY, { align: 'right' });
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
+    doc.setTextColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
     doc.text(` ${data.hours} Hours`, rightCol - 38, detailsY);
 
     doc.setFont('helvetica', 'normal');
@@ -383,7 +383,7 @@ async function generateCertificatePDFBuffer(data: CertificateData, design: 'clas
     }
 
     // Footer
-    doc.setFillColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
+    doc.setFillColor(primaryBlue[0], primaryBlue[1], primaryBlue[2]);
     doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
     
     doc.setFontSize(7);
