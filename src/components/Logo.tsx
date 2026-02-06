@@ -1,4 +1,4 @@
-import logo from '@/assets/logo.webp';
+import logo from '@/assets/logo-transparent.png';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';

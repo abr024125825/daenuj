@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
-import logoImage from '@/assets/logo.webp';
+import logoImage from '@/assets/logo-transparent.png';
 import QRCode from 'qrcode';
 
 interface CertificateData {
