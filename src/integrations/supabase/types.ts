@@ -1743,6 +1743,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      auto_assign_all_pending_exams: {
+        Args: { _assigned_by: string }
+        Returns: Json
+      }
+      auto_assign_volunteer_for_exam: {
+        Args: { _assigned_by: string; _assigned_role: string; _exam_id: string }
+        Returns: Json
+      }
       check_volunteer_exam_conflict: {
         Args: {
           _end_time: string

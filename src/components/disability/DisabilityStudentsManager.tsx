@@ -31,16 +31,22 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Search, User } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Search, User, FileSpreadsheet } from 'lucide-react';
 import { useDisabilityStudents, DisabilityStudent } from '@/hooks/useDisabilityStudents';
 import { useAuth } from '@/contexts/AuthContext';
+import { ExcelUploadDialog } from './ExcelUploadDialog';
+import { parseStudentsExcel, ParsedStudent } from '@/lib/excelParser';
+import { useToast } from '@/hooks/use-toast';
 
 export function DisabilityStudentsManager() {
   const { user } = useAuth();
   const { students, isLoading, addStudent, updateStudent, deleteStudent } = useDisabilityStudents();
 
+  const { toast } = useToast();
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<DisabilityStudent | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
@@ -125,6 +131,37 @@ export function DisabilityStudentsManager() {
     setDialogOpen(true);
   };
 
+  const handleBulkUpload = async (data: ParsedStudent[]) => {
+    if (!user) return;
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const student of data) {
+      try {
+        await addStudent.mutateAsync({
+          student_name: student.student_name,
+          university_id: student.university_id,
+          disability_type: student.disability_type || null,
+          disability_code: student.disability_code || null,
+          contact_phone: student.contact_phone || null,
+          contact_email: student.contact_email || null,
+          notes: student.notes || null,
+          is_active: true,
+          created_by: user.id,
+        });
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+    
+    toast({
+      title: 'تم الرفع',
+      description: `تم إضافة ${successCount} طالب${errorCount > 0 ? ` - فشل ${errorCount}` : ''}`,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -141,10 +178,16 @@ export function DisabilityStudentsManager() {
             <User className="h-5 w-5" />
             Students with Disabilities
           </CardTitle>
-          <Button onClick={openAddDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Student
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setUploadDialogOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              رفع من Excel
+            </Button>
+            <Button onClick={openAddDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Student
+            </Button>
+          </div>
         </div>
         <div className="relative mt-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -352,6 +395,15 @@ export function DisabilityStudentsManager() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Excel Upload Dialog */}
+        <ExcelUploadDialog
+          open={uploadDialogOpen}
+          onOpenChange={setUploadDialogOpen}
+          type="students"
+          onUpload={(data) => handleBulkUpload(data as ParsedStudent[])}
+          parseFile={parseStudentsExcel}
+        />
       </CardContent>
     </Card>
   );

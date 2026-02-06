@@ -124,6 +124,12 @@ export function useDisabilityExamAssignments(examId?: string, volunteerId?: stri
 
       if (error) throw error;
 
+      // Update exam status to 'assigned'
+      await supabase
+        .from('disability_exams')
+        .update({ status: 'assigned' })
+        .eq('id', assignment.exam_id);
+
       // Log the action
       await supabase.from('disability_exam_logs').insert({
         exam_id: assignment.exam_id,
@@ -208,6 +214,34 @@ export function useDisabilityExamAssignments(examId?: string, volunteerId?: stri
     },
   });
 
+  const autoAssignVolunteer = async (examId: string, assignedRole: SpecialNeedType, assignedBy: string) => {
+    const { data, error } = await supabase.rpc('auto_assign_volunteer_for_exam', {
+      _exam_id: examId,
+      _assigned_role: assignedRole,
+      _assigned_by: assignedBy,
+    });
+
+    if (error) throw error;
+    
+    queryClient.invalidateQueries({ queryKey: ['disability-exam-assignments'] });
+    queryClient.invalidateQueries({ queryKey: ['disability-exams'] });
+    
+    return data as { success: boolean; error?: string; volunteer_id?: string; volunteer_name?: string };
+  };
+
+  const autoAssignAllPending = async (assignedBy: string) => {
+    const { data, error } = await supabase.rpc('auto_assign_all_pending_exams', {
+      _assigned_by: assignedBy,
+    });
+
+    if (error) throw error;
+    
+    queryClient.invalidateQueries({ queryKey: ['disability-exam-assignments'] });
+    queryClient.invalidateQueries({ queryKey: ['disability-exams'] });
+    
+    return data as { success_count: number; fail_count: number };
+  };
+
   return {
     assignments,
     isLoading,
@@ -216,6 +250,8 @@ export function useDisabilityExamAssignments(examId?: string, volunteerId?: stri
     assignVolunteer,
     updateAssignment,
     removeAssignment,
+    autoAssignVolunteer,
+    autoAssignAllPending,
   };
 }
 

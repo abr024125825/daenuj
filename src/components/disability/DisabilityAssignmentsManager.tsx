@@ -48,8 +48,10 @@ import {
   AlertTriangle,
   CheckCircle,
   Users,
-  Wand2
+  Wand2,
+  Sparkles
 } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 import { useDisabilityExams, SpecialNeedType } from '@/hooks/useDisabilityExams';
 import { 
   useDisabilityExamAssignments, 
@@ -88,6 +90,8 @@ export function DisabilityAssignmentsManager() {
     checkConflict,
     assignVolunteer,
     removeAssignment,
+    autoAssignVolunteer,
+    autoAssignAllPending,
   } = useDisabilityExamAssignments();
 
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
@@ -97,6 +101,7 @@ export function DisabilityAssignmentsManager() {
   const [availableVolunteers, setAvailableVolunteers] = useState<AvailableVolunteer[]>([]);
   const [loadingVolunteers, setLoadingVolunteers] = useState(false);
   const [hasConflict, setHasConflict] = useState(false);
+  const [isAutoAssigning, setIsAutoAssigning] = useState(false);
   const [formData, setFormData] = useState({
     volunteer_id: '',
     assigned_role: '' as SpecialNeedType | '',
@@ -173,6 +178,55 @@ export function DisabilityAssignmentsManager() {
     setSelectedAssignmentId(null);
   };
 
+  const { toast } = useToast();
+
+  const handleAutoAssignAll = async () => {
+    if (!user) return;
+    
+    setIsAutoAssigning(true);
+    try {
+      const result = await autoAssignAllPending(user.id);
+      toast({
+        title: 'تم التوزيع التلقائي',
+        description: `تم تعيين ${result.success_count} متطوع${result.fail_count > 0 ? ` - فشل ${result.fail_count}` : ''}`,
+      });
+    } catch (error) {
+      toast({
+        title: 'خطأ',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAutoAssigning(false);
+    }
+  };
+
+  const handleAutoAssignSingle = async (examId: string, role: SpecialNeedType) => {
+    if (!user) return;
+    
+    try {
+      const result = await autoAssignVolunteer(examId, role, user.id);
+      if (result.success) {
+        toast({
+          title: 'تم التعيين',
+          description: `تم تعيين ${result.volunteer_name}`,
+        });
+      } else {
+        toast({
+          title: 'لم يتم العثور على متطوع',
+          description: result.error || 'لا يوجد متطوعين متاحين لهذا الوقت',
+          variant: 'destructive',
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'خطأ',
+        description: (error as Error).message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   // Group exams by those needing assignments
   const pendingExams = exams?.filter(e => e.status === 'pending') || [];
   const assignedExams = exams?.filter(e => e.status !== 'pending') || [];
@@ -192,18 +246,32 @@ export function DisabilityAssignmentsManager() {
       {/* Pending Assignments */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-yellow-500" />
-            Exams Needing Volunteers
-          </CardTitle>
-          <CardDescription>
-            {pendingExams.length} exam(s) waiting for volunteer assignment
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-warning" />
+                Exams Needing Volunteers
+              </CardTitle>
+              <CardDescription>
+                {pendingExams.length} exam(s) waiting for volunteer assignment
+              </CardDescription>
+            </div>
+            {pendingExams.length > 0 && (
+              <Button onClick={handleAutoAssignAll} disabled={isAutoAssigning}>
+                {isAutoAssigning ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Sparkles className="h-4 w-4 mr-2" />
+                )}
+                توزيع تلقائي للكل
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {pendingExams.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500 opacity-50" />
+              <CheckCircle className="h-12 w-12 mx-auto mb-4 text-primary opacity-50" />
               <p>All exams have volunteers assigned!</p>
             </div>
           ) : (
@@ -260,10 +328,24 @@ export function DisabilityAssignmentsManager() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" onClick={() => openAssignDialog(exam.id)}>
-                        <Plus className="h-4 w-4 mr-1" />
-                        Assign
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => {
+                            const firstNeed = exam.special_needs?.[0];
+                            if (firstNeed) handleAutoAssignSingle(exam.id, firstNeed);
+                          }}
+                          disabled={!exam.special_needs?.length}
+                          title="توزيع تلقائي"
+                        >
+                          <Sparkles className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" onClick={() => openAssignDialog(exam.id)}>
+                          <Plus className="h-4 w-4 mr-1" />
+                          Assign
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
