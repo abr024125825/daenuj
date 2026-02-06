@@ -33,8 +33,8 @@ const colors = {
   info: [59, 130, 246],
 };
 
-// Convert image to base64
-async function getLogoBase64(): Promise<string> {
+// Convert image to base64 with optional background color
+async function getLogoBase64(bgColor?: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
@@ -44,6 +44,10 @@ async function getLogoBase64(): Promise<string> {
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       if (ctx) {
+        if (bgColor) {
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
         ctx.drawImage(img, 0, 0);
         resolve(canvas.toDataURL('image/png'));
       } else {
