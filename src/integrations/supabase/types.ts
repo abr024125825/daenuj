@@ -1794,6 +1794,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_disability_coordinator: {
+        Args: { _user_id: string }
+        Returns: boolean
+      }
       is_faculty_coordinator: {
         Args: { _faculty_id: string; _user_id: string }
         Returns: boolean
@@ -1817,7 +1821,7 @@ export type Database = {
         | "assistive_technology"
         | "other"
       time_slot: "morning" | "afternoon" | "evening"
-      user_role: "admin" | "supervisor" | "volunteer"
+      user_role: "admin" | "supervisor" | "volunteer" | "disability_coordinator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1964,7 +1968,7 @@ export const Constants = {
         "other",
       ],
       time_slot: ["morning", "afternoon", "evening"],
-      user_role: ["admin", "supervisor", "volunteer"],
+      user_role: ["admin", "supervisor", "volunteer", "disability_coordinator"],
     },
   },
 } as const
