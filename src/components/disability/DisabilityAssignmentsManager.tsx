@@ -444,6 +444,7 @@ export function DisabilityAssignmentsManager() {
                   <TableHead>Course</TableHead>
                   <TableHead>Date & Time</TableHead>
                   <TableHead>Volunteer</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="w-36">Actions</TableHead>
@@ -455,6 +456,7 @@ export function DisabilityAssignmentsManager() {
                   const volunteerName = assignment.volunteer?.application
                     ? `${assignment.volunteer.application.first_name} ${assignment.volunteer.application.family_name}`
                     : 'Unknown';
+                  const volunteerType = assignment.volunteer?.volunteer_type || 'general';
 
                   return (
                     <TableRow key={assignment.id}>
@@ -464,6 +466,11 @@ export function DisabilityAssignmentsManager() {
                           <p className="text-xs text-muted-foreground">
                             ID: {assignment.exam?.student?.university_id}
                           </p>
+                          {assignment.exam?.student?.disability_type && (
+                            <p className="text-xs text-muted-foreground">
+                              {assignment.exam.student.disability_type}
+                            </p>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -487,7 +494,19 @@ export function DisabilityAssignmentsManager() {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="default">
+                        <Badge 
+                          variant={volunteerType === 'employment' ? 'default' : 'secondary'}
+                          className="gap-1"
+                        >
+                          {volunteerType === 'employment' ? (
+                            <><Briefcase className="h-3 w-3" /> Employment</>
+                          ) : (
+                            <><User className="h-3 w-3" /> General</>
+                          )}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
                           {ROLE_LABELS[assignment.assigned_role] || assignment.assigned_role}
                         </Badge>
                       </TableCell>
@@ -574,26 +593,44 @@ export function DisabilityAssignmentsManager() {
                       </AlertDescription>
                     </Alert>
                   ) : (
-                    <Select
-                      value={formData.volunteer_id}
-                      onValueChange={handleVolunteerSelect}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a volunteer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableVolunteers.map((volunteer) => (
-                          <SelectItem key={volunteer.volunteer_id} value={volunteer.volunteer_id}>
-                            {volunteer.full_name}
-                            {volunteer.availability_score === 100 && (
-                              <Badge variant="secondary" className="ml-2 text-xs">
-                                Available
-                              </Badge>
-                            )}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <>
+                      <Select
+                        value={formData.volunteer_id}
+                        onValueChange={handleVolunteerSelect}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a volunteer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableVolunteers.map((volunteer) => (
+                            <SelectItem key={volunteer.volunteer_id} value={volunteer.volunteer_id}>
+                              <div className="flex items-center gap-2">
+                                <span>{volunteer.full_name}</span>
+                                {volunteer.volunteer_type === 'employment' ? (
+                                  <Badge variant="default" className="text-xs gap-1">
+                                    <Briefcase className="h-3 w-3" />
+                                    Emp
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="secondary" className="text-xs gap-1">
+                                    <User className="h-3 w-3" />
+                                    Gen
+                                  </Badge>
+                                )}
+                                {volunteer.availability_score === 100 && (
+                                  <Badge variant="outline" className="text-xs text-green-600 border-green-600">
+                                    Free
+                                  </Badge>
+                                )}
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <p className="text-xs text-muted-foreground">
+                        <span className="font-medium">Emp</span> = Employment (Mandatory) | <span className="font-medium">Gen</span> = General (Optional)
+                      </p>
+                    </>
                   )}
                 </div>
 
