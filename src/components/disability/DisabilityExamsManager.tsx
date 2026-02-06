@@ -38,12 +38,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Search, FileText, Calendar, Clock } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Search, FileText, Calendar, Clock, FileSpreadsheet } from 'lucide-react';
 import { useDisabilityExams, DisabilityExam, SpecialNeedType } from '@/hooks/useDisabilityExams';
 import { useDisabilityStudents } from '@/hooks/useDisabilityStudents';
 import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
+import { ExcelUploadDialog } from './ExcelUploadDialog';
+import { parseExamsExcel, ParsedExam } from '@/lib/excelParser';
+import { useToast } from '@/hooks/use-toast';
 
 const SPECIAL_NEEDS: { value: SpecialNeedType; label: string }[] = [
   { value: 'reader', label: 'Reader' },
@@ -65,12 +68,14 @@ const STATUS_CONFIG = {
 
 export function DisabilityExamsManager() {
   const { user } = useAuth();
+  const { toast } = useToast();
   const { activeSemester } = useAcademicSemesters();
   const { exams, isLoading, addExam, updateExam, deleteExam } = useDisabilityExams(activeSemester?.id);
   const { students } = useDisabilityStudents();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [selectedExam, setSelectedExam] = useState<DisabilityExam | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [formData, setFormData] = useState({
@@ -179,6 +184,49 @@ export function DisabilityExamsManager() {
     }));
   };
 
+  const handleBulkUpload = async (data: ParsedExam[]) => {
+    if (!user || !activeSemester) return;
+    
+    let successCount = 0;
+    let errorCount = 0;
+    
+    for (const exam of data) {
+      // Find student by university_id
+      const student = students?.find(s => s.university_id === exam.student_university_id);
+      if (!student) {
+        errorCount++;
+        continue;
+      }
+      
+      try {
+        await addExam.mutateAsync({
+          student_id: student.id,
+          course_name: exam.course_name,
+          course_code: exam.course_code || null,
+          exam_date: exam.exam_date,
+          start_time: exam.start_time,
+          end_time: exam.end_time,
+          duration_minutes: exam.duration_minutes,
+          extra_time_minutes: exam.extra_time_minutes || 0,
+          location: exam.location || null,
+          special_needs: (exam.special_needs || []) as SpecialNeedType[],
+          special_needs_notes: exam.special_needs_notes || null,
+          semester_id: activeSemester.id,
+          status: 'pending',
+          created_by: user.id,
+        });
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+    
+    toast({
+      title: 'تم الرفع',
+      description: `تم إضافة ${successCount} امتحان${errorCount > 0 ? ` - فشل ${errorCount}` : ''}`,
+    });
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -195,10 +243,16 @@ export function DisabilityExamsManager() {
             <FileText className="h-5 w-5" />
             Disability Exams
           </CardTitle>
-          <Button onClick={openAddDialog}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Exam
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setUploadDialogOpen(true)}>
+              <FileSpreadsheet className="h-4 w-4 mr-2" />
+              رفع من Excel
+            </Button>
+            <Button onClick={openAddDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Exam
+            </Button>
+          </div>
         </div>
         <div className="relative mt-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -493,6 +547,15 @@ export function DisabilityExamsManager() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Excel Upload Dialog */}
+        <ExcelUploadDialog
+          open={uploadDialogOpen}
+          onOpenChange={setUploadDialogOpen}
+          type="exams"
+          onUpload={(data) => handleBulkUpload(data as ParsedExam[])}
+          parseFile={parseExamsExcel}
+        />
       </CardContent>
     </Card>
   );
