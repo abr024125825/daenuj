@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { DisabilityStudentsManager } from '@/components/disability/DisabilityStudentsManager';
 import { DisabilityExamsManager } from '@/components/disability/DisabilityExamsManager';
 import { DisabilityAssignmentsManager } from '@/components/disability/DisabilityAssignmentsManager';
-import { DisabilityExamLogsViewer } from '@/components/disability/DisabilityExamLogsViewer';
 import { DisabilityStatsOverview } from '@/components/disability/DisabilityStatsOverview';
 import { DisabilityExamCalendar } from '@/components/disability/DisabilityExamCalendar';
 import { DisabilityCoordinatorManagement } from '@/components/disability/DisabilityCoordinatorManagement';
@@ -18,7 +17,6 @@ import {
   Users, 
   FileText, 
   UserCheck, 
-  History, 
   BarChart3, 
   Calendar, 
   UserCog,
@@ -84,7 +82,7 @@ export function DisabilityExamsPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-6'}`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'}`}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -104,10 +102,6 @@ export function DisabilityExamsPage() {
             <TabsTrigger value="assignments" className="flex items-center gap-2">
               <UserCheck className="h-4 w-4" />
               <span className="hidden sm:inline">Assignments</span>
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2">
-              <History className="h-4 w-4" />
-              <span className="hidden sm:inline">Logs</span>
             </TabsTrigger>
             {isAdmin && (
               <TabsTrigger value="coordinators" className="flex items-center gap-2">
@@ -135,10 +129,6 @@ export function DisabilityExamsPage() {
 
           <TabsContent value="assignments" className="mt-6">
             <DisabilityAssignmentsManager />
-          </TabsContent>
-
-          <TabsContent value="logs" className="mt-6">
-            <DisabilityExamLogsViewer />
           </TabsContent>
 
           {isAdmin && (
