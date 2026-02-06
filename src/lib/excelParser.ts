@@ -214,7 +214,12 @@ export function generateStudentsTemplate(): void {
   XLSX.writeFile(wb, 'disability_students_template.xlsx');
 }
 
-export function generateExamsTemplate(): void {
+export interface StudentOption {
+  university_id: string;
+  student_name: string;
+}
+
+export function generateExamsTemplate(students: StudentOption[] = []): void {
   const headers = [
     'Student ID / الرقم الجامعي',
     'Course Name / اسم المادة',
@@ -226,19 +231,144 @@ export function generateExamsTemplate(): void {
     'Extra Time (min) / وقت إضافي',
     'Location / المكان',
     'Special Needs / الاحتياجات',
-    'Notes / ملاحظات',
   ];
   
-  const sampleData = [
-    ['12345678', 'Introduction to Programming', 'CS101', '2025-03-15', '09:00', '11:00', '120', '30', 'Room 101', 'reader,scribe', 'يحتاج قارئ وكاتب'],
+  // Create main worksheet
+  const ws = XLSX.utils.aoa_to_sheet([headers]);
+  
+  // Predefined options
+  const specialNeedsOptions = [
+    'reader',
+    'scribe', 
+    'sign_language',
+    'extra_time',
+    'separate_room',
+    'computer',
+    'large_print',
+    'reader,scribe',
+    'reader,extra_time',
+    'scribe,extra_time',
   ];
   
-  const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Exams');
+  const durationOptions = ['30', '45', '60', '90', '120', '150', '180'];
+  const extraTimeOptions = ['0', '15', '30', '45', '60', '90'];
+  const commonLocations = ['Room 101', 'Room 102', 'Room 103', 'Lab A', 'Lab B', 'Main Hall'];
+  const timeSlots = [
+    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', 
+    '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
+    '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'
+  ];
+  
+  // Create a reference sheet for dropdown data
+  const refData: string[][] = [];
+  const maxRows = Math.max(
+    students.length, 
+    specialNeedsOptions.length, 
+    durationOptions.length,
+    extraTimeOptions.length,
+    commonLocations.length,
+    timeSlots.length
+  );
+  
+  // Headers for reference sheet
+  refData.push(['Students', 'Special Needs', 'Duration', 'Extra Time', 'Locations', 'Time Slots']);
+  
+  for (let i = 0; i < maxRows; i++) {
+    refData.push([
+      students[i] ? `${students[i].university_id} - ${students[i].student_name}` : '',
+      specialNeedsOptions[i] || '',
+      durationOptions[i] || '',
+      extraTimeOptions[i] || '',
+      commonLocations[i] || '',
+      timeSlots[i] || '',
+    ]);
+  }
+  
+  const refWs = XLSX.utils.aoa_to_sheet(refData);
+  
+  // Add data validation for dropdowns (using Excel formulas)
+  const dataRows = 100; // Pre-create validations for 100 rows
+  
+  if (students.length > 0) {
+    // Student ID dropdown (Column A)
+    for (let row = 2; row <= dataRows + 1; row++) {
+      const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: 0 });
+      if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
+      ws[cellRef].s = { alignment: { horizontal: 'center' } };
+    }
+  }
   
   // Set column widths
-  ws['!cols'] = headers.map(() => ({ wch: 25 }));
+  ws['!cols'] = [
+    { wch: 35 }, // Student ID
+    { wch: 30 }, // Course Name
+    { wch: 15 }, // Course Code
+    { wch: 15 }, // Date
+    { wch: 12 }, // Start Time
+    { wch: 12 }, // End Time
+    { wch: 12 }, // Duration
+    { wch: 12 }, // Extra Time
+    { wch: 15 }, // Location
+    { wch: 25 }, // Special Needs
+  ];
+  
+  refWs['!cols'] = [
+    { wch: 40 },
+    { wch: 20 },
+    { wch: 12 },
+    { wch: 12 },
+    { wch: 15 },
+    { wch: 12 },
+  ];
+  
+  // Add sample data row with instructions
+  const sampleRow = students.length > 0 
+    ? [`${students[0].university_id} - ${students[0].student_name}`, 'Introduction to CS', 'CS101', '2025-03-15', '09:00', '11:00', '120', '30', 'Room 101', 'reader,scribe']
+    : ['12345678', 'Introduction to CS', 'CS101', '2025-03-15', '09:00', '11:00', '120', '30', 'Room 101', 'reader,scribe'];
+  
+  XLSX.utils.sheet_add_aoa(ws, [sampleRow], { origin: 'A2' });
+  
+  // Create workbook
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Exams');
+  XLSX.utils.book_append_sheet(wb, refWs, 'Reference Data');
+  
+  // Add instructions sheet
+  const instructionsData = [
+    ['INSTRUCTIONS / تعليمات'],
+    [''],
+    ['1. Student ID: Copy from "Reference Data" sheet, Column A (Students)'],
+    ['   الرقم الجامعي: انسخ من ورقة "Reference Data"، العمود A'],
+    [''],
+    ['2. Course Name: Enter the course name'],
+    ['   اسم المادة: أدخل اسم المادة'],
+    [''],
+    ['3. Course Code: Enter the course code (optional)'],
+    ['   رمز المادة: أدخل رمز المادة (اختياري)'],
+    [''],
+    ['4. Exam Date: Use format YYYY-MM-DD (e.g., 2025-03-15)'],
+    ['   تاريخ الامتحان: استخدم صيغة YYYY-MM-DD'],
+    [''],
+    ['5. Start/End Time: Use 24h format HH:MM (e.g., 09:00)'],
+    ['   الوقت: استخدم صيغة 24 ساعة HH:MM'],
+    [''],
+    ['6. Duration: Select from Reference Data sheet'],
+    ['   المدة: اختر من ورقة Reference Data'],
+    [''],
+    ['7. Special Needs Options:'],
+    ['   reader - قارئ'],
+    ['   scribe - كاتب'],
+    ['   sign_language - لغة إشارة'],
+    ['   extra_time - وقت إضافي'],
+    ['   separate_room - غرفة منفصلة'],
+    ['   computer - حاسوب'],
+    ['   large_print - طباعة كبيرة'],
+    ['   (Use comma to combine, e.g., reader,scribe)'],
+  ];
+  
+  const instructionsWs = XLSX.utils.aoa_to_sheet(instructionsData);
+  instructionsWs['!cols'] = [{ wch: 60 }];
+  XLSX.utils.book_append_sheet(wb, instructionsWs, 'Instructions');
   
   XLSX.writeFile(wb, 'disability_exams_template.xlsx');
 }

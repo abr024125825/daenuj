@@ -20,7 +20,7 @@ import {
   AlertTriangle,
   X
 } from 'lucide-react';
-import { ParsedStudent, ParsedExam, generateStudentsTemplate, generateExamsTemplate } from '@/lib/excelParser';
+import { ParsedStudent, ParsedExam, generateStudentsTemplate, generateExamsTemplate, StudentOption } from '@/lib/excelParser';
 
 interface ExcelUploadDialogProps {
   open: boolean;
@@ -28,6 +28,7 @@ interface ExcelUploadDialogProps {
   type: 'students' | 'exams';
   onUpload: (data: ParsedStudent[] | ParsedExam[]) => Promise<void>;
   parseFile: (file: File) => Promise<ParsedStudent[] | ParsedExam[]>;
+  students?: StudentOption[];
 }
 
 export function ExcelUploadDialog({ 
@@ -35,7 +36,8 @@ export function ExcelUploadDialog({
   onOpenChange, 
   type, 
   onUpload,
-  parseFile 
+  parseFile,
+  students = [],
 }: ExcelUploadDialogProps) {
   const [file, setFile] = useState<File | null>(null);
   const [parsedData, setParsedData] = useState<ParsedStudent[] | ParsedExam[] | null>(null);
@@ -86,7 +88,7 @@ export function ExcelUploadDialog({
     if (type === 'students') {
       generateStudentsTemplate();
     } else {
-      generateExamsTemplate();
+      generateExamsTemplate(students);
     }
   };
 
