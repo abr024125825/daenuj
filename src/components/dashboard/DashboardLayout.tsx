@@ -22,6 +22,8 @@ import {
   Shield,
   BookOpen,
   IdCard,
+  Accessibility,
+  HandHeart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -49,6 +51,7 @@ const adminNavItems: NavItem[] = [
   { icon: Shield, label: 'Verification Logs', href: '/dashboard/certificate-verifications' },
   { icon: MessageSquare, label: 'Evaluations', href: '/dashboard/evaluations' },
   { icon: GraduationCap, label: 'Training', href: '/dashboard/training' },
+  { icon: Accessibility, label: 'Disability Exams', href: '/dashboard/disability-exams' },
   { icon: BarChart3, label: 'Reports', href: '/dashboard/reports' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
@@ -70,6 +73,7 @@ const volunteerNavItems: NavItem[] = [
   { icon: BookOpen, label: 'Schedule', href: '/dashboard/schedule' },
   { icon: Award, label: 'My Certificates', href: '/dashboard/certificates' },
   { icon: GraduationCap, label: 'Training', href: '/dashboard/training' },
+  { icon: HandHeart, label: 'Disability Support', href: '/dashboard/my-disability-assignments' },
   { icon: Bell, label: 'Notifications', href: '/dashboard/notifications', badge: 3 },
 ];
 

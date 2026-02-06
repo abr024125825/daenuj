@@ -570,6 +570,237 @@ export type Database = {
           },
         ]
       }
+      disability_exam_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          assigned_role: Database["public"]["Enums"]["special_need_type"]
+          completed_at: string | null
+          confirmed_at: string | null
+          exam_id: string
+          id: string
+          notes: string | null
+          status: Database["public"]["Enums"]["disability_exam_status"]
+          volunteer_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          assigned_role: Database["public"]["Enums"]["special_need_type"]
+          completed_at?: string | null
+          confirmed_at?: string | null
+          exam_id: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["disability_exam_status"]
+          volunteer_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          assigned_role?: Database["public"]["Enums"]["special_need_type"]
+          completed_at?: string | null
+          confirmed_at?: string | null
+          exam_id?: string
+          id?: string
+          notes?: string | null
+          status?: Database["public"]["Enums"]["disability_exam_status"]
+          volunteer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disability_exam_assignments_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "disability_exams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disability_exam_assignments_volunteer_id_fkey"
+            columns: ["volunteer_id"]
+            isOneToOne: false
+            referencedRelation: "volunteers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disability_exam_logs: {
+        Row: {
+          action: string
+          assignment_id: string | null
+          exam_id: string | null
+          id: string
+          ip_address: string | null
+          new_value: Json | null
+          old_value: Json | null
+          performed_at: string
+          performed_by: string
+        }
+        Insert: {
+          action: string
+          assignment_id?: string | null
+          exam_id?: string | null
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_at?: string
+          performed_by: string
+        }
+        Update: {
+          action?: string
+          assignment_id?: string | null
+          exam_id?: string | null
+          id?: string
+          ip_address?: string | null
+          new_value?: Json | null
+          old_value?: Json | null
+          performed_at?: string
+          performed_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disability_exam_logs_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "disability_exam_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disability_exam_logs_exam_id_fkey"
+            columns: ["exam_id"]
+            isOneToOne: false
+            referencedRelation: "disability_exams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disability_exams: {
+        Row: {
+          course_code: string | null
+          course_name: string
+          created_at: string
+          created_by: string
+          duration_minutes: number
+          end_time: string
+          exam_date: string
+          extra_time_minutes: number | null
+          id: string
+          location: string | null
+          semester_id: string | null
+          special_needs:
+            | Database["public"]["Enums"]["special_need_type"][]
+            | null
+          special_needs_notes: string | null
+          start_time: string
+          status: Database["public"]["Enums"]["disability_exam_status"]
+          student_id: string
+          updated_at: string
+        }
+        Insert: {
+          course_code?: string | null
+          course_name: string
+          created_at?: string
+          created_by: string
+          duration_minutes: number
+          end_time: string
+          exam_date: string
+          extra_time_minutes?: number | null
+          id?: string
+          location?: string | null
+          semester_id?: string | null
+          special_needs?:
+            | Database["public"]["Enums"]["special_need_type"][]
+            | null
+          special_needs_notes?: string | null
+          start_time: string
+          status?: Database["public"]["Enums"]["disability_exam_status"]
+          student_id: string
+          updated_at?: string
+        }
+        Update: {
+          course_code?: string | null
+          course_name?: string
+          created_at?: string
+          created_by?: string
+          duration_minutes?: number
+          end_time?: string
+          exam_date?: string
+          extra_time_minutes?: number | null
+          id?: string
+          location?: string | null
+          semester_id?: string | null
+          special_needs?:
+            | Database["public"]["Enums"]["special_need_type"][]
+            | null
+          special_needs_notes?: string | null
+          start_time?: string
+          status?: Database["public"]["Enums"]["disability_exam_status"]
+          student_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disability_exams_semester_id_fkey"
+            columns: ["semester_id"]
+            isOneToOne: false
+            referencedRelation: "academic_semesters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "disability_exams_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "disability_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      disability_students: {
+        Row: {
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string
+          disability_code: string | null
+          disability_type: string | null
+          id: string
+          is_active: boolean | null
+          notes: string | null
+          student_name: string
+          university_id: string
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by: string
+          disability_code?: string | null
+          disability_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          student_name: string
+          university_id: string
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string
+          disability_code?: string | null
+          disability_type?: string | null
+          id?: string
+          is_active?: boolean | null
+          notes?: string | null
+          student_name?: string
+          university_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       evaluations: {
         Row: {
           comments: string | null
@@ -1512,12 +1743,31 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_volunteer_exam_conflict: {
+        Args: {
+          _end_time: string
+          _exam_date: string
+          _exclude_assignment_id?: string
+          _start_time: string
+          _volunteer_id: string
+        }
+        Returns: boolean
+      }
       generate_achievement_cert_number: { Args: never; Returns: string }
       generate_badge_code: { Args: never; Returns: string }
       generate_certificate_number: { Args: never; Returns: string }
       get_application_faculty_id: {
         Args: { _application_id: string }
         Returns: string
+      }
+      get_available_volunteers_for_exam: {
+        Args: { _end_time: string; _exam_date: string; _start_time: string }
+        Returns: {
+          availability_score: number
+          full_name: string
+          user_id: string
+          volunteer_id: string
+        }[]
       }
       get_user_faculty_id: { Args: { _user_id: string }; Returns: string }
       get_user_role: {
@@ -1543,7 +1793,21 @@ export type Database = {
     }
     Enums: {
       application_status: "pending" | "approved" | "rejected" | "waitlisted"
+      disability_exam_status:
+        | "pending"
+        | "assigned"
+        | "confirmed"
+        | "completed"
+        | "cancelled"
       opportunity_status: "draft" | "published" | "completed"
+      special_need_type:
+        | "reader"
+        | "extra_time"
+        | "companion"
+        | "scribe"
+        | "separate_room"
+        | "assistive_technology"
+        | "other"
       time_slot: "morning" | "afternoon" | "evening"
       user_role: "admin" | "supervisor" | "volunteer"
     }
@@ -1674,7 +1938,23 @@ export const Constants = {
   public: {
     Enums: {
       application_status: ["pending", "approved", "rejected", "waitlisted"],
+      disability_exam_status: [
+        "pending",
+        "assigned",
+        "confirmed",
+        "completed",
+        "cancelled",
+      ],
       opportunity_status: ["draft", "published", "completed"],
+      special_need_type: [
+        "reader",
+        "extra_time",
+        "companion",
+        "scribe",
+        "separate_room",
+        "assistive_technology",
+        "other",
+      ],
       time_slot: ["morning", "afternoon", "evening"],
       user_role: ["admin", "supervisor", "volunteer"],
     },

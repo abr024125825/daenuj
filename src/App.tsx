@@ -31,6 +31,10 @@ import { FacultyApplicationsPage } from "./pages/faculty/FacultyApplicationsPage
 import { FacultySchedulesPage } from "./pages/faculty/FacultySchedulesPage";
 import { FacultyReportsPage } from "./pages/faculty/FacultyReportsPage";
 
+// Disability Exams Pages
+import { DisabilityExamsPage } from "./pages/admin/DisabilityExamsPage";
+import { MyDisabilityAssignmentsPage } from "./pages/volunteer/MyDisabilityAssignmentsPage";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -73,6 +77,10 @@ const App = () => (
             <Route path="/dashboard/faculty-applications" element={<FacultyApplicationsPage />} />
             <Route path="/dashboard/faculty-schedules" element={<FacultySchedulesPage />} />
             <Route path="/dashboard/faculty-reports" element={<FacultyReportsPage />} />
+            
+            {/* Disability Exams Routes */}
+            <Route path="/dashboard/disability-exams" element={<DisabilityExamsPage />} />
+            <Route path="/dashboard/my-disability-assignments" element={<MyDisabilityAssignmentsPage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
