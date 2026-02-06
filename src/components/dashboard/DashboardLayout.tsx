@@ -66,6 +66,13 @@ const facultyCoordinatorNavItems: NavItem[] = [
   { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
 ];
 
+// Disability coordinator - focused on disability exam management
+const disabilityCoordinatorNavItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: Accessibility, label: 'Disability Exams', href: '/dashboard/disability-exams' },
+  { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
+];
+
 const volunteerNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: Users, label: 'My Profile', href: '/dashboard/profile' },
@@ -85,10 +92,13 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
 
   // Determine navigation based on role and faculty assignment
   const isFacultyCoordinator = profile?.role === 'supervisor' && profile?.faculty_id;
+  const isDisabilityCoordinator = profile?.role === 'disability_coordinator';
   
   let navItems: NavItem[];
   if (profile?.role === 'admin') {
     navItems = adminNavItems;
+  } else if (isDisabilityCoordinator) {
+    navItems = disabilityCoordinatorNavItems;
   } else if (isFacultyCoordinator) {
     navItems = facultyCoordinatorNavItems;
   } else if (profile?.role === 'supervisor') {

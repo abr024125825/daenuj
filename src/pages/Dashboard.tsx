@@ -4,7 +4,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AdminDashboard } from '@/components/dashboard/AdminDashboard';
 import { SupervisorDashboard } from '@/components/dashboard/SupervisorDashboard';
 import { FacultyCoordinatorDashboard } from '@/components/dashboard/FacultyCoordinatorDashboard';
+import { DisabilityCoordinatorDashboard } from '@/components/dashboard/DisabilityCoordinatorDashboard';
 import { VolunteerDashboard } from '@/components/dashboard/VolunteerDashboard';
+import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Loader2 } from 'lucide-react';
 
 export default function Dashboard() {
@@ -36,6 +38,15 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Loading profile...</p>
         </div>
       </div>
+    );
+  }
+
+  // Disability coordinator gets their own dashboard
+  if (profile.role === 'disability_coordinator') {
+    return (
+      <DashboardLayout title="Disability Coordinator Dashboard">
+        <DisabilityCoordinatorDashboard />
+      </DashboardLayout>
     );
   }
 
