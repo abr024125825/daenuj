@@ -45,9 +45,9 @@ export function DisabilityExamsPage() {
     }
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (exams && assignments) {
-      exportDisabilityExamsToPDF({ exams, assignments });
+      await exportDisabilityExamsToPDF({ exams, assignments });
     }
   };
 

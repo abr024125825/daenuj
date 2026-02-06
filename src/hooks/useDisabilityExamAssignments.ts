@@ -31,6 +31,7 @@ export interface DisabilityExamAssignment {
   volunteer?: {
     id: string;
     user_id: string;
+    volunteer_type?: 'general' | 'employment';
     application?: {
       first_name: string;
       father_name: string;
@@ -44,6 +45,7 @@ export interface AvailableVolunteer {
   user_id: string;
   full_name: string;
   availability_score: number;
+  volunteer_type?: 'general' | 'employment';
 }
 
 export function useDisabilityExamAssignments(examId?: string, volunteerId?: string) {
@@ -62,7 +64,7 @@ export function useDisabilityExamAssignments(examId?: string, volunteerId?: stri
             student:disability_students(student_name, university_id, disability_type)
           ),
           volunteer:volunteers(
-            id, user_id,
+            id, user_id, volunteer_type,
             application:volunteer_applications(first_name, father_name, family_name)
           )
         `)

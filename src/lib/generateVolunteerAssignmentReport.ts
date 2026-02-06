@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
-import { format, startOfMonth, endOfMonth, eachMonthOfInterval } from 'date-fns';
+import { format } from 'date-fns';
+import logoImage from '@/assets/logo-transparent.png';
 
 interface AssignmentData {
   id: string;
@@ -32,6 +33,17 @@ interface VolunteerInfo {
   total_hours: number;
 }
 
+// Dean of Student Affairs Theme Colors
+const colors = {
+  primary: [25, 130, 160] as const,
+  secondary: [59, 160, 190] as const,
+  accent: [234, 179, 8] as const,
+  dark: [30, 41, 59] as const,
+  muted: [100, 116, 139] as const,
+  light: [248, 250, 252] as const,
+  white: [255, 255, 255] as const,
+};
+
 const ROLE_LABELS: Record<string, string> = {
   reader: 'Reader',
   extra_time: 'Extra Time Supervisor',
@@ -50,6 +62,32 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'Cancelled',
 };
 
+// Convert image to base64 with background color for PDF compatibility
+async function getLogoBase64(bgColor?: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        if (bgColor) {
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } else {
+        reject(new Error('Could not get canvas context'));
+      }
+    };
+    img.onerror = reject;
+    img.src = logoImage;
+  });
+}
+
 function calculateDurationHours(startTime: string, endTime: string): number {
   const [startHour, startMin] = startTime.split(':').map(Number);
   const [endHour, endMin] = endTime.split(':').map(Number);
@@ -60,7 +98,7 @@ function calculateDurationHours(startTime: string, endTime: string): number {
   return Math.max(0, (endMinutes - startMinutes) / 60);
 }
 
-export function generateVolunteerAssignmentReport(
+export async function generateVolunteerAssignmentReport(
   volunteer: VolunteerInfo,
   assignments: AssignmentData[],
   dateRange?: { start: Date; end: Date }
@@ -68,38 +106,73 @@ export function generateVolunteerAssignmentReport(
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 15;
   
-  // Header
-  doc.setFillColor(41, 65, 148);
-  doc.rect(0, 0, pageWidth, 35, 'F');
+  // Load logo with matching background
+  let logoBase64: string | null = null;
+  try {
+    logoBase64 = await getLogoBase64('#1982A0');
+  } catch (e) {
+    console.warn('Failed to load logo:', e);
+  }
   
+  // Header background
+  doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  doc.rect(0, 0, pageWidth, 45, 'F');
+  
+  // Gold accent line
+  doc.setFillColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+  doc.rect(0, 45, pageWidth, 3, 'F');
+  
+  // Logo
+  if (logoBase64) {
+    doc.addImage(logoBase64, 'PNG', margin, 8, 30, 30);
+  }
+  
+  // Header text
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(20);
-  doc.text('Volunteer Activity Report', pageWidth / 2, 18, { align: 'center' });
-  
-  doc.setFontSize(10);
-  doc.text(`Generated: ${format(new Date(), 'MMMM dd, yyyy HH:mm')}`, pageWidth / 2, 28, { align: 'center' });
-  
-  // Volunteer Info Section
-  doc.setTextColor(0, 0, 0);
-  doc.setFillColor(245, 245, 245);
-  doc.rect(14, 42, pageWidth - 28, 32, 'F');
-  
-  doc.setFontSize(14);
+  doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('Volunteer Information', 20, 52);
+  doc.text('Volunteer Activity Report', pageWidth / 2, 22, { align: 'center' });
   
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Name: ${volunteer.full_name}`, 20, 62);
-  doc.text(`Type: ${volunteer.volunteer_type === 'employment' ? 'Employment Program' : 'General Volunteer'}`, 20, 69);
+  doc.text('Dean of Student Affairs - University of Jordan', pageWidth / 2, 30, { align: 'center' });
+  doc.text(`Generated: ${format(new Date(), 'MMMM dd, yyyy HH:mm')}`, pageWidth / 2, 38, { align: 'center' });
   
+  let yPos = 58;
+  
+  // Volunteer Info Card
+  doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
+  doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 32, 3, 3, 'F');
+  
+  // Card border
+  doc.setDrawColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 32, 3, 3, 'S');
+  
+  doc.setTextColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Volunteer Information', margin + 5, yPos + 8);
+  
+  doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  
+  // Left column
+  doc.text(`Name: ${volunteer.full_name}`, margin + 5, yPos + 17);
+  doc.text(`Type: ${volunteer.volunteer_type === 'employment' ? 'Employment Program' : 'General Volunteer'}`, margin + 5, yPos + 25);
+  
+  // Right column
   if (volunteer.university_id) {
-    doc.text(`University ID: ${volunteer.university_id}`, 110, 62);
+    doc.text(`University ID: ${volunteer.university_id}`, pageWidth / 2, yPos + 17);
   }
   if (volunteer.faculty) {
-    doc.text(`Faculty: ${volunteer.faculty}`, 110, 69);
+    doc.text(`Faculty: ${volunteer.faculty}`, pageWidth / 2, yPos + 25);
   }
+  
+  yPos += 40;
   
   // Filter assignments by date range if provided
   let filteredAssignments = assignments;
@@ -119,17 +192,21 @@ export function generateVolunteerAssignmentReport(
     return sum;
   }, 0);
   
-  // Summary Statistics
-  doc.setFillColor(230, 240, 255);
-  doc.rect(14, 80, pageWidth - 28, 20, 'F');
+  // Summary Statistics Card
+  doc.setFillColor(colors.primary[0], colors.primary[1], colors.primary[2]);
+  doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 20, 3, 3, 'F');
   
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.text('Summary Statistics', 20, 90);
+  doc.text('Summary Statistics', margin + 5, yPos + 8);
   
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Total Assignments: ${filteredAssignments.length}`, 20, 97);
-  doc.text(`Completed: ${completedAssignments.length}`, 70, 97);
-  doc.text(`Total Hours: ${totalHours.toFixed(1)}`, 120, 97);
+  const statsText = `Total Assignments: ${filteredAssignments.length}  |  Completed: ${completedAssignments.length}  |  Total Hours: ${totalHours.toFixed(1)}`;
+  doc.text(statsText, margin + 5, yPos + 16);
+  
+  yPos += 28;
   
   // Group by month
   const months = new Map<string, AssignmentData[]>();
@@ -143,10 +220,8 @@ export function generateVolunteerAssignmentReport(
     }
   });
   
-  // Sort months
+  // Sort months (newest first)
   const sortedMonths = Array.from(months.entries()).sort((a, b) => b[0].localeCompare(a[0]));
-  
-  let yPos = 110;
   
   // Monthly breakdown
   sortedMonths.forEach(([monthKey, monthAssignments]) => {
@@ -159,79 +234,114 @@ export function generateVolunteerAssignmentReport(
     }, 0);
     
     // Check for page break
-    if (yPos > pageHeight - 60) {
+    if (yPos > pageHeight - 50) {
       doc.addPage();
-      yPos = 20;
+      yPos = margin;
     }
     
     // Month header
-    doc.setFillColor(41, 65, 148);
-    doc.setTextColor(255, 255, 255);
-    doc.rect(14, yPos, pageWidth - 28, 10, 'F');
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text(format(monthDate, 'MMMM yyyy'), 20, yPos + 7);
-    doc.text(`${monthAssignments.length} assignments | ${monthHours.toFixed(1)} hours`, pageWidth - 20, yPos + 7, { align: 'right' });
+    doc.setFillColor(colors.secondary[0], colors.secondary[1], colors.secondary[2]);
+    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 10, 2, 2, 'F');
     
-    yPos += 15;
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(format(monthDate, 'MMMM yyyy'), margin + 5, yPos + 7);
+    doc.text(`${monthAssignments.length} assignments | ${monthHours.toFixed(1)} hours`, pageWidth - margin - 5, yPos + 7, { align: 'right' });
+    
+    yPos += 14;
     
     // Table header
-    doc.setTextColor(100, 100, 100);
+    doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
+    doc.rect(margin, yPos, pageWidth - 2 * margin, 7, 'F');
+    
+    doc.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.text('Date', 16, yPos);
-    doc.text('Time', 38, yPos);
-    doc.text('Student', 60, yPos);
-    doc.text('Course', 100, yPos);
-    doc.text('Role', 145, yPos);
-    doc.text('Status', 175, yPos);
+    doc.text('Date', margin + 2, yPos + 5);
+    doc.text('Time', margin + 22, yPos + 5);
+    doc.text('Student', margin + 42, yPos + 5);
+    doc.text('Disability', margin + 82, yPos + 5);
+    doc.text('Course', margin + 110, yPos + 5);
+    doc.text('Role', margin + 148, yPos + 5);
+    doc.text('Status', margin + 175, yPos + 5);
     
-    yPos += 4;
-    doc.setDrawColor(200, 200, 200);
-    doc.line(14, yPos, pageWidth - 14, yPos);
-    yPos += 4;
+    yPos += 9;
     
     // Assignment rows
-    doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'normal');
     
-    monthAssignments.forEach(assignment => {
+    monthAssignments.forEach((assignment, idx) => {
       if (yPos > pageHeight - 20) {
         doc.addPage();
-        yPos = 20;
+        yPos = margin;
       }
+      
+      // Alternate row colors
+      if (idx % 2 === 0) {
+        doc.setFillColor(255, 255, 255);
+      } else {
+        doc.setFillColor(colors.light[0], colors.light[1], colors.light[2]);
+      }
+      doc.rect(margin, yPos - 3, pageWidth - 2 * margin, 7, 'F');
       
       const exam = assignment.exam;
       if (exam) {
-        doc.text(format(new Date(exam.exam_date), 'MMM dd'), 16, yPos);
-        doc.text(`${exam.start_time}-${exam.end_time}`, 38, yPos);
+        doc.setTextColor(colors.dark[0], colors.dark[1], colors.dark[2]);
+        doc.text(format(new Date(exam.exam_date), 'MMM dd'), margin + 2, yPos + 2);
+        doc.text(`${exam.start_time}-${exam.end_time}`, margin + 22, yPos + 2);
         
         // Student info (truncated)
         const studentName = exam.student?.student_name || '-';
-        const truncatedStudent = studentName.length > 20 ? studentName.substring(0, 18) + '..' : studentName;
-        doc.text(truncatedStudent, 60, yPos);
+        const truncatedStudent = studentName.length > 18 ? studentName.substring(0, 16) + '..' : studentName;
+        doc.text(truncatedStudent, margin + 42, yPos + 2);
+        
+        // Disability type
+        const disabilityType = exam.student?.disability_type || '-';
+        const truncatedDisability = disabilityType.length > 12 ? disabilityType.substring(0, 10) + '..' : disabilityType;
+        doc.text(truncatedDisability, margin + 82, yPos + 2);
         
         // Course (truncated)
-        const truncatedCourse = exam.course_name.length > 22 ? exam.course_name.substring(0, 20) + '..' : exam.course_name;
-        doc.text(truncatedCourse, 100, yPos);
+        const truncatedCourse = exam.course_name.length > 18 ? exam.course_name.substring(0, 16) + '..' : exam.course_name;
+        doc.text(truncatedCourse, margin + 110, yPos + 2);
         
-        doc.text(ROLE_LABELS[assignment.assigned_role] || assignment.assigned_role, 145, yPos);
-        doc.text(STATUS_LABELS[assignment.status] || assignment.status, 175, yPos);
+        // Role
+        const roleLabel = ROLE_LABELS[assignment.assigned_role] || assignment.assigned_role;
+        const truncatedRole = roleLabel.length > 12 ? roleLabel.substring(0, 10) + '..' : roleLabel;
+        doc.text(truncatedRole, margin + 148, yPos + 2);
         
-        yPos += 6;
+        // Status with color
+        const status = STATUS_LABELS[assignment.status] || assignment.status;
+        if (assignment.status === 'completed') {
+          doc.setTextColor(34, 197, 94);
+        } else if (assignment.status === 'cancelled') {
+          doc.setTextColor(239, 68, 68);
+        } else {
+          doc.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+        }
+        doc.text(status, margin + 175, yPos + 2);
+        
+        yPos += 7;
       }
     });
     
     yPos += 5;
   });
   
-  // Footer on last page
+  // Footer on all pages
   const totalPages = doc.getNumberOfPages();
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i);
+    
+    // Footer line
+    doc.setDrawColor(colors.accent[0], colors.accent[1], colors.accent[2]);
+    doc.setLineWidth(1);
+    doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+    
     doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
-    doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.setTextColor(colors.muted[0], colors.muted[1], colors.muted[2]);
+    doc.text('Dean of Student Affairs - University of Jordan', margin, pageHeight - 8);
+    doc.text(`Page ${i} of ${totalPages}`, pageWidth - margin, pageHeight - 8, { align: 'right' });
   }
   
   // Save
