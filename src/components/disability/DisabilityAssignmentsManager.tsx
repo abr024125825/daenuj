@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -49,17 +50,24 @@ import {
   CheckCircle,
   Users,
   Wand2,
-  Sparkles
+  Sparkles,
+  FileText,
+  UserMinus,
+  Eye,
+  Briefcase,
+  User
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDisabilityExams, SpecialNeedType } from '@/hooks/useDisabilityExams';
 import { 
   useDisabilityExamAssignments, 
-  AvailableVolunteer 
+  AvailableVolunteer,
+  DisabilityExamAssignment
 } from '@/hooks/useDisabilityExamAssignments';
 import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
+import { generateVolunteerAssignmentReport } from '@/lib/generateVolunteerAssignmentReport';
 
 const ROLE_LABELS: Record<SpecialNeedType, string> = {
   reader: 'Reader',
@@ -89,6 +97,7 @@ export function DisabilityAssignmentsManager() {
     getAvailableVolunteers,
     checkConflict,
     assignVolunteer,
+    updateAssignment,
     removeAssignment,
     autoAssignVolunteer,
     autoAssignAllPending,
@@ -96,12 +105,21 @@ export function DisabilityAssignmentsManager() {
 
   const [assignDialogOpen, setAssignDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [withdrawDialogOpen, setWithdrawDialogOpen] = useState(false);
+  const [availabilityDialogOpen, setAvailabilityDialogOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [selectedExamId, setSelectedExamId] = useState<string | null>(null);
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [selectedVolunteerForReport, setSelectedVolunteerForReport] = useState<{
+    id: string;
+    name: string;
+    type: 'general' | 'employment';
+  } | null>(null);
   const [availableVolunteers, setAvailableVolunteers] = useState<AvailableVolunteer[]>([]);
   const [loadingVolunteers, setLoadingVolunteers] = useState(false);
   const [hasConflict, setHasConflict] = useState(false);
   const [isAutoAssigning, setIsAutoAssigning] = useState(false);
+  const [withdrawalReason, setWithdrawalReason] = useState('');
   const [formData, setFormData] = useState({
     volunteer_id: '',
     assigned_role: '' as SpecialNeedType | '',
@@ -176,6 +194,52 @@ export function DisabilityAssignmentsManager() {
 
     setDeleteDialogOpen(false);
     setSelectedAssignmentId(null);
+  };
+
+  const handleWithdraw = async () => {
+    if (!user || !selectedAssignmentId) return;
+    
+    // Update the assignment status to cancelled with withdrawal reason
+    await updateAssignment.mutateAsync({
+      id: selectedAssignmentId,
+      status: 'cancelled',
+      notes: `Withdrawn: ${withdrawalReason}`,
+      performedBy: user.id,
+    });
+
+    setWithdrawDialogOpen(false);
+    setSelectedAssignmentId(null);
+    setWithdrawalReason('');
+    
+    toast({
+      title: 'Volunteer Withdrawn',
+      description: 'The volunteer has been withdrawn from this assignment.',
+    });
+  };
+
+  const openWithdrawDialog = (assignmentId: string) => {
+    setSelectedAssignmentId(assignmentId);
+    setWithdrawalReason('');
+    setWithdrawDialogOpen(true);
+  };
+
+  const handleDownloadReport = (assignment: DisabilityExamAssignment) => {
+    const volunteer = assignment.volunteer;
+    if (!volunteer) return;
+
+    const volunteerAssignments = assignments?.filter(a => a.volunteer_id === volunteer.id) || [];
+    
+    generateVolunteerAssignmentReport(
+      {
+        id: volunteer.id,
+        volunteer_type: 'general', // TODO: get from volunteer record
+        full_name: volunteer.application 
+          ? `${volunteer.application.first_name} ${volunteer.application.family_name}`
+          : 'Unknown',
+        total_hours: 0,
+      },
+      volunteerAssignments
+    );
   };
 
   const { toast } = useToast();
@@ -382,7 +446,7 @@ export function DisabilityAssignmentsManager() {
                   <TableHead>Volunteer</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="w-20">Actions</TableHead>
+                  <TableHead className="w-36">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -395,7 +459,12 @@ export function DisabilityAssignmentsManager() {
                   return (
                     <TableRow key={assignment.id}>
                       <TableCell>
-                        {assignment.exam?.student?.student_name}
+                        <div>
+                          <p className="font-medium">{assignment.exam?.student?.student_name}</p>
+                          <p className="text-xs text-muted-foreground">
+                            ID: {assignment.exam?.student?.university_id}
+                          </p>
+                        </div>
                       </TableCell>
                       <TableCell>
                         {assignment.exam?.course_name}
@@ -412,8 +481,10 @@ export function DisabilityAssignmentsManager() {
                           </Badge>
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">
-                        {volunteerName}
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{volunteerName}</p>
+                        </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="default">
@@ -426,16 +497,37 @@ export function DisabilityAssignmentsManager() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setSelectedAssignmentId(assignment.id);
-                            setDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Download Report"
+                            onClick={() => handleDownloadReport(assignment)}
+                          >
+                            <FileText className="h-4 w-4 text-primary" />
+                          </Button>
+                          {assignment.status !== 'cancelled' && assignment.status !== 'completed' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              title="Withdraw Volunteer"
+                              onClick={() => openWithdrawDialog(assignment.id)}
+                            >
+                              <UserMinus className="h-4 w-4 text-orange-500" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Remove Assignment"
+                            onClick={() => {
+                              setSelectedAssignmentId(assignment.id);
+                              setDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
@@ -585,6 +677,45 @@ export function DisabilityAssignmentsManager() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Withdraw Volunteer Dialog */}
+      <Dialog open={withdrawDialogOpen} onOpenChange={setWithdrawDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserMinus className="h-5 w-5 text-orange-500" />
+              Withdraw Volunteer
+            </DialogTitle>
+            <DialogDescription>
+              This will withdraw the volunteer from the assignment. The exam will need to be reassigned.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="withdrawal_reason">Reason for Withdrawal *</Label>
+              <Textarea
+                id="withdrawal_reason"
+                value={withdrawalReason}
+                onChange={(e) => setWithdrawalReason(e.target.value)}
+                placeholder="e.g., Schedule conflict, illness, personal reasons..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWithdrawDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleWithdraw}
+              disabled={!withdrawalReason.trim()}
+            >
+              Confirm Withdrawal
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

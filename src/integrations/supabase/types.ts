@@ -582,6 +582,9 @@ export type Database = {
           notes: string | null
           status: Database["public"]["Enums"]["disability_exam_status"]
           volunteer_id: string
+          withdrawal_reason: string | null
+          withdrawn_at: string | null
+          withdrawn_by: string | null
         }
         Insert: {
           assigned_at?: string
@@ -594,6 +597,9 @@ export type Database = {
           notes?: string | null
           status?: Database["public"]["Enums"]["disability_exam_status"]
           volunteer_id: string
+          withdrawal_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
         }
         Update: {
           assigned_at?: string
@@ -606,6 +612,9 @@ export type Database = {
           notes?: string | null
           status?: Database["public"]["Enums"]["disability_exam_status"]
           volunteer_id?: string
+          withdrawal_reason?: string | null
+          withdrawn_at?: string | null
+          withdrawn_by?: string | null
         }
         Relationships: [
           {
@@ -1694,6 +1703,7 @@ export type Database = {
           total_hours: number | null
           updated_at: string
           user_id: string
+          volunteer_type: string | null
         }
         Insert: {
           application_id: string
@@ -1707,6 +1717,7 @@ export type Database = {
           total_hours?: number | null
           updated_at?: string
           user_id: string
+          volunteer_type?: string | null
         }
         Update: {
           application_id?: string
@@ -1720,6 +1731,7 @@ export type Database = {
           total_hours?: number | null
           updated_at?: string
           user_id?: string
+          volunteer_type?: string | null
         }
         Relationships: [
           {
