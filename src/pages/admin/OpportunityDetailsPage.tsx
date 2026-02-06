@@ -839,12 +839,8 @@ export function OpportunityDetailsPage() {
 
         {/* Main Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-5">
             <TabsTrigger value="volunteers">Volunteers</TabsTrigger>
-            <TabsTrigger value="recommendations" className="gap-1">
-              <Sparkles className="h-3 w-3" />
-              Recommendations
-            </TabsTrigger>
             <TabsTrigger value="badges" className="gap-1">
               <IdCard className="h-3 w-3" />
               Badges

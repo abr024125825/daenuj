@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -32,6 +32,7 @@ import {
 import { useVolunteerBadges } from '@/hooks/useBadgeTransactions';
 import { useBadgeTransactions } from '@/hooks/useBadgeTransactions';
 import { format } from 'date-fns';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface BadgeStatusProps {
   volunteerId: string;
@@ -39,6 +40,7 @@ interface BadgeStatusProps {
 
 export function BadgeStatus({ volunteerId }: BadgeStatusProps) {
   const { badges, isLoading } = useVolunteerBadges(volunteerId);
+  const queryClient = useQueryClient();
   const [checkoutDialog, setCheckoutDialog] = useState<{ open: boolean; badge: any }>({
     open: false,
     badge: null,
@@ -65,6 +67,10 @@ export function BadgeStatus({ volunteerId }: BadgeStatusProps) {
         code: enteredCode.toUpperCase(),
         condition: checkoutCondition,
       });
+      
+      // Invalidate volunteer badges query to refresh the list
+      queryClient.invalidateQueries({ queryKey: ['volunteer-badges', volunteerId] });
+      
       setCheckoutDialog({ open: false, badge: null });
       setEnteredCode('');
       setCheckoutCondition('good');

@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logo.webp';
 
 interface ReportData {
   stats: {
@@ -99,7 +99,7 @@ export async function generateReportPDF(data: ReportData): Promise<void> {
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(9);
-  doc.text('Community Service & Development Center', 42, 40);
+  doc.text('Dean of Student Affairs', 42, 40);
   doc.text('University of Jordan', 42, 46);
 
   // Report date on right
@@ -303,7 +303,7 @@ export async function generateReportPDF(data: ReportData): Promise<void> {
   
   doc.setTextColor(colors.white[0], colors.white[1], colors.white[2]);
   doc.setFontSize(7);
-  doc.text('Community Service & Development Center - University of Jordan', pageWidth / 2, pageHeight - 8, { align: 'center' });
+  doc.text('Dean of Student Affairs - University of Jordan', pageWidth / 2, pageHeight - 8, { align: 'center' });
   doc.setFontSize(6);
   doc.text('This is an official report generated automatically', pageWidth / 2, pageHeight - 4, { align: 'center' });
 
