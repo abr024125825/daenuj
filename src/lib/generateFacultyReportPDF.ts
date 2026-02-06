@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import logoImage from '@/assets/logo.webp';
+import logoImage from '@/assets/logo-transparent.png';
 
 interface FacultyReportData {
   facultyName: string;
