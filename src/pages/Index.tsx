@@ -46,7 +46,7 @@ const Index = () => {
                   Make a <span className="text-primary">Difference</span> in Your Community
                 </h1>
                 <p className="text-lg text-muted-foreground mb-8 max-w-lg">
-                  Join the Community Service & Development Center and be part of a movement 
+                  Join the Dean of Student Affairs volunteer program and be part of a movement 
                   that transforms lives through volunteering. Your time and skills matter.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
@@ -156,7 +156,7 @@ const Index = () => {
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
               <Logo size="sm" />
               <p className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} Community Service & Development Center. University of Jordan.
+                © {new Date().getFullYear()} Dean of Student Affairs. University of Jordan.
               </p>
             </div>
           </div>

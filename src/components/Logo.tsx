@@ -1,4 +1,4 @@
-import logo from '@/assets/logo.png';
+import logo from '@/assets/logo.webp';
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -17,16 +17,16 @@ export function Logo({ size = 'md', showText = true }: LogoProps) {
     <div className="flex items-center gap-3">
       <img
         src={logo}
-        alt="Community Service Center Logo"
+        alt="Dean of Student Affairs Logo"
         className={`${sizeClasses[size]} object-contain`}
       />
       {showText && (
         <div className="flex flex-col">
           <span className="font-display font-bold text-foreground leading-tight">
-            Community Service
+            Dean of Student Affairs
           </span>
           <span className="font-display text-sm text-muted-foreground">
-            & Development Center
+            University of Jordan
           </span>
         </div>
       )}

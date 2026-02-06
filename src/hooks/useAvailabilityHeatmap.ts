@@ -54,22 +54,38 @@ export function useAvailabilityHeatmap(semesterId?: string, facultyId?: string) 
         .eq('semester_id', targetSemesterId)
         .in('volunteer_id', volunteerIds);
 
-      // Build availability map
+      // Build availability map - now considering partial hour blocks
       const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
       const hours = Array.from({ length: 12 }, (_, i) => i + 8); // 8 AM to 7 PM
 
+      // Track busy volunteers for each hour slot (any overlap counts as busy)
       const busyMap = new Map<string, Set<string>>();
 
       courses?.forEach(course => {
-        const startHour = parseInt(course.start_time.split(':')[0]);
-        const endHour = parseInt(course.end_time.split(':')[0]);
+        const startParts = course.start_time.split(':');
+        const endParts = course.end_time.split(':');
+        const startHour = parseInt(startParts[0]);
+        const startMinute = parseInt(startParts[1] || '0');
+        const endHour = parseInt(endParts[0]);
+        const endMinute = parseInt(endParts[1] || '0');
         
-        for (let h = startHour; h < endHour; h++) {
-          const key = `${course.day_of_week}-${h}`;
-          if (!busyMap.has(key)) {
-            busyMap.set(key, new Set());
+        // For each hour slot, check if the course overlaps with ANY part of it
+        // A volunteer is considered busy for an hour if they have ANY class time during that hour
+        for (let h = startHour; h <= endHour; h++) {
+          // Check if this hour slot has any overlap with the course
+          const slotStart = h * 60; // Start of this hour in minutes
+          const slotEnd = (h + 1) * 60; // End of this hour in minutes
+          const courseStart = startHour * 60 + startMinute;
+          const courseEnd = endHour * 60 + endMinute;
+          
+          // If the course overlaps with this hour slot at all, mark as busy
+          if (courseStart < slotEnd && courseEnd > slotStart) {
+            const key = `${course.day_of_week}-${h}`;
+            if (!busyMap.has(key)) {
+              busyMap.set(key, new Set());
+            }
+            busyMap.get(key)!.add(course.volunteer_id);
           }
-          busyMap.get(key)!.add(course.volunteer_id);
         }
       });
 

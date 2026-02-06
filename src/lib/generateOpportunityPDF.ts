@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logo.webp';
 
 async function getLogoBase64(): Promise<string> {
   return new Promise((resolve, reject) => {

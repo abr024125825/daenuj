@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import logoImage from '@/assets/logo.png';
+import logoImage from '@/assets/logo.webp';
 import QRCode from 'qrcode';
 
 interface CertificateData {
@@ -95,7 +95,7 @@ export async function generateCertificatePDF(data: CertificateData): Promise<voi
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
   doc.setTextColor(primaryGreen[0], primaryGreen[1], primaryGreen[2]);
-  doc.text('COMMUNITY SERVICE & DEVELOPMENT CENTER', pageWidth / 2, 58, { align: 'center' });
+  doc.text('DEAN OF STUDENT AFFAIRS', pageWidth / 2, 58, { align: 'center' });
   
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
@@ -303,7 +303,7 @@ export async function generateModernCertificatePDF(data: CertificateData): Promi
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.setTextColor(deepGreen[0], deepGreen[1], deepGreen[2]);
-  doc.text('COMMUNITY SERVICE & DEVELOPMENT CENTER', pageWidth / 2, 53, { align: 'center' });
+  doc.text('DEAN OF STUDENT AFFAIRS', pageWidth / 2, 53, { align: 'center' });
   
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
