@@ -61,10 +61,11 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
-        jordan: {
-          green: "hsl(var(--jordan-green))",
-          red: "hsl(var(--jordan-red))",
-          black: "hsl(var(--jordan-black))",
+        dsa: {
+          blue: "hsl(var(--dsa-blue))",
+          "light-blue": "hsl(var(--dsa-light-blue))",
+          "dark-blue": "hsl(var(--dsa-dark-blue))",
+          gold: "hsl(var(--dsa-gold))",
         },
         success: "hsl(var(--success))",
         warning: "hsl(var(--warning))",
@@ -100,8 +101,8 @@ export default {
           to: { opacity: "1", transform: "scale(1)" },
         },
         "pulse-glow": {
-          "0%, 100%": { boxShadow: "0 0 20px hsl(142 64% 32% / 0.3)" },
-          "50%": { boxShadow: "0 0 30px hsl(142 64% 32% / 0.5)" },
+          "0%, 100%": { boxShadow: "0 0 20px hsl(195 85% 42% / 0.3)" },
+          "50%": { boxShadow: "0 0 30px hsl(195 85% 42% / 0.5)" },
         },
       },
       animation: {
