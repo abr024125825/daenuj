@@ -23,7 +23,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Users, Search, Loader2, Eye, Clock, Award, Calendar, Star, 
-  UserCheck, UserX, Mail, Phone, GraduationCap, BookOpen
+  UserCheck, UserX, Mail, Phone, GraduationCap, BookOpen, FileText,
+  Briefcase, Heart
 } from 'lucide-react';
 import { useVolunteers, useVolunteerDetails, useToggleVolunteerActive } from '@/hooks/useVolunteers';
 import { useVolunteerCourses } from '@/hooks/useVolunteerCourses';
@@ -31,6 +32,8 @@ import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { generateVolunteerAssignmentReport } from '@/lib/generateVolunteerAssignmentReport';
+import { useDisabilityExamAssignments } from '@/hooks/useDisabilityExamAssignments';
 
 export function VolunteersPage() {
   const { volunteers, isLoading } = useVolunteers();
@@ -173,6 +176,7 @@ export function VolunteersPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Volunteer</TableHead>
+                  <TableHead>Type</TableHead>
                   <TableHead>University ID</TableHead>
                   <TableHead>Faculty</TableHead>
                   <TableHead>Hours</TableHead>
@@ -199,6 +203,19 @@ export function VolunteersPage() {
                           <p className="text-sm text-muted-foreground">{v.application?.university_email}</p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {v.volunteer_type === 'employment' ? (
+                        <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                          <Briefcase className="h-3 w-3 mr-1" />
+                          Employment
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                          <Heart className="h-3 w-3 mr-1" />
+                          General
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="font-mono">{v.application?.university_id}</TableCell>
                     <TableCell>{v.application?.faculty?.name}</TableCell>
@@ -229,15 +246,17 @@ export function VolunteersPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Button size="sm" variant="ghost" onClick={() => handleViewDetails(v.id)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button size="sm" variant="ghost" onClick={() => handleViewDetails(v.id)}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
                 {(!filteredVolunteers || filteredVolunteers.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                       No volunteers found
                     </TableCell>
                   </TableRow>
@@ -251,7 +270,24 @@ export function VolunteersPage() {
         <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
           <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Volunteer Details</DialogTitle>
+              <DialogTitle className="flex items-center justify-between">
+                <span>Volunteer Details</span>
+                {volunteer && (
+                  <div className="flex items-center gap-2">
+                    {volunteer.volunteer_type === 'employment' ? (
+                      <Badge variant="outline" className="bg-warning/10 text-warning border-warning/30">
+                        <Briefcase className="h-3 w-3 mr-1" />
+                        Student Employment
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30">
+                        <Heart className="h-3 w-3 mr-1" />
+                        General Volunteer
+                      </Badge>
+                    )}
+                  </div>
+                )}
+              </DialogTitle>
             </DialogHeader>
             {detailsLoading ? (
               <div className="flex items-center justify-center py-8">
@@ -264,6 +300,7 @@ export function VolunteersPage() {
                   <TabsTrigger value="schedule">Schedule</TabsTrigger>
                   <TabsTrigger value="activity">Activity History</TabsTrigger>
                   <TabsTrigger value="certificates">Certificates</TabsTrigger>
+                  <TabsTrigger value="disability">Disability Exams</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="info" className="space-y-4 mt-4">
@@ -421,6 +458,13 @@ export function VolunteersPage() {
                       <p className="text-center text-muted-foreground py-8">No certificates yet</p>
                     )}
                   </div>
+                </TabsContent>
+
+                <TabsContent value="disability" className="mt-4">
+                  <VolunteerDisabilityExamsView 
+                    volunteerId={selectedVolunteerId || ''} 
+                    volunteer={volunteer}
+                  />
                 </TabsContent>
               </Tabs>
             ) : null}
@@ -590,6 +634,124 @@ function VolunteerScheduleView({ volunteerId }: { volunteerId: string }) {
           </Table>
         </div>
       )}
+    </div>
+  );
+}
+
+// Component to display volunteer disability exam assignments
+function VolunteerDisabilityExamsView({ 
+  volunteerId, 
+  volunteer 
+}: { 
+  volunteerId: string; 
+  volunteer: any;
+}) {
+  const { assignments, isLoading } = useDisabilityExamAssignments(undefined, volunteerId);
+
+  const handleDownloadReport = async () => {
+    if (!volunteer || !assignments) return;
+    
+    const volunteerInfo = {
+      id: volunteerId,
+      volunteer_type: volunteer.volunteer_type || 'general',
+      full_name: `${volunteer.application?.first_name || ''} ${volunteer.application?.father_name || ''} ${volunteer.application?.family_name || ''}`.trim(),
+      university_id: volunteer.application?.university_id,
+      faculty: volunteer.application?.faculty?.name,
+      total_hours: volunteer.total_hours || 0,
+    };
+
+    const assignmentData = assignments.map(a => ({
+      id: a.id,
+      assigned_role: a.assigned_role,
+      status: a.status,
+      assigned_at: a.assigned_at,
+      completed_at: a.completed_at,
+      notes: a.notes,
+      exam: a.exam ? {
+        course_name: a.exam.course_name,
+        course_code: a.exam.course_code,
+        exam_date: a.exam.exam_date,
+        start_time: a.exam.start_time,
+        end_time: a.exam.end_time,
+        location: a.exam.location,
+        student: a.exam.student ? {
+          student_name: a.exam.student.student_name,
+          university_id: a.exam.student.university_id,
+          disability_type: a.exam.student.disability_type,
+        } : undefined,
+      } : undefined,
+    }));
+
+    await generateVolunteerAssignmentReport(volunteerInfo, assignmentData);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!assignments || assignments.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+        <p>No disability exam assignments yet</p>
+      </div>
+    );
+  }
+
+  const completedCount = assignments.filter(a => a.status === 'completed').length;
+  const totalHours = assignments
+    .filter(a => a.status === 'completed' && a.exam)
+    .reduce((sum, a) => {
+      if (!a.exam) return sum;
+      const [startH, startM] = a.exam.start_time.split(':').map(Number);
+      const [endH, endM] = a.exam.end_time.split(':').map(Number);
+      return sum + ((endH * 60 + endM) - (startH * 60 + startM)) / 60;
+    }, 0);
+
+  return (
+    <div className="space-y-4">
+      {/* Stats and Download Button */}
+      <div className="flex items-center justify-between">
+        <div className="flex gap-4">
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary">{assignments.length} Assignments</Badge>
+            <Badge variant="outline">{completedCount} Completed</Badge>
+            <Badge className="bg-primary/10 text-primary border-primary/30">{totalHours.toFixed(1)} hrs</Badge>
+          </div>
+        </div>
+        <Button size="sm" variant="outline" onClick={handleDownloadReport}>
+          <FileText className="h-4 w-4 mr-2" />
+          Download Report
+        </Button>
+      </div>
+
+      {/* Assignments List */}
+      <div className="space-y-2">
+        {assignments.map((assignment) => (
+          <div key={assignment.id} className="flex items-center gap-4 p-3 rounded-lg bg-muted/50">
+            <div className="flex-1">
+              <p className="font-medium">{assignment.exam?.course_name || 'Unknown Course'}</p>
+              <p className="text-sm text-muted-foreground">
+                {assignment.exam?.student?.student_name} • {assignment.exam?.exam_date ? format(new Date(assignment.exam.exam_date), 'MMM dd, yyyy') : ''}
+              </p>
+            </div>
+            <Badge variant="outline">{assignment.assigned_role}</Badge>
+            <Badge 
+              variant={
+                assignment.status === 'completed' ? 'default' : 
+                assignment.status === 'cancelled' ? 'destructive' : 
+                'secondary'
+              }
+            >
+              {assignment.status}
+            </Badge>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
