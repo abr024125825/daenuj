@@ -8,6 +8,7 @@ export interface ParsedStudent {
   contact_phone?: string;
   contact_email?: string;
   notes?: string;
+  special_needs?: string[];
 }
 
 export interface ParsedExam {
@@ -22,6 +23,12 @@ export interface ParsedExam {
   location?: string;
   special_needs?: string[];
   special_needs_notes?: string;
+}
+
+export interface StudentOption {
+  university_id: string;
+  student_name: string;
+  special_needs?: string[];
 }
 
 export function parseStudentsExcel(file: File): Promise<ParsedStudent[]> {
@@ -62,6 +69,12 @@ export function parseStudentsExcel(file: File): Promise<ParsedStudent[]> {
           const universityId = getValue(['id', 'university_id', 'رقم', 'الرقم الجامعي']);
           
           if (studentName && universityId) {
+            // Parse special needs (comma-separated)
+            const specialNeedsStr = getValue(['special_needs', 'needs', 'الاحتياجات', 'احتياجات خاصة']);
+            const specialNeeds = specialNeedsStr 
+              ? specialNeedsStr.split(',').map(s => s.trim().toLowerCase().replace(/\s+/g, '_'))
+              : undefined;
+            
             students.push({
               student_name: studentName,
               university_id: universityId,
@@ -70,6 +83,7 @@ export function parseStudentsExcel(file: File): Promise<ParsedStudent[]> {
               contact_phone: getValue(['phone', 'contact_phone', 'هاتف', 'الهاتف', 'رقم الهاتف']),
               contact_email: getValue(['email', 'contact_email', 'بريد', 'الإيميل', 'البريد']),
               notes: getValue(['notes', 'ملاحظات']),
+              special_needs: specialNeeds,
             });
           }
         }
@@ -85,7 +99,7 @@ export function parseStudentsExcel(file: File): Promise<ParsedStudent[]> {
   });
 }
 
-export function parseExamsExcel(file: File): Promise<ParsedExam[]> {
+export function parseExamsExcel(file: File, students?: StudentOption[]): Promise<ParsedExam[]> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     
@@ -128,7 +142,13 @@ export function parseExamsExcel(file: File): Promise<ParsedExam[]> {
             return undefined;
           };
           
-          const studentId = getValue(['student_id', 'university_id', 'رقم الطالب', 'الرقم الجامعي']);
+          let studentId = getValue(['student_id', 'university_id', 'student', 'رقم الطالب', 'الرقم الجامعي']);
+          
+          // Handle dropdown format: "12345678 - Student Name"
+          if (studentId && studentId.includes(' - ')) {
+            studentId = studentId.split(' - ')[0].trim();
+          }
+          
           const courseName = getValue(['course_name', 'course', 'المادة', 'اسم المادة']);
           const examDate = getValue(['date', 'exam_date', 'التاريخ', 'تاريخ الامتحان']);
           const startTime = getValue(['start_time', 'start', 'وقت البداية', 'البداية']);
@@ -136,11 +156,19 @@ export function parseExamsExcel(file: File): Promise<ParsedExam[]> {
           const durationMin = getNumericValue(['duration', 'duration_minutes', 'المدة', 'الدورة']);
           
           if (studentId && courseName && examDate && startTime && endTime) {
-            // Parse special needs (comma-separated)
-            const specialNeedsStr = getValue(['special_needs', 'needs', 'الاحتياجات', 'احتياجات خاصة']);
-            const specialNeeds = specialNeedsStr 
-              ? specialNeedsStr.split(',').map(s => s.trim().toLowerCase().replace(/\s+/g, '_'))
-              : undefined;
+            // Parse special needs - check if explicit or use student default
+            let specialNeedsStr = getValue(['special_needs', 'needs', 'الاحتياجات', 'احتياجات خاصة']);
+            let specialNeeds: string[] | undefined;
+            
+            if (specialNeedsStr && specialNeedsStr.toLowerCase() !== 'use student default') {
+              specialNeeds = specialNeedsStr.split(',').map(s => s.trim().toLowerCase().replace(/\s+/g, '_'));
+            } else if (students) {
+              // Use student's default special needs
+              const student = students.find(s => s.university_id === studentId);
+              if (student?.special_needs) {
+                specialNeeds = student.special_needs;
+              }
+            }
             
             // Parse date - handle Excel date serial numbers
             let parsedDate = examDate;
@@ -190,185 +218,133 @@ export function parseExamsExcel(file: File): Promise<ParsedExam[]> {
 }
 
 export function generateStudentsTemplate(): void {
+  const wb = XLSX.utils.book_new();
+  
+  // Main data sheet
   const headers = [
-    'Student Name / اسم الطالب',
-    'University ID / الرقم الجامعي',
-    'Disability Type / نوع الإعاقة',
-    'Disability Code / رمز الإعاقة',
-    'Phone / الهاتف',
-    'Email / البريد',
-    'Notes / ملاحظات',
+    'Student Name',
+    'University ID',
+    'Disability Type',
+    'Disability Code',
+    'Phone',
+    'Email',
+    'Special Needs',
+    'Notes',
   ];
   
   const sampleData = [
-    ['محمد أحمد', '12345678', 'بصرية', 'V1', '0501234567', 'student@example.com', 'ملاحظات إضافية'],
+    ['Ahmed Mohammed', '12345678', 'Visual', 'V1', '0501234567', 'student@ju.edu.jo', 'reader,scribe', 'Additional notes'],
+    ['Sara Ali', '23456789', 'Hearing', 'H1', '0509876543', 'sara@ju.edu.jo', 'sign_language', ''],
   ];
   
   const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Students');
   
   // Set column widths
-  ws['!cols'] = headers.map(() => ({ wch: 25 }));
+  ws['!cols'] = headers.map(() => ({ wch: 20 }));
+  
+  XLSX.utils.book_append_sheet(wb, ws, 'Students');
+  
+  // Reference sheet with valid options
+  const refHeaders = ['Disability Types', 'Special Needs Options'];
+  const refData = [
+    ['Visual', 'reader'],
+    ['Hearing', 'scribe'],
+    ['Motor', 'sign_language'],
+    ['Learning', 'extra_time'],
+    ['Cognitive', 'separate_room'],
+    ['Multiple', 'assistive_technology'],
+    ['Other', 'companion'],
+    ['', 'other'],
+  ];
+  
+  const refWs = XLSX.utils.aoa_to_sheet([refHeaders, ...refData]);
+  refWs['!cols'] = [{ wch: 20 }, { wch: 25 }];
+  XLSX.utils.book_append_sheet(wb, refWs, 'Reference');
   
   XLSX.writeFile(wb, 'disability_students_template.xlsx');
 }
 
-export interface StudentOption {
-  university_id: string;
-  student_name: string;
-}
-
 export function generateExamsTemplate(students: StudentOption[] = []): void {
+  const wb = XLSX.utils.book_new();
+  
+  // Main data sheet headers
   const headers = [
-    'Student ID / الرقم الجامعي',
-    'Course Name / اسم المادة',
-    'Course Code / رمز المادة',
-    'Exam Date / تاريخ الامتحان',
-    'Start Time / وقت البداية',
-    'End Time / وقت النهاية',
-    'Duration (min) / المدة',
-    'Extra Time (min) / وقت إضافي',
-    'Location / المكان',
-    'Special Needs / الاحتياجات',
+    'Student',
+    'Course Name',
+    'Course Code',
+    'Exam Date',
+    'Start Time',
+    'End Time',
+    'Duration (min)',
+    'Extra Time (min)',
+    'Location',
+    'Special Needs',
   ];
   
-  // Create main worksheet
-  const ws = XLSX.utils.aoa_to_sheet([headers]);
+  // Create main worksheet with sample data
+  const sampleStudent = students.length > 0 
+    ? `${students[0].university_id} - ${students[0].student_name}`
+    : '12345678 - Sample Student';
   
-  // Predefined options
-  const specialNeedsOptions = [
-    'reader',
-    'scribe', 
-    'sign_language',
-    'extra_time',
-    'separate_room',
-    'computer',
-    'large_print',
-    'reader,scribe',
-    'reader,extra_time',
-    'scribe,extra_time',
+  const sampleData = [
+    [sampleStudent, 'Introduction to CS', 'CS101', '2025-03-15', '09:00', '11:00', 120, 30, 'Room 101', 'reader,scribe'],
   ];
   
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleData]);
+  
+  // Set column widths
+  ws['!cols'] = [
+    { wch: 35 }, // Student
+    { wch: 25 }, // Course Name
+    { wch: 12 }, // Course Code
+    { wch: 12 }, // Date
+    { wch: 10 }, // Start Time
+    { wch: 10 }, // End Time
+    { wch: 12 }, // Duration
+    { wch: 12 }, // Extra Time
+    { wch: 15 }, // Location
+    { wch: 30 }, // Special Needs
+  ];
+  
+  XLSX.utils.book_append_sheet(wb, ws, 'Exams');
+  
+  // Reference sheet with students and options
+  const refHeaders = ['Students (Copy to Column A)', 'Special Needs', 'Duration Options', 'Extra Time Options', 'Locations', 'Time Slots'];
+  
+  const specialNeedsOptions = ['reader', 'scribe', 'sign_language', 'extra_time', 'separate_room', 'assistive_technology', 'companion', 'other', 'Use Student Default'];
   const durationOptions = ['30', '45', '60', '90', '120', '150', '180'];
   const extraTimeOptions = ['0', '15', '30', '45', '60', '90'];
-  const commonLocations = ['Room 101', 'Room 102', 'Room 103', 'Lab A', 'Lab B', 'Main Hall'];
-  const timeSlots = [
-    '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', 
-    '11:00', '11:30', '12:00', '12:30', '13:00', '13:30',
-    '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'
-  ];
+  const locations = ['Room 101', 'Room 102', 'Room 103', 'Lab A', 'Lab B', 'Main Hall', 'Library Room 1'];
+  const timeSlots = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '11:00', '11:30', '12:00', '12:30', '13:00', '13:30', '14:00', '14:30', '15:00', '15:30', '16:00', '16:30', '17:00'];
   
-  // Create a reference sheet for dropdown data
+  const maxRows = Math.max(students.length, specialNeedsOptions.length, durationOptions.length, extraTimeOptions.length, locations.length, timeSlots.length);
+  
   const refData: string[][] = [];
-  const maxRows = Math.max(
-    students.length, 
-    specialNeedsOptions.length, 
-    durationOptions.length,
-    extraTimeOptions.length,
-    commonLocations.length,
-    timeSlots.length
-  );
-  
-  // Headers for reference sheet
-  refData.push(['Students', 'Special Needs', 'Duration', 'Extra Time', 'Locations', 'Time Slots']);
-  
   for (let i = 0; i < maxRows; i++) {
+    const studentLabel = students[i] 
+      ? `${students[i].university_id} - ${students[i].student_name}${students[i].special_needs?.length ? ' [' + students[i].special_needs?.join(',') + ']' : ''}`
+      : '';
     refData.push([
-      students[i] ? `${students[i].university_id} - ${students[i].student_name}` : '',
+      studentLabel,
       specialNeedsOptions[i] || '',
       durationOptions[i] || '',
       extraTimeOptions[i] || '',
-      commonLocations[i] || '',
+      locations[i] || '',
       timeSlots[i] || '',
     ]);
   }
   
-  const refWs = XLSX.utils.aoa_to_sheet(refData);
-  
-  // Add data validation for dropdowns (using Excel formulas)
-  const dataRows = 100; // Pre-create validations for 100 rows
-  
-  if (students.length > 0) {
-    // Student ID dropdown (Column A)
-    for (let row = 2; row <= dataRows + 1; row++) {
-      const cellRef = XLSX.utils.encode_cell({ r: row - 1, c: 0 });
-      if (!ws[cellRef]) ws[cellRef] = { t: 's', v: '' };
-      ws[cellRef].s = { alignment: { horizontal: 'center' } };
-    }
-  }
-  
-  // Set column widths
-  ws['!cols'] = [
-    { wch: 35 }, // Student ID
-    { wch: 30 }, // Course Name
-    { wch: 15 }, // Course Code
-    { wch: 15 }, // Date
-    { wch: 12 }, // Start Time
-    { wch: 12 }, // End Time
-    { wch: 12 }, // Duration
-    { wch: 12 }, // Extra Time
-    { wch: 15 }, // Location
-    { wch: 25 }, // Special Needs
-  ];
-  
+  const refWs = XLSX.utils.aoa_to_sheet([refHeaders, ...refData]);
   refWs['!cols'] = [
-    { wch: 40 },
-    { wch: 20 },
-    { wch: 12 },
-    { wch: 12 },
-    { wch: 15 },
-    { wch: 12 },
+    { wch: 50 }, // Students
+    { wch: 25 }, // Special Needs
+    { wch: 15 }, // Duration
+    { wch: 15 }, // Extra Time
+    { wch: 18 }, // Locations
+    { wch: 12 }, // Time Slots
   ];
   
-  // Add sample data row with instructions
-  const sampleRow = students.length > 0 
-    ? [`${students[0].university_id} - ${students[0].student_name}`, 'Introduction to CS', 'CS101', '2025-03-15', '09:00', '11:00', '120', '30', 'Room 101', 'reader,scribe']
-    : ['12345678', 'Introduction to CS', 'CS101', '2025-03-15', '09:00', '11:00', '120', '30', 'Room 101', 'reader,scribe'];
-  
-  XLSX.utils.sheet_add_aoa(ws, [sampleRow], { origin: 'A2' });
-  
-  // Create workbook
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Exams');
-  XLSX.utils.book_append_sheet(wb, refWs, 'Reference Data');
-  
-  // Add instructions sheet
-  const instructionsData = [
-    ['INSTRUCTIONS / تعليمات'],
-    [''],
-    ['1. Student ID: Copy from "Reference Data" sheet, Column A (Students)'],
-    ['   الرقم الجامعي: انسخ من ورقة "Reference Data"، العمود A'],
-    [''],
-    ['2. Course Name: Enter the course name'],
-    ['   اسم المادة: أدخل اسم المادة'],
-    [''],
-    ['3. Course Code: Enter the course code (optional)'],
-    ['   رمز المادة: أدخل رمز المادة (اختياري)'],
-    [''],
-    ['4. Exam Date: Use format YYYY-MM-DD (e.g., 2025-03-15)'],
-    ['   تاريخ الامتحان: استخدم صيغة YYYY-MM-DD'],
-    [''],
-    ['5. Start/End Time: Use 24h format HH:MM (e.g., 09:00)'],
-    ['   الوقت: استخدم صيغة 24 ساعة HH:MM'],
-    [''],
-    ['6. Duration: Select from Reference Data sheet'],
-    ['   المدة: اختر من ورقة Reference Data'],
-    [''],
-    ['7. Special Needs Options:'],
-    ['   reader - قارئ'],
-    ['   scribe - كاتب'],
-    ['   sign_language - لغة إشارة'],
-    ['   extra_time - وقت إضافي'],
-    ['   separate_room - غرفة منفصلة'],
-    ['   computer - حاسوب'],
-    ['   large_print - طباعة كبيرة'],
-    ['   (Use comma to combine, e.g., reader,scribe)'],
-  ];
-  
-  const instructionsWs = XLSX.utils.aoa_to_sheet(instructionsData);
-  instructionsWs['!cols'] = [{ wch: 60 }];
-  XLSX.utils.book_append_sheet(wb, instructionsWs, 'Instructions');
+  XLSX.utils.book_append_sheet(wb, refWs, 'Reference');
   
   XLSX.writeFile(wb, 'disability_exams_template.xlsx');
 }

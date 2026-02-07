@@ -10,11 +10,16 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useMyDisabilityAssignments } from '@/hooks/useDisabilityExamAssignments';
+import { useMyDisabilityAssignments, useDisabilityExamAssignments } from '@/hooks/useDisabilityExamAssignments';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, Clock, MapPin, User, Loader2, CheckCircle, AlertCircle, HandHeart } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Loader2, CheckCircle, AlertCircle, HandHeart, Info } from 'lucide-react';
 import { format } from 'date-fns';
-import { useDisabilityExamAssignments } from '@/hooks/useDisabilityExamAssignments';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 const STATUS_CONFIG = {
   pending: { label: 'Pending', color: 'bg-yellow-500', icon: AlertCircle },
@@ -34,20 +39,20 @@ const ROLE_LABELS: Record<string, string> = {
   other: 'Other',
 };
 
+const SPECIAL_NEEDS_LABELS: Record<string, string> = {
+  reader: 'Reader',
+  extra_time: 'Extra Time',
+  companion: 'Companion',
+  scribe: 'Scribe',
+  separate_room: 'Separate Room',
+  assistive_technology: 'Assistive Technology',
+  other: 'Other',
+};
+
 export function MyDisabilityAssignmentsPage() {
   const { user } = useAuth();
   const { assignments, isLoading } = useMyDisabilityAssignments();
   const { updateAssignment } = useDisabilityExamAssignments();
-
-  const handleConfirm = async (assignmentId: string) => {
-    if (!user) return;
-    await updateAssignment.mutateAsync({
-      id: assignmentId,
-      status: 'confirmed',
-      confirmed_at: new Date().toISOString(),
-      performedBy: user.id,
-    });
-  };
 
   const handleComplete = async (assignmentId: string) => {
     if (!user) return;
@@ -86,7 +91,7 @@ export function MyDisabilityAssignmentsPage() {
             My Disability Exam Assignments
           </h1>
           <p className="text-muted-foreground">
-            View and manage your assigned disability exam support duties
+            View your assigned disability exam support duties. Assignments are mandatory.
           </p>
         </div>
 
@@ -95,7 +100,7 @@ export function MyDisabilityAssignmentsPage() {
           <CardHeader>
             <CardTitle>Upcoming Assignments</CardTitle>
             <CardDescription>
-              {upcomingAssignments.length} assignment(s) pending
+              {upcomingAssignments.length} assignment(s) - <span className="text-primary font-medium">Mandatory attendance required</span>
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -113,6 +118,7 @@ export function MyDisabilityAssignmentsPage() {
                     <TableHead>Date & Time</TableHead>
                     <TableHead>Location</TableHead>
                     <TableHead>Your Role</TableHead>
+                    <TableHead>Special Needs</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
@@ -121,28 +127,29 @@ export function MyDisabilityAssignmentsPage() {
                   {upcomingAssignments.map((assignment) => {
                     const statusConfig = STATUS_CONFIG[assignment.status];
                     const StatusIcon = statusConfig.icon;
+                    const exam = assignment.exam;
                     
                     return (
                       <TableRow key={assignment.id}>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{assignment.exam?.student?.student_name}</p>
+                            <p className="font-medium">{exam?.student?.student_name}</p>
                             <p className="text-xs text-muted-foreground">
-                              ID: {assignment.exam?.student?.university_id}
+                              ID: {exam?.student?.university_id}
                             </p>
-                            {assignment.exam?.student?.disability_type && (
+                            {exam?.student?.disability_type && (
                               <Badge variant="outline" className="mt-1 text-xs">
-                                {assignment.exam.student.disability_type}
+                                {exam.student.disability_type}
                               </Badge>
                             )}
                           </div>
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium">{assignment.exam?.course_name}</p>
-                            {assignment.exam?.course_code && (
+                            <p className="font-medium">{exam?.course_name}</p>
+                            {exam?.course_code && (
                               <p className="text-xs text-muted-foreground font-mono">
-                                {assignment.exam.course_code}
+                                {exam.course_code}
                               </p>
                             )}
                           </div>
@@ -151,19 +158,19 @@ export function MyDisabilityAssignmentsPage() {
                           <div className="space-y-1">
                             <Badge variant="outline" className="gap-1">
                               <Calendar className="h-3 w-3" />
-                              {assignment.exam?.exam_date && format(new Date(assignment.exam.exam_date), 'MMM dd, yyyy')}
+                              {exam?.exam_date && format(new Date(exam.exam_date), 'MMM dd, yyyy')}
                             </Badge>
                             <Badge variant="outline" className="gap-1 block w-fit">
                               <Clock className="h-3 w-3" />
-                              {assignment.exam?.start_time} - {assignment.exam?.end_time}
+                              {exam?.start_time} - {exam?.end_time}
                             </Badge>
                           </div>
                         </TableCell>
                         <TableCell>
-                          {assignment.exam?.location && (
+                          {exam?.location && (
                             <Badge variant="secondary" className="gap-1">
                               <MapPin className="h-3 w-3" />
-                              {assignment.exam.location}
+                              {exam.location}
                             </Badge>
                           )}
                         </TableCell>
@@ -173,6 +180,29 @@ export function MyDisabilityAssignmentsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
+                          <div className="flex flex-wrap gap-1">
+                            {(exam as any)?.special_needs?.map((need: string) => (
+                              <Badge key={need} variant="secondary" className="text-xs">
+                                {SPECIAL_NEEDS_LABELS[need] || need}
+                              </Badge>
+                            ))}
+                            {(exam as any)?.special_needs_notes && (
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="h-5 w-5">
+                                      <Info className="h-3 w-3" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p className="max-w-xs">{(exam as any).special_needs_notes}</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
                           <Badge className={`${statusConfig.color} text-white gap-1`}>
                             <StatusIcon className="h-3 w-3" />
                             {statusConfig.label}
@@ -180,16 +210,7 @@ export function MyDisabilityAssignmentsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            {assignment.status === 'assigned' && (
-                              <Button
-                                size="sm"
-                                onClick={() => handleConfirm(assignment.id)}
-                                disabled={updateAssignment.isPending}
-                              >
-                                Confirm
-                              </Button>
-                            )}
-                            {assignment.status === 'confirmed' && (
+                            {(assignment.status === 'assigned' || assignment.status === 'confirmed') && (
                               <Button
                                 size="sm"
                                 variant="outline"

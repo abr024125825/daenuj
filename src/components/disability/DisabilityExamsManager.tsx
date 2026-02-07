@@ -189,14 +189,26 @@ export function DisabilityExamsManager() {
     
     let successCount = 0;
     let errorCount = 0;
+    const errors: string[] = [];
     
     for (const exam of data) {
-      // Find student by university_id
-      const student = students?.find(s => s.university_id === exam.student_university_id);
+      // Find student by university_id (handle "ID - Name" format)
+      let studentId = exam.student_university_id;
+      if (studentId.includes(' - ')) {
+        studentId = studentId.split(' - ')[0].trim();
+      }
+      
+      const student = students?.find(s => s.university_id === studentId);
       if (!student) {
+        errors.push(`Student not found: ${studentId}`);
         errorCount++;
         continue;
       }
+      
+      // Use student's default special needs if not specified in exam
+      const examSpecialNeeds = exam.special_needs && exam.special_needs.length > 0 
+        ? exam.special_needs 
+        : student.special_needs;
       
       try {
         await addExam.mutateAsync({
@@ -209,22 +221,27 @@ export function DisabilityExamsManager() {
           duration_minutes: exam.duration_minutes,
           extra_time_minutes: exam.extra_time_minutes || 0,
           location: exam.location || null,
-          special_needs: (exam.special_needs || []) as SpecialNeedType[],
+          special_needs: (examSpecialNeeds || []) as SpecialNeedType[],
           special_needs_notes: exam.special_needs_notes || null,
           semester_id: activeSemester.id,
           status: 'pending',
           created_by: user.id,
         });
         successCount++;
-      } catch {
+      } catch (err) {
+        errors.push(`Failed to add exam for ${studentId}: ${(err as Error).message}`);
         errorCount++;
       }
     }
     
     toast({
-      title: 'تم الرفع',
-      description: `تم إضافة ${successCount} امتحان${errorCount > 0 ? ` - فشل ${errorCount}` : ''}`,
+      title: 'Upload Complete',
+      description: `Added ${successCount} exam(s)${errorCount > 0 ? `. ${errorCount} failed - check console for details` : ''}`,
     });
+    
+    if (errors.length > 0) {
+      console.error('Excel upload errors:', errors);
+    }
   };
 
   if (isLoading) {
@@ -554,7 +571,11 @@ export function DisabilityExamsManager() {
           onOpenChange={setUploadDialogOpen}
           type="exams"
           onUpload={(data) => handleBulkUpload(data as ParsedExam[])}
-          parseFile={parseExamsExcel}
+          parseFile={(file) => parseExamsExcel(file, students?.filter(s => s.is_active).map(s => ({
+            university_id: s.university_id,
+            student_name: s.student_name,
+            special_needs: s.special_needs || undefined,
+          })))}
           students={students?.filter(s => s.is_active).map(s => ({
             university_id: s.university_id,
             student_name: s.student_name,

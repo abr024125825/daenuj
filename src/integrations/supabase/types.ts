@@ -776,6 +776,9 @@ export type Database = {
           id: string
           is_active: boolean | null
           notes: string | null
+          special_needs:
+            | Database["public"]["Enums"]["special_need_type"][]
+            | null
           student_name: string
           university_id: string
           updated_at: string
@@ -790,6 +793,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           notes?: string | null
+          special_needs?:
+            | Database["public"]["Enums"]["special_need_type"][]
+            | null
           student_name: string
           university_id: string
           updated_at?: string
@@ -804,6 +810,9 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           notes?: string | null
+          special_needs?:
+            | Database["public"]["Enums"]["special_need_type"][]
+            | null
           student_name?: string
           university_id?: string
           updated_at?: string
