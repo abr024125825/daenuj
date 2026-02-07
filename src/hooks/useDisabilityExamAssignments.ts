@@ -268,13 +268,20 @@ export function useMyDisabilityAssignments() {
           *,
           exam:disability_exams(
             id, course_name, course_code, exam_date, start_time, end_time, location, special_needs, special_needs_notes,
-            student:disability_students(student_name, university_id, disability_type)
+            student:disability_students(student_name, university_id, disability_type, special_needs)
           )
         `)
-        .order('exam(exam_date)', { ascending: true });
+        .order('assigned_at', { ascending: false });
 
       if (error) throw error;
-      return data as DisabilityExamAssignment[];
+      
+      // Type assertion for exam with special_needs
+      return data as (DisabilityExamAssignment & {
+        exam?: DisabilityExamAssignment['exam'] & {
+          special_needs?: string[];
+          special_needs_notes?: string;
+        };
+      })[];
     },
   });
 

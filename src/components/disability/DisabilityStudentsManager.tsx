@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Table,
   TableBody,
@@ -31,16 +32,31 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Search, User, FileSpreadsheet } from 'lucide-react';
-import { useDisabilityStudents, DisabilityStudent } from '@/hooks/useDisabilityStudents';
+import { Plus, Pencil, Trash2, Loader2, Search, User, FileSpreadsheet, FileText } from 'lucide-react';
+import { useDisabilityStudents, DisabilityStudent, SpecialNeedType } from '@/hooks/useDisabilityStudents';
 import { useAuth } from '@/contexts/AuthContext';
 import { ExcelUploadDialog } from './ExcelUploadDialog';
 import { parseStudentsExcel, ParsedStudent } from '@/lib/excelParser';
 import { useToast } from '@/hooks/use-toast';
+import { generateStudentReport } from '@/lib/generateStudentReport';
+import { useDisabilityExams } from '@/hooks/useDisabilityExams';
+import { useDisabilityExamAssignments } from '@/hooks/useDisabilityExamAssignments';
+
+const SPECIAL_NEEDS: { value: SpecialNeedType; label: string }[] = [
+  { value: 'reader', label: 'Reader' },
+  { value: 'extra_time', label: 'Extra Time' },
+  { value: 'companion', label: 'Companion' },
+  { value: 'scribe', label: 'Scribe' },
+  { value: 'separate_room', label: 'Separate Room' },
+  { value: 'assistive_technology', label: 'Assistive Technology' },
+  { value: 'other', label: 'Other' },
+];
 
 export function DisabilityStudentsManager() {
   const { user } = useAuth();
   const { students, isLoading, addStudent, updateStudent, deleteStudent } = useDisabilityStudents();
+  const { exams } = useDisabilityExams();
+  const { assignments } = useDisabilityExamAssignments();
 
   const { toast } = useToast();
 
@@ -57,6 +73,7 @@ export function DisabilityStudentsManager() {
     contact_phone: '',
     contact_email: '',
     notes: '',
+    special_needs: [] as SpecialNeedType[],
     is_active: true,
   });
 
@@ -76,6 +93,7 @@ export function DisabilityStudentsManager() {
       contact_phone: formData.contact_phone || null,
       contact_email: formData.contact_email || null,
       notes: formData.notes || null,
+      special_needs: formData.special_needs.length > 0 ? formData.special_needs : null,
       is_active: formData.is_active,
       created_by: user.id,
     };
@@ -100,6 +118,7 @@ export function DisabilityStudentsManager() {
       contact_phone: student.contact_phone || '',
       contact_email: student.contact_email || '',
       notes: student.notes || '',
+      special_needs: student.special_needs || [],
       is_active: student.is_active,
     });
     setDialogOpen(true);
@@ -112,6 +131,24 @@ export function DisabilityStudentsManager() {
     setSelectedStudent(null);
   };
 
+  const handleDownloadReport = async (student: DisabilityStudent) => {
+    // Get all exams for this student
+    const studentExams = exams?.filter(e => e.student_id === student.id) || [];
+    
+    // Format exams with assignments
+    const examsWithAssignments = studentExams.map(exam => ({
+      ...exam,
+      assignments: assignments?.filter(a => a.exam_id === exam.id).map(a => ({
+        id: a.id,
+        assigned_role: a.assigned_role,
+        status: a.status,
+        volunteer: a.volunteer,
+      })),
+    }));
+    
+    await generateStudentReport(student, examsWithAssignments);
+  };
+
   const resetForm = () => {
     setSelectedStudent(null);
     setFormData({
@@ -122,6 +159,7 @@ export function DisabilityStudentsManager() {
       contact_phone: '',
       contact_email: '',
       notes: '',
+      special_needs: [],
       is_active: true,
     });
   };
@@ -129,6 +167,15 @@ export function DisabilityStudentsManager() {
   const openAddDialog = () => {
     resetForm();
     setDialogOpen(true);
+  };
+
+  const toggleSpecialNeed = (need: SpecialNeedType) => {
+    setFormData(prev => ({
+      ...prev,
+      special_needs: prev.special_needs.includes(need)
+        ? prev.special_needs.filter(n => n !== need)
+        : [...prev.special_needs, need],
+    }));
   };
 
   const handleBulkUpload = async (data: ParsedStudent[]) => {
@@ -147,6 +194,7 @@ export function DisabilityStudentsManager() {
           contact_phone: student.contact_phone || null,
           contact_email: student.contact_email || null,
           notes: student.notes || null,
+          special_needs: (student.special_needs as SpecialNeedType[]) || null,
           is_active: true,
           created_by: user.id,
         });
@@ -157,8 +205,8 @@ export function DisabilityStudentsManager() {
     }
     
     toast({
-      title: 'تم الرفع',
-      description: `تم إضافة ${successCount} طالب${errorCount > 0 ? ` - فشل ${errorCount}` : ''}`,
+      title: 'Upload Complete',
+      description: `Added ${successCount} student(s)${errorCount > 0 ? ` - ${errorCount} failed` : ''}`,
     });
   };
 
@@ -181,7 +229,7 @@ export function DisabilityStudentsManager() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setUploadDialogOpen(true)}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
-              رفع من Excel
+              Upload Excel
             </Button>
             <Button onClick={openAddDialog}>
               <Plus className="h-4 w-4 mr-2" />
@@ -212,9 +260,10 @@ export function DisabilityStudentsManager() {
                 <TableHead>Name</TableHead>
                 <TableHead>University ID</TableHead>
                 <TableHead>Disability Type</TableHead>
+                <TableHead>Special Needs</TableHead>
                 <TableHead>Contact</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead className="w-24">Actions</TableHead>
+                <TableHead className="w-32">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -233,6 +282,15 @@ export function DisabilityStudentsManager() {
                     )}
                   </TableCell>
                   <TableCell>
+                    <div className="flex flex-wrap gap-1">
+                      {student.special_needs?.map((need) => (
+                        <Badge key={need} variant="secondary" className="text-xs">
+                          {SPECIAL_NEEDS.find(n => n.value === need)?.label || need}
+                        </Badge>
+                      ))}
+                    </div>
+                  </TableCell>
+                  <TableCell>
                     <div className="text-sm">
                       {student.contact_phone && <p>{student.contact_phone}</p>}
                       {student.contact_email && (
@@ -247,6 +305,14 @@ export function DisabilityStudentsManager() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Download Report"
+                        onClick={() => handleDownloadReport(student)}
+                      >
+                        <FileText className="h-4 w-4 text-primary" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -274,7 +340,7 @@ export function DisabilityStudentsManager() {
 
         {/* Add/Edit Dialog */}
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
                 {selectedStudent ? 'Edit Student' : 'Add Student'}
@@ -319,6 +385,30 @@ export function DisabilityStudentsManager() {
                     onChange={(e) => setFormData(prev => ({ ...prev, disability_code: e.target.value }))}
                     placeholder="e.g., V1"
                   />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Default Special Needs</Label>
+                <p className="text-xs text-muted-foreground">
+                  These will be pre-filled when creating exams for this student
+                </p>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {SPECIAL_NEEDS.map((need) => (
+                    <div key={need.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`special-${need.value}`}
+                        checked={formData.special_needs.includes(need.value)}
+                        onCheckedChange={() => toggleSpecialNeed(need.value)}
+                      />
+                      <label
+                        htmlFor={`special-${need.value}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                      >
+                        {need.label}
+                      </label>
+                    </div>
+                  ))}
                 </div>
               </div>
 

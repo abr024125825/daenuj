@@ -58,7 +58,7 @@ export function ExcelUploadDialog({
     try {
       const data = await parseFile(selectedFile);
       if (data.length === 0) {
-        setError('لم يتم العثور على بيانات صالحة في الملف');
+        setError('No valid data found in the file');
       } else {
         setParsedData(data);
       }
@@ -114,10 +114,10 @@ export function ExcelUploadDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileSpreadsheet className="h-5 w-5" />
-            {type === 'students' ? 'رفع الطلاب من Excel' : 'رفع الامتحانات من Excel'}
+            {type === 'students' ? 'Upload Students from Excel' : 'Upload Exams from Excel'}
           </DialogTitle>
           <DialogDescription>
-            ارفع ملف Excel يحتوي على {type === 'students' ? 'بيانات الطلاب' : 'بيانات الامتحانات'}
+            Upload an Excel file containing {type === 'students' ? 'student data' : 'exam data'}
           </DialogDescription>
         </DialogHeader>
 
@@ -125,7 +125,7 @@ export function ExcelUploadDialog({
           {/* Download Template Button */}
           <Button variant="outline" onClick={handleDownloadTemplate} className="w-full">
             <Download className="h-4 w-4 mr-2" />
-            تحميل قالب Excel
+            Download Excel Template
           </Button>
 
           {/* File Upload Area */}
@@ -143,7 +143,7 @@ export function ExcelUploadDialog({
             {isParsing ? (
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                <p className="text-muted-foreground">جاري قراءة الملف...</p>
+                <p className="text-muted-foreground">Reading file...</p>
               </div>
             ) : file ? (
               <div className="flex flex-col items-center gap-2">
@@ -158,13 +158,13 @@ export function ExcelUploadDialog({
                   }}
                 >
                   <X className="h-4 w-4 mr-1" />
-                  إزالة
+                  Remove
                 </Button>
               </div>
             ) : (
               <div className="flex flex-col items-center gap-2">
                 <Upload className="h-10 w-10 text-muted-foreground" />
-                <p className="text-muted-foreground">اضغط لاختيار ملف أو اسحب الملف هنا</p>
+                <p className="text-muted-foreground">Click to select a file or drag it here</p>
                 <p className="text-xs text-muted-foreground">.xlsx, .xls</p>
               </div>
             )}
@@ -184,7 +184,7 @@ export function ExcelUploadDialog({
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="h-5 w-5 text-primary" />
                 <span className="font-medium">
-                  تم العثور على {parsedData.length} {type === 'students' ? 'طالب' : 'امتحان'}
+                  Found {parsedData.length} {type === 'students' ? 'student(s)' : 'exam(s)'}
                 </span>
               </div>
               
@@ -222,7 +222,7 @@ export function ExcelUploadDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => handleClose(false)}>
-            إلغاء
+            Cancel
           </Button>
           <Button
             onClick={handleUpload}
@@ -233,7 +233,7 @@ export function ExcelUploadDialog({
             ) : (
               <Upload className="h-4 w-4 mr-2" />
             )}
-            رفع {parsedData?.length || 0} {type === 'students' ? 'طالب' : 'امتحان'}
+            Upload {parsedData?.length || 0} {type === 'students' ? 'student(s)' : 'exam(s)'}
           </Button>
         </DialogFooter>
       </DialogContent>

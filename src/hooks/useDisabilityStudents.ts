@@ -2,6 +2,8 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export type SpecialNeedType = 'reader' | 'extra_time' | 'companion' | 'scribe' | 'separate_room' | 'assistive_technology' | 'other';
+
 export interface DisabilityStudent {
   id: string;
   student_name: string;
@@ -11,6 +13,7 @@ export interface DisabilityStudent {
   contact_phone: string | null;
   contact_email: string | null;
   notes: string | null;
+  special_needs: SpecialNeedType[] | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
