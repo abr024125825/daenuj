@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
 import { useVolunteerApplications, useReviewApplication, VolunteerApplication } from '@/hooks/useApplications';
 import { 
   ClipboardList, 
@@ -22,13 +24,17 @@ import {
   Loader2,
   FileText,
   AlertCircle,
+  Briefcase,
+  Heart,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
 export function ApplicationsPage() {
   const [selectedApp, setSelectedApp] = useState<VolunteerApplication | null>(null);
   const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [showApproveDialog, setShowApproveDialog] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [volunteerType, setVolunteerType] = useState<'general' | 'employment'>('general');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('pending');
 
@@ -45,12 +51,16 @@ export function ApplicationsPage() {
            app.university_email.toLowerCase().includes(search);
   });
 
-  const handleApprove = async (app: VolunteerApplication) => {
+  const handleApprove = async () => {
+    if (!selectedApp) return;
     await reviewMutation.mutateAsync({
-      applicationId: app.id,
+      applicationId: selectedApp.id,
       status: 'approved',
+      volunteerType,
     });
+    setShowApproveDialog(false);
     setSelectedApp(null);
+    setVolunteerType('general');
   };
 
   const handleReject = async () => {
@@ -352,18 +362,71 @@ export function ApplicationsPage() {
               </Button>
               <Button
                 variant="hero"
-                onClick={() => handleApprove(selectedApp)}
+                onClick={() => setShowApproveDialog(true)}
                 disabled={reviewMutation.isPending}
               >
-                {reviewMutation.isPending ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                )}
+                <CheckCircle className="h-4 w-4 mr-2" />
                 Approve
               </Button>
             </DialogFooter>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Approve Dialog - Select Volunteer Type */}
+      <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Approve Volunteer</DialogTitle>
+            <DialogDescription>
+              Select the volunteer type for this applicant.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <RadioGroup value={volunteerType} onValueChange={(v) => setVolunteerType(v as 'general' | 'employment')}>
+              <div className="flex items-start space-x-3 p-4 rounded-lg border border-border hover:bg-muted/50 cursor-pointer" onClick={() => setVolunteerType('general')}>
+                <RadioGroupItem value="general" id="general" className="mt-1" />
+                <div className="flex-1">
+                  <Label htmlFor="general" className="flex items-center gap-2 cursor-pointer font-medium">
+                    <Heart className="h-4 w-4 text-primary" />
+                    General Volunteer
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Voluntary participation. Assignment is optional and based on availability.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start space-x-3 p-4 rounded-lg border border-border hover:bg-muted/50 cursor-pointer" onClick={() => setVolunteerType('employment')}>
+                <RadioGroupItem value="employment" id="employment" className="mt-1" />
+                <div className="flex-1">
+                  <Label htmlFor="employment" className="flex items-center gap-2 cursor-pointer font-medium">
+                    <Briefcase className="h-4 w-4 text-warning" />
+                    Student Employment Program
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Mandatory participation. Automatic assignment is required and enforced.
+                  </p>
+                </div>
+              </div>
+            </RadioGroup>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="hero"
+              onClick={handleApprove}
+              disabled={reviewMutation.isPending}
+            >
+              {reviewMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4 mr-2" />
+              )}
+              Confirm Approval
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

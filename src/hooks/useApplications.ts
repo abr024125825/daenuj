@@ -171,11 +171,13 @@ export function useReviewApplication() {
     mutationFn: async ({ 
       applicationId, 
       status, 
-      rejectionReason 
+      rejectionReason,
+      volunteerType 
     }: { 
       applicationId: string; 
       status: 'approved' | 'rejected';
       rejectionReason?: string;
+      volunteerType?: 'general' | 'employment';
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
@@ -193,7 +195,7 @@ export function useReviewApplication() {
 
       if (updateError) throw updateError;
 
-      // If approved, create volunteer record
+      // If approved, create volunteer record and update user role
       if (status === 'approved') {
         const { data: application } = await supabase
           .from('volunteer_applications')
@@ -202,33 +204,52 @@ export function useReviewApplication() {
           .single();
 
         if (application) {
+          // Create volunteer record with volunteer_type
           const { error: volunteerError } = await supabase
             .from('volunteers')
             .insert({
               user_id: application.user_id,
               application_id: applicationId,
+              volunteer_type: volunteerType || 'general',
             });
 
           if (volunteerError) throw volunteerError;
 
-          // Update user role to active volunteer
-          const { error: roleError } = await supabase
+          // Update profile to be active
+          const { error: profileError } = await supabase
             .from('profiles')
             .update({ is_active: true })
             .eq('user_id', application.user_id);
 
-          if (roleError) throw roleError;
+          if (profileError) throw profileError;
+
+          // IMPORTANT: Update user_roles table to ensure volunteer role
+          // First check if user already has a role
+          const { data: existingRole } = await supabase
+            .from('user_roles')
+            .select('id, role')
+            .eq('user_id', application.user_id)
+            .single();
+
+          if (!existingRole) {
+            // Insert new volunteer role
+            const { error: roleError } = await supabase
+              .from('user_roles')
+              .insert({ user_id: application.user_id, role: 'volunteer' });
+            if (roleError) throw roleError;
+          }
         }
       }
 
-      return { applicationId, status };
+      return { applicationId, status, volunteerType };
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['volunteer-applications'] });
+      queryClient.invalidateQueries({ queryKey: ['volunteers-list'] });
       toast({
         title: data.status === 'approved' ? 'Application Approved!' : 'Application Rejected',
         description: data.status === 'approved' 
-          ? 'The volunteer has been added to the system.'
+          ? `The volunteer has been added as ${data.volunteerType === 'employment' ? 'Student Employment' : 'General Volunteer'}.`
           : 'The application has been rejected.',
       });
     },

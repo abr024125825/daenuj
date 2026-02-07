@@ -1787,6 +1787,7 @@ export type Database = {
           full_name: string
           user_id: string
           volunteer_id: string
+          volunteer_type: string
         }[]
       }
       get_user_faculty_id: { Args: { _user_id: string }; Returns: string }
