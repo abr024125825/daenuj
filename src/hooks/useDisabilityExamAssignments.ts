@@ -154,12 +154,29 @@ export function useDisabilityExamAssignments(examId?: string, volunteerId?: stri
 
   const updateAssignment = useMutation({
     mutationFn: async ({ id, performedBy, ...updates }: Partial<DisabilityExamAssignment> & { id: string; performedBy: string }) => {
+      // Get the assignment first to know the exam_id
+      const { data: assignment, error: fetchError } = await supabase
+        .from('disability_exam_assignments')
+        .select('exam_id')
+        .eq('id', id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
       const { error } = await supabase
         .from('disability_exam_assignments')
         .update(updates)
         .eq('id', id);
 
       if (error) throw error;
+
+      // If marking as completed, also update the exam status
+      if (updates.status === 'completed' && assignment) {
+        await supabase
+          .from('disability_exams')
+          .update({ status: 'completed' })
+          .eq('id', assignment.exam_id);
+      }
 
       // Log the action
       const action = updates.status === 'confirmed' ? 'assignment_confirmed' :
@@ -168,6 +185,7 @@ export function useDisabilityExamAssignments(examId?: string, volunteerId?: stri
 
       await supabase.from('disability_exam_logs').insert({
         assignment_id: id,
+        exam_id: assignment?.exam_id,
         action,
         new_value: updates,
         performed_by: performedBy,
@@ -175,6 +193,8 @@ export function useDisabilityExamAssignments(examId?: string, volunteerId?: stri
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disability-exam-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['disability-exams'] });
+      queryClient.invalidateQueries({ queryKey: ['my-disability-assignments'] });
       toast({ title: 'Success', description: 'Assignment updated successfully' });
     },
     onError: (error: Error) => {
