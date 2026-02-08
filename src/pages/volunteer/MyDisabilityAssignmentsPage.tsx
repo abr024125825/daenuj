@@ -56,12 +56,16 @@ export function MyDisabilityAssignmentsPage() {
 
   const handleComplete = async (assignmentId: string) => {
     if (!user) return;
-    await updateAssignment.mutateAsync({
-      id: assignmentId,
-      status: 'completed',
-      completed_at: new Date().toISOString(),
-      performedBy: user.id,
-    });
+    try {
+      await updateAssignment.mutateAsync({
+        id: assignmentId,
+        status: 'completed',
+        completed_at: new Date().toISOString(),
+        performedBy: user.id,
+      });
+    } catch (error) {
+      console.error('Failed to complete assignment:', error);
+    }
   };
 
   if (isLoading) {
