@@ -25,7 +25,7 @@ export function useEvaluations() {
             id,
             application:volunteer_applications(first_name, family_name)
           ),
-          opportunity:opportunities(title, date)
+          opportunity:opportunities(id, title, date)
         `)
         .order('created_at', { ascending: false });
       
