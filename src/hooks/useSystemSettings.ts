@@ -44,13 +44,14 @@ export function useSystemSettings() {
 
   const updateSetting = useMutation({
     mutationFn: async ({ key, enabled }: { key: string; enabled: boolean }) => {
+      // Use upsert to handle both insert and update
       const { error } = await supabase
         .from('system_settings')
-        .update({ 
-          setting_value: { enabled },
+        .upsert({ 
+          setting_key: key,
+          setting_value: { enabled } as any,
           updated_at: new Date().toISOString()
-        })
-        .eq('setting_key', key);
+        }, { onConflict: 'setting_key' });
 
       if (error) throw error;
     },
