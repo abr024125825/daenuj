@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table';
 import { useMyDisabilityAssignments, useDisabilityExamAssignments } from '@/hooks/useDisabilityExamAssignments';
 import { useAuth } from '@/contexts/AuthContext';
-import { Calendar, Clock, MapPin, User, Loader2, CheckCircle, AlertCircle, HandHeart, Info } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Loader2, CheckCircle, AlertCircle, HandHeart, Info, Phone } from 'lucide-react';
 import { format } from 'date-fns';
 import {
   Tooltip,
@@ -65,6 +65,20 @@ export function MyDisabilityAssignmentsPage() {
       });
     } catch (error) {
       console.error('Failed to complete assignment:', error);
+    }
+  };
+
+  const handleConfirm = async (assignmentId: string) => {
+    if (!user) return;
+    try {
+      await updateAssignment.mutateAsync({
+        id: assignmentId,
+        status: 'confirmed',
+        confirmed_at: new Date().toISOString(),
+        performedBy: user.id,
+      });
+    } catch (error) {
+      console.error('Failed to confirm assignment:', error);
     }
   };
 
@@ -141,6 +155,12 @@ export function MyDisabilityAssignmentsPage() {
                             <p className="text-xs text-muted-foreground">
                               ID: {exam?.student?.university_id}
                             </p>
+                            {(exam?.student as any)?.contact_phone && (
+                              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
+                                <Phone className="h-3 w-3" />
+                                {(exam?.student as any).contact_phone}
+                              </p>
+                            )}
                             {exam?.student?.disability_type && (
                               <Badge variant="outline" className="mt-1 text-xs">
                                 {exam.student.disability_type}
@@ -214,7 +234,17 @@ export function MyDisabilityAssignmentsPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex gap-2">
-                            {(assignment.status === 'assigned' || assignment.status === 'confirmed') && (
+                            {assignment.status === 'assigned' && (
+                              <Button
+                                size="sm"
+                                variant="default"
+                                onClick={() => handleConfirm(assignment.id)}
+                                disabled={updateAssignment.isPending}
+                              >
+                                Confirm
+                              </Button>
+                            )}
+                            {(assignment.status === 'confirmed') && (
                               <Button
                                 size="sm"
                                 variant="outline"

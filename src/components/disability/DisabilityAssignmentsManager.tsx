@@ -55,7 +55,9 @@ import {
   UserMinus,
   Eye,
   Briefcase,
-  User
+  User,
+  Award,
+  Download
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useDisabilityExams, SpecialNeedType } from '@/hooks/useDisabilityExams';
@@ -68,6 +70,8 @@ import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
 import { useAuth } from '@/contexts/AuthContext';
 import { format } from 'date-fns';
 import { generateVolunteerAssignmentReport } from '@/lib/generateVolunteerAssignmentReport';
+import { generateDisabilityCertificatePDF } from '@/lib/generateDisabilityCertificatePDF';
+import { supabase } from '@/integrations/supabase/client';
 
 const ROLE_LABELS: Record<SpecialNeedType, string> = {
   reader: 'Reader',
@@ -120,6 +124,10 @@ export function DisabilityAssignmentsManager() {
   const [hasConflict, setHasConflict] = useState(false);
   const [isAutoAssigning, setIsAutoAssigning] = useState(false);
   const [withdrawalReason, setWithdrawalReason] = useState('');
+  const [reportStartDate, setReportStartDate] = useState('');
+  const [reportEndDate, setReportEndDate] = useState('');
+  const [reportVolunteerId, setReportVolunteerId] = useState('');
+  const [isGeneratingCert, setIsGeneratingCert] = useState(false);
   const [formData, setFormData] = useState({
     volunteer_id: '',
     assigned_role: '' as SpecialNeedType | '',
@@ -228,19 +236,119 @@ export function DisabilityAssignmentsManager() {
     if (!volunteer) return;
 
     const volunteerAssignments = assignments?.filter(a => a.volunteer_id === volunteer.id) || [];
-    
+    const dateRange = reportStartDate && reportEndDate
+      ? { start: new Date(reportStartDate), end: new Date(reportEndDate) }
+      : undefined;
+
     generateVolunteerAssignmentReport(
       {
         id: volunteer.id,
-        volunteer_type: 'general', // TODO: get from volunteer record
+        volunteer_type: (volunteer.volunteer_type as 'general' | 'employment') || 'general',
         full_name: volunteer.application 
           ? `${volunteer.application.first_name} ${volunteer.application.family_name}`
           : 'Unknown',
         total_hours: 0,
       },
-      volunteerAssignments
+      volunteerAssignments,
+      dateRange
     );
   };
+
+  const handleFilteredReport = () => {
+    if (!reportVolunteerId || !assignments) return;
+
+    const volunteerAssignments = assignments.filter(a => a.volunteer_id === reportVolunteerId);
+    if (volunteerAssignments.length === 0) {
+      toast({ title: 'No assignments found for this volunteer', variant: 'destructive' });
+      return;
+    }
+
+    const volunteer = volunteerAssignments[0]?.volunteer;
+    const dateRange = reportStartDate && reportEndDate
+      ? { start: new Date(reportStartDate), end: new Date(reportEndDate) }
+      : undefined;
+
+    generateVolunteerAssignmentReport(
+      {
+        id: reportVolunteerId,
+        volunteer_type: (volunteer?.volunteer_type as 'general' | 'employment') || 'general',
+        full_name: volunteer?.application
+          ? `${volunteer.application.first_name} ${volunteer.application.family_name}`
+          : 'Unknown',
+        total_hours: 0,
+      },
+      volunteerAssignments,
+      dateRange
+    );
+  };
+
+  const calculateVolunteerHours = (volunteerId: string, startDate?: string, endDate?: string) => {
+    if (!assignments) return { hours: 0, count: 0, students: 0 };
+    let filtered = assignments.filter(a => a.volunteer_id === volunteerId && a.status === 'completed');
+    if (startDate && endDate) {
+      filtered = filtered.filter(a => {
+        const examDate = a.exam?.exam_date;
+        return examDate && examDate >= startDate && examDate <= endDate;
+      });
+    }
+    const hours = filtered.reduce((sum, a) => {
+      if (!a.exam) return sum;
+      const [sh, sm] = a.exam.start_time.split(':').map(Number);
+      const [eh, em] = a.exam.end_time.split(':').map(Number);
+      return sum + Math.max(0, ((eh * 60 + em) - (sh * 60 + sm)) / 60);
+    }, 0);
+    const studentIds = new Set(filtered.map(a => a.exam?.student?.university_id).filter(Boolean));
+    return { hours, count: filtered.length, students: studentIds.size };
+  };
+
+  const handleIssueCertificate = async () => {
+    if (!reportVolunteerId || !assignments || !user) return;
+    setIsGeneratingCert(true);
+    try {
+      const volunteerAssignments = assignments.filter(a => a.volunteer_id === reportVolunteerId);
+      const volunteer = volunteerAssignments[0]?.volunteer;
+      if (!volunteer) throw new Error('Volunteer not found');
+
+      const volunteerName = volunteer.application
+        ? `${volunteer.application.first_name} ${volunteer.application.family_name}`
+        : 'Unknown';
+
+      const stats = calculateVolunteerHours(reportVolunteerId, reportStartDate, reportEndDate);
+
+      if (stats.count === 0) {
+        toast({ title: 'No completed assignments found', variant: 'destructive' });
+        return;
+      }
+
+      // Generate certificate number
+      const { data: certNum } = await supabase.rpc('generate_certificate_number');
+      const certificateNumber = certNum || `DSC-${Date.now()}`;
+
+      await generateDisabilityCertificatePDF({
+        volunteerName,
+        totalHours: stats.hours,
+        certificateNumber,
+        issuedAt: format(new Date(), 'MMMM dd, yyyy'),
+        assignmentsCount: stats.count,
+        studentsHelped: stats.students,
+        dateRange: reportStartDate && reportEndDate ? {
+          start: format(new Date(reportStartDate), 'MMM dd, yyyy'),
+          end: format(new Date(reportEndDate), 'MMM dd, yyyy'),
+        } : undefined,
+      });
+
+      toast({ title: 'Certificate generated successfully' });
+    } catch (error) {
+      toast({ title: 'Error generating certificate', description: (error as Error).message, variant: 'destructive' });
+    } finally {
+      setIsGeneratingCert(false);
+    }
+  };
+
+  // Get unique volunteers from assignments
+  const uniqueVolunteers = assignments ? Array.from(
+    new Map(assignments.map(a => [a.volunteer_id, a.volunteer])).entries()
+  ).filter(([, v]) => v) : [];
 
   const { toast } = useToast();
 
@@ -251,12 +359,12 @@ export function DisabilityAssignmentsManager() {
     try {
       const result = await autoAssignAllPending(user.id);
       toast({
-        title: 'تم التوزيع التلقائي',
-        description: `تم تعيين ${result.success_count} متطوع${result.fail_count > 0 ? ` - فشل ${result.fail_count}` : ''}`,
+        title: 'Auto Assignment Complete',
+        description: `Assigned ${result.success_count} volunteer(s)${result.fail_count > 0 ? ` - ${result.fail_count} failed` : ''}`,
       });
     } catch (error) {
       toast({
-        title: 'خطأ',
+        title: 'Error',
         description: (error as Error).message,
         variant: 'destructive',
       });
@@ -272,19 +380,19 @@ export function DisabilityAssignmentsManager() {
       const result = await autoAssignVolunteer(examId, role, user.id);
       if (result.success) {
         toast({
-          title: 'تم التعيين',
-          description: `تم تعيين ${result.volunteer_name}`,
+          title: 'Assigned',
+          description: `Assigned ${result.volunteer_name}`,
         });
       } else {
         toast({
-          title: 'لم يتم العثور على متطوع',
-          description: result.error || 'لا يوجد متطوعين متاحين لهذا الوقت',
+          title: 'No Volunteer Found',
+          description: result.error || 'No volunteers available for this time slot',
           variant: 'destructive',
         });
       }
     } catch (error) {
       toast({
-        title: 'خطأ',
+        title: 'Error',
         description: (error as Error).message,
         variant: 'destructive',
       });
@@ -327,7 +435,7 @@ export function DisabilityAssignmentsManager() {
                 ) : (
                   <Sparkles className="h-4 w-4 mr-2" />
                 )}
-                توزيع تلقائي للكل
+                Auto Assign All
               </Button>
             )}
           </div>
@@ -401,7 +509,7 @@ export function DisabilityAssignmentsManager() {
                             if (firstNeed) handleAutoAssignSingle(exam.id, firstNeed);
                           }}
                           disabled={!exam.special_needs?.length}
-                          title="توزيع تلقائي"
+                          title="Auto Assign"
                         >
                           <Sparkles className="h-4 w-4" />
                         </Button>
@@ -553,6 +661,97 @@ export function DisabilityAssignmentsManager() {
                 })}
               </TableBody>
             </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Reports & Certificates */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Award className="h-5 w-5" />
+            Reports & Certificates
+          </CardTitle>
+          <CardDescription>
+            Generate filtered reports and issue disability support certificates for volunteers
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-4">
+            <div className="space-y-2">
+              <Label>Volunteer</Label>
+              <Select value={reportVolunteerId} onValueChange={setReportVolunteerId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select volunteer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {uniqueVolunteers.map(([id, vol]) => (
+                    <SelectItem key={id} value={id}>
+                      {vol?.application
+                        ? `${vol.application.first_name} ${vol.application.family_name}`
+                        : 'Unknown'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Start Date</Label>
+              <Input
+                type="date"
+                value={reportStartDate}
+                onChange={(e) => setReportStartDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>End Date</Label>
+              <Input
+                type="date"
+                value={reportEndDate}
+                onChange={(e) => setReportEndDate(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>&nbsp;</Label>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleFilteredReport}
+                  disabled={!reportVolunteerId}
+                  className="flex-1"
+                >
+                  <Download className="h-4 w-4 mr-1" />
+                  Report
+                </Button>
+                <Button
+                  onClick={handleIssueCertificate}
+                  disabled={!reportVolunteerId || isGeneratingCert}
+                  className="flex-1"
+                >
+                  {isGeneratingCert ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : (
+                    <Award className="h-4 w-4 mr-1" />
+                  )}
+                  Certificate
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {reportVolunteerId && (
+            <div className="p-3 rounded-lg bg-muted/50">
+              {(() => {
+                const stats = calculateVolunteerHours(reportVolunteerId, reportStartDate, reportEndDate);
+                return (
+                  <div className="flex items-center gap-6 text-sm">
+                    <span><strong>{stats.hours.toFixed(1)}</strong> hours</span>
+                    <span><strong>{stats.count}</strong> completed assignments</span>
+                    <span><strong>{stats.students}</strong> students helped</span>
+                  </div>
+                );
+              })()}
+            </div>
           )}
         </CardContent>
       </Card>

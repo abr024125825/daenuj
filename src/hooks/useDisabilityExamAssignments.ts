@@ -26,6 +26,7 @@ export interface DisabilityExamAssignment {
       student_name: string;
       university_id: string;
       disability_type: string | null;
+      contact_phone: string | null;
     };
   };
   volunteer?: {
@@ -61,7 +62,7 @@ export function useDisabilityExamAssignments(examId?: string, volunteerId?: stri
           *,
           exam:disability_exams(
             id, course_name, course_code, exam_date, start_time, end_time, location,
-            student:disability_students(student_name, university_id, disability_type)
+            student:disability_students(student_name, university_id, disability_type, contact_phone)
           ),
           volunteer:volunteers(
             id, user_id, volunteer_type,
@@ -170,12 +171,37 @@ export function useDisabilityExamAssignments(examId?: string, volunteerId?: stri
 
       if (error) throw error;
 
+      // Update exam status based on assignment status change
+      if (updates.status === 'confirmed' && assignment) {
+        await supabase
+          .from('disability_exams')
+          .update({ status: 'confirmed' })
+          .eq('id', assignment.exam_id);
+      }
+
       // If marking as completed, also update the exam status
       if (updates.status === 'completed' && assignment) {
         await supabase
           .from('disability_exams')
           .update({ status: 'completed' })
           .eq('id', assignment.exam_id);
+      }
+
+      // If cancelling, check if exam should revert to pending
+      if (updates.status === 'cancelled' && assignment) {
+        const { data: remainingAssignments } = await supabase
+          .from('disability_exam_assignments')
+          .select('id')
+          .eq('exam_id', assignment.exam_id)
+          .neq('id', id)
+          .neq('status', 'cancelled');
+
+        if (!remainingAssignments || remainingAssignments.length === 0) {
+          await supabase
+            .from('disability_exams')
+            .update({ status: 'pending' })
+            .eq('id', assignment.exam_id);
+        }
       }
 
       // Log the action
@@ -226,9 +252,27 @@ export function useDisabilityExamAssignments(examId?: string, volunteerId?: stri
         .eq('id', id);
 
       if (error) throw error;
+
+      // Reset exam status to pending since assignment was removed
+      if (assignment) {
+        // Check if there are other active assignments for this exam
+        const { data: remainingAssignments } = await supabase
+          .from('disability_exam_assignments')
+          .select('id')
+          .eq('exam_id', assignment.exam_id)
+          .neq('status', 'cancelled');
+
+        if (!remainingAssignments || remainingAssignments.length === 0) {
+          await supabase
+            .from('disability_exams')
+            .update({ status: 'pending' })
+            .eq('id', assignment.exam_id);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['disability-exam-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['disability-exams'] });
       toast({ title: 'Success', description: 'Assignment removed successfully' });
     },
     onError: (error: Error) => {
@@ -288,7 +332,7 @@ export function useMyDisabilityAssignments() {
           *,
           exam:disability_exams(
             id, course_name, course_code, exam_date, start_time, end_time, location, special_needs, special_needs_notes,
-            student:disability_students(student_name, university_id, disability_type, special_needs)
+            student:disability_students(student_name, university_id, disability_type, special_needs, contact_phone)
           )
         `)
         .order('assigned_at', { ascending: false });
