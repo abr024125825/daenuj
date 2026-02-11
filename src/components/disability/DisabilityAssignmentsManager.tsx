@@ -324,6 +324,40 @@ export function DisabilityAssignmentsManager() {
       const { data: certNum } = await supabase.rpc('generate_certificate_number');
       const certificateNumber = certNum || `DSC-${Date.now()}`;
 
+      // Save certificate to database so it appears in volunteer's certificates page
+      const { error: insertError } = await supabase
+        .from('certificates')
+        .insert({
+          volunteer_id: reportVolunteerId,
+          certificate_number: certificateNumber,
+          hours: stats.hours,
+          certificate_type: 'disability',
+          disability_hours: stats.hours,
+          disability_assignments_count: stats.count,
+          disability_students_helped: stats.students,
+          date_range_start: reportStartDate || null,
+          date_range_end: reportEndDate || null,
+        });
+
+      if (insertError) throw insertError;
+
+      // Update volunteer total hours
+      const { data: vol } = await supabase
+        .from('volunteers')
+        .select('total_hours')
+        .eq('id', reportVolunteerId)
+        .single();
+
+      if (vol) {
+        await supabase
+          .from('volunteers')
+          .update({
+            total_hours: (vol.total_hours || 0) + stats.hours,
+          })
+          .eq('id', reportVolunteerId);
+      }
+
+      // Generate PDF
       await generateDisabilityCertificatePDF({
         volunteerName,
         totalHours: stats.hours,
@@ -337,7 +371,7 @@ export function DisabilityAssignmentsManager() {
         } : undefined,
       });
 
-      toast({ title: 'Certificate generated successfully' });
+      toast({ title: 'Certificate issued and saved successfully' });
     } catch (error) {
       toast({ title: 'Error generating certificate', description: (error as Error).message, variant: 'destructive' });
     } finally {
