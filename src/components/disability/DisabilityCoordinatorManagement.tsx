@@ -102,44 +102,18 @@ export function DisabilityCoordinatorManagement() {
 
     setIsCreating(true);
     try {
-      // Create user via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            first_name: formData.first_name,
-            last_name: formData.last_name,
-          },
-        },
-      });
-
-      if (authError) throw authError;
-      if (!authData.user) throw new Error('Failed to create user');
-
-      // Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: authData.user.id,
+      const { data, error } = await supabase.functions.invoke('create-coordinator', {
+        body: {
           email: formData.email,
+          password: formData.password,
           first_name: formData.first_name,
           last_name: formData.last_name,
           role: 'disability_coordinator',
-          is_active: true,
-        });
+        },
+      });
 
-      if (profileError) throw profileError;
-
-      // Assign disability_coordinator role
-      const { error: roleError } = await supabase
-        .from('user_roles')
-        .insert({
-          user_id: authData.user.id,
-          role: 'disability_coordinator',
-        });
-
-      if (roleError) throw roleError;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       queryClient.invalidateQueries({ queryKey: ['disability-coordinators'] });
       toast({ title: 'Success', description: 'Coordinator account created successfully' });

@@ -34,6 +34,7 @@ import { FacultyReportsPage } from "./pages/faculty/FacultyReportsPage";
 // Disability Exams Pages
 import { DisabilityExamsPage } from "./pages/admin/DisabilityExamsPage";
 import { MyDisabilityAssignmentsPage } from "./pages/volunteer/MyDisabilityAssignmentsPage";
+import { DisabilityExamSubmission } from "./pages/DisabilityExamSubmission";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,6 +56,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/verify" element={<VerifyCertificate />} />
             <Route path="/kiosk" element={<KioskPage />} />
+            <Route path="/disability-exam-submit" element={<DisabilityExamSubmission />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/dashboard/applications" element={<ApplicationsPage />} />

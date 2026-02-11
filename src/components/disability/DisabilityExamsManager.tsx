@@ -263,7 +263,7 @@ export function DisabilityExamsManager() {
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setUploadDialogOpen(true)}>
               <FileSpreadsheet className="h-4 w-4 mr-2" />
-              رفع من Excel
+              Upload from Excel
             </Button>
             <Button onClick={openAddDialog}>
               <Plus className="h-4 w-4 mr-2" />

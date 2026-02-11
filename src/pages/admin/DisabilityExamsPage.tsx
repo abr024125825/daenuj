@@ -8,6 +8,7 @@ import { DisabilityAssignmentsManager } from '@/components/disability/Disability
 import { DisabilityStatsOverview } from '@/components/disability/DisabilityStatsOverview';
 import { DisabilityExamCalendar } from '@/components/disability/DisabilityExamCalendar';
 import { DisabilityCoordinatorManagement } from '@/components/disability/DisabilityCoordinatorManagement';
+import { DisabilityExamSubmissionsViewer } from '@/components/disability/DisabilityExamSubmissionsViewer';
 import { useDisabilityExams } from '@/hooks/useDisabilityExams';
 import { useDisabilityExamAssignments } from '@/hooks/useDisabilityExamAssignments';
 import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
@@ -21,7 +22,8 @@ import {
   Calendar, 
   UserCog,
   Download,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Inbox
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -82,7 +84,7 @@ export function DisabilityExamsPage() {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'}`}>
+          <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-6'}`}>
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -94,6 +96,10 @@ export function DisabilityExamsPage() {
             <TabsTrigger value="students" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Students</span>
+            </TabsTrigger>
+            <TabsTrigger value="submissions" className="flex items-center gap-2">
+              <Inbox className="h-4 w-4" />
+              <span className="hidden sm:inline">Submissions</span>
             </TabsTrigger>
             <TabsTrigger value="exams" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
@@ -121,6 +127,10 @@ export function DisabilityExamsPage() {
 
           <TabsContent value="students" className="mt-6">
             <DisabilityStudentsManager />
+          </TabsContent>
+
+          <TabsContent value="submissions" className="mt-6">
+            <DisabilityExamSubmissionsViewer />
           </TabsContent>
 
           <TabsContent value="exams" className="mt-6">
