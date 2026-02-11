@@ -68,6 +68,7 @@ export function DisabilityStudentsManager() {
   const [formData, setFormData] = useState({
     student_name: '',
     university_id: '',
+    national_id: '',
     disability_type: '',
     disability_code: '',
     contact_phone: '',
@@ -88,6 +89,7 @@ export function DisabilityStudentsManager() {
     const studentData = {
       student_name: formData.student_name,
       university_id: formData.university_id,
+      national_id: formData.national_id || null,
       disability_type: formData.disability_type || null,
       disability_code: formData.disability_code || null,
       contact_phone: formData.contact_phone || null,
@@ -113,6 +115,7 @@ export function DisabilityStudentsManager() {
     setFormData({
       student_name: student.student_name,
       university_id: student.university_id,
+      national_id: student.national_id || '',
       disability_type: student.disability_type || '',
       disability_code: student.disability_code || '',
       contact_phone: student.contact_phone || '',
@@ -154,6 +157,7 @@ export function DisabilityStudentsManager() {
     setFormData({
       student_name: '',
       university_id: '',
+      national_id: '',
       disability_type: '',
       disability_code: '',
       contact_phone: '',
@@ -189,6 +193,7 @@ export function DisabilityStudentsManager() {
         await addStudent.mutateAsync({
           student_name: student.student_name,
           university_id: student.university_id,
+          national_id: null,
           disability_type: student.disability_type || null,
           disability_code: student.disability_code || null,
           contact_phone: student.contact_phone || null,
@@ -259,6 +264,7 @@ export function DisabilityStudentsManager() {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>University ID</TableHead>
+                <TableHead>National ID</TableHead>
                 <TableHead>Disability Type</TableHead>
                 <TableHead>Special Needs</TableHead>
                 <TableHead>Contact</TableHead>
@@ -271,6 +277,7 @@ export function DisabilityStudentsManager() {
                 <TableRow key={student.id}>
                   <TableCell className="font-medium">{student.student_name}</TableCell>
                   <TableCell className="font-mono text-sm">{student.university_id}</TableCell>
+                  <TableCell className="font-mono text-sm">{student.national_id || '—'}</TableCell>
                   <TableCell>
                     {student.disability_type && (
                       <Badge variant="outline">{student.disability_type}</Badge>
@@ -364,6 +371,16 @@ export function DisabilityStudentsManager() {
                   value={formData.university_id}
                   onChange={(e) => setFormData(prev => ({ ...prev, university_id: e.target.value }))}
                   placeholder="e.g., 12345678"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="national_id">National ID</Label>
+                <Input
+                  id="national_id"
+                  value={formData.national_id}
+                  onChange={(e) => setFormData(prev => ({ ...prev, national_id: e.target.value }))}
+                  placeholder="e.g., 9991234567"
                 />
               </div>
 

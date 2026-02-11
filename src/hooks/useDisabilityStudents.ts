@@ -8,6 +8,7 @@ export interface DisabilityStudent {
   id: string;
   student_name: string;
   university_id: string;
+  national_id: string | null;
   disability_type: string | null;
   disability_code: string | null;
   contact_phone: string | null;

@@ -76,68 +76,36 @@ export function FacultyCoordinatorCreator() {
 
     setIsCreating(true);
     try {
-      // 1. Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: formData.email,
-        password: formData.password,
-        options: {
-          data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-          },
+      const { data, error } = await supabase.functions.invoke('create-coordinator', {
+        body: {
+          email: formData.email,
+          password: formData.password,
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          role: 'supervisor',
+          faculty_id: formData.facultyId,
         },
       });
 
-      if (authError) throw authError;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      if (authData.user) {
-        // Wait for profile trigger to create the profile
-        await new Promise(resolve => setTimeout(resolve, 1500));
-
-        // 2. Update role to supervisor in user_roles
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .update({ role: 'supervisor' })
-          .eq('user_id', authData.user.id);
-
-        if (roleError) {
-          // If update fails, try insert
-          const { error: insertRoleError } = await supabase
-            .from('user_roles')
-            .insert({ user_id: authData.user.id, role: 'supervisor' });
-          if (insertRoleError) throw insertRoleError;
-        }
-
-        // 3. Update profile with role and faculty_id
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ 
-            role: 'supervisor',
-            faculty_id: formData.facultyId,
-            first_name: formData.firstName,
-            last_name: formData.lastName,
-          })
-          .eq('user_id', authData.user.id);
-
-        if (profileError) throw profileError;
-
-        toast({ 
-          title: 'Success', 
-          description: `Faculty coordinator created successfully for ${faculties?.find(f => f.id === formData.facultyId)?.name}` 
-        });
-        
-        queryClient.invalidateQueries({ queryKey: ['faculty-coordinators'] });
-        queryClient.invalidateQueries({ queryKey: ['all-users'] });
-        
-        setDialogOpen(false);
-        setFormData({
-          email: '',
-          password: '',
-          firstName: '',
-          lastName: '',
-          facultyId: '',
-        });
-      }
+      toast({ 
+        title: 'Success', 
+        description: `Faculty coordinator created successfully for ${faculties?.find(f => f.id === formData.facultyId)?.name}` 
+      });
+      
+      queryClient.invalidateQueries({ queryKey: ['faculty-coordinators'] });
+      queryClient.invalidateQueries({ queryKey: ['all-users'] });
+      
+      setDialogOpen(false);
+      setFormData({
+        email: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        facultyId: '',
+      });
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {

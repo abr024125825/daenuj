@@ -783,6 +783,65 @@ export type Database = {
           },
         ]
       }
+      disability_student_exam_submissions: {
+        Row: {
+          course_code: string | null
+          course_name: string
+          duration_minutes: number
+          end_time: string
+          exam_date: string
+          id: string
+          is_processed: boolean | null
+          location: string | null
+          notes: string | null
+          processed_at: string | null
+          processed_by: string | null
+          start_time: string
+          student_id: string
+          submitted_at: string
+        }
+        Insert: {
+          course_code?: string | null
+          course_name: string
+          duration_minutes?: number
+          end_time: string
+          exam_date: string
+          id?: string
+          is_processed?: boolean | null
+          location?: string | null
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          start_time: string
+          student_id: string
+          submitted_at?: string
+        }
+        Update: {
+          course_code?: string | null
+          course_name?: string
+          duration_minutes?: number
+          end_time?: string
+          exam_date?: string
+          id?: string
+          is_processed?: boolean | null
+          location?: string | null
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          start_time?: string
+          student_id?: string
+          submitted_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disability_student_exam_submissions_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "disability_students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       disability_students: {
         Row: {
           contact_email: string | null
@@ -793,6 +852,7 @@ export type Database = {
           disability_type: string | null
           id: string
           is_active: boolean | null
+          national_id: string | null
           notes: string | null
           special_needs:
             | Database["public"]["Enums"]["special_need_type"][]
@@ -810,6 +870,7 @@ export type Database = {
           disability_type?: string | null
           id?: string
           is_active?: boolean | null
+          national_id?: string | null
           notes?: string | null
           special_needs?:
             | Database["public"]["Enums"]["special_need_type"][]
@@ -827,6 +888,7 @@ export type Database = {
           disability_type?: string | null
           id?: string
           is_active?: boolean | null
+          national_id?: string | null
           notes?: string | null
           special_needs?:
             | Database["public"]["Enums"]["special_need_type"][]
