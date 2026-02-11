@@ -451,28 +451,46 @@ export type Database = {
       certificates: {
         Row: {
           certificate_number: string
+          certificate_type: string
+          date_range_end: string | null
+          date_range_start: string | null
+          disability_assignments_count: number | null
+          disability_hours: number | null
+          disability_students_helped: number | null
           hours: number
           id: string
           issued_at: string
-          opportunity_id: string
+          opportunity_id: string | null
           template_id: string | null
           volunteer_id: string
         }
         Insert: {
           certificate_number: string
+          certificate_type?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          disability_assignments_count?: number | null
+          disability_hours?: number | null
+          disability_students_helped?: number | null
           hours: number
           id?: string
           issued_at?: string
-          opportunity_id: string
+          opportunity_id?: string | null
           template_id?: string | null
           volunteer_id: string
         }
         Update: {
           certificate_number?: string
+          certificate_type?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          disability_assignments_count?: number | null
+          disability_hours?: number | null
+          disability_students_helped?: number | null
           hours?: number
           id?: string
           issued_at?: string
-          opportunity_id?: string
+          opportunity_id?: string | null
           template_id?: string | null
           volunteer_id?: string
         }
