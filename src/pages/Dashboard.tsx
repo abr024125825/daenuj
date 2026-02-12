@@ -5,6 +5,7 @@ import { AdminDashboard } from '@/components/dashboard/AdminDashboard';
 import { SupervisorDashboard } from '@/components/dashboard/SupervisorDashboard';
 import { FacultyCoordinatorDashboard } from '@/components/dashboard/FacultyCoordinatorDashboard';
 import { DisabilityCoordinatorDashboard } from '@/components/dashboard/DisabilityCoordinatorDashboard';
+import { PsychologistDashboard } from '@/components/dashboard/PsychologistDashboard';
 import { VolunteerDashboard } from '@/components/dashboard/VolunteerDashboard';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Loader2 } from 'lucide-react';
@@ -48,6 +49,11 @@ export default function Dashboard() {
         <DisabilityCoordinatorDashboard />
       </DashboardLayout>
     );
+  }
+
+  // Psychologist gets their own dashboard
+  if (profile.role === 'psychologist') {
+    return <PsychologistDashboard />;
   }
 
   // Faculty coordinator is a supervisor with faculty_id

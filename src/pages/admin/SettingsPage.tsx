@@ -74,41 +74,23 @@ export function SettingsPage() {
 
     setIsCreatingAdmin(true);
     try {
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: seederEmail,
-        password: seederPassword,
-        options: {
-          data: {
-            first_name: 'Admin',
-            last_name: 'User',
-          },
+      const { data, error } = await supabase.functions.invoke('create-coordinator', {
+        body: {
+          email: seederEmail,
+          password: seederPassword,
+          first_name: 'Admin',
+          last_name: 'User',
+          role: 'admin',
         },
       });
 
-      if (authError) throw authError;
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
-      if (authData.user) {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .update({ role: 'admin' })
-          .eq('user_id', authData.user.id);
-
-        if (roleError) throw roleError;
-
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ role: 'admin' })
-          .eq('user_id', authData.user.id);
-
-        if (profileError) throw profileError;
-
-        toast({ title: 'Success', description: 'Admin user created successfully' });
-        setSeederDialogOpen(false);
-        setSeederEmail('');
-        setSeederPassword('');
-      }
+      toast({ title: 'Success', description: 'Admin user created successfully' });
+      setSeederDialogOpen(false);
+      setSeederEmail('');
+      setSeederPassword('');
     } catch (error: any) {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
@@ -278,6 +260,8 @@ export function SettingsPage() {
                                   <SelectContent>
                                     <SelectItem value="volunteer">Volunteer</SelectItem>
                                     <SelectItem value="supervisor">Supervisor</SelectItem>
+                                    <SelectItem value="disability_coordinator">Disability Coord.</SelectItem>
+                                    <SelectItem value="psychologist">Psychologist</SelectItem>
                                     <SelectItem value="admin">Admin</SelectItem>
                                   </SelectContent>
                                 </Select>
