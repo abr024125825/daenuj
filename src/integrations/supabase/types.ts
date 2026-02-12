@@ -1029,6 +1029,47 @@ export type Database = {
         }
         Relationships: []
       }
+      intervention_logs: {
+        Row: {
+          created_at: string
+          id: string
+          intervention_date: string
+          intervention_type: string
+          notes: string | null
+          outcome: string | null
+          performed_by: string
+          profile_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          intervention_date?: string
+          intervention_type: string
+          notes?: string | null
+          outcome?: string | null
+          performed_by: string
+          profile_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          intervention_date?: string
+          intervention_type?: string
+          notes?: string | null
+          outcome?: string | null
+          performed_by?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "intervention_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "psychological_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       majors: {
         Row: {
           created_at: string
@@ -1319,6 +1360,236 @@ export type Database = {
           },
         ]
       }
+      psychological_assessments: {
+        Row: {
+          assessed_at: string
+          assessed_by: string
+          assessment_scale: string | null
+          assessment_score: number | null
+          id: string
+          main_symptoms: string | null
+          medication_history: string | null
+          problem_duration: string | null
+          profile_id: string
+          psychiatric_history: string | null
+          reason_for_visit: string | null
+          risk_level: string | null
+          updated_at: string
+        }
+        Insert: {
+          assessed_at?: string
+          assessed_by: string
+          assessment_scale?: string | null
+          assessment_score?: number | null
+          id?: string
+          main_symptoms?: string | null
+          medication_history?: string | null
+          problem_duration?: string | null
+          profile_id: string
+          psychiatric_history?: string | null
+          reason_for_visit?: string | null
+          risk_level?: string | null
+          updated_at?: string
+        }
+        Update: {
+          assessed_at?: string
+          assessed_by?: string
+          assessment_scale?: string | null
+          assessment_score?: number | null
+          id?: string
+          main_symptoms?: string | null
+          medication_history?: string | null
+          problem_duration?: string | null
+          profile_id?: string
+          psychiatric_history?: string | null
+          reason_for_visit?: string | null
+          risk_level?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "psychological_assessments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "psychological_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      psychological_attachments: {
+        Row: {
+          file_name: string
+          file_type: string
+          file_url: string
+          id: string
+          profile_id: string
+          uploaded_at: string
+          uploaded_by: string
+        }
+        Insert: {
+          file_name: string
+          file_type: string
+          file_url: string
+          id?: string
+          profile_id: string
+          uploaded_at?: string
+          uploaded_by: string
+        }
+        Update: {
+          file_name?: string
+          file_type?: string
+          file_url?: string
+          id?: string
+          profile_id?: string
+          uploaded_at?: string
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "psychological_attachments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "psychological_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      psychological_audit_log: {
+        Row: {
+          action: string
+          details: Json | null
+          id: string
+          performed_at: string
+          performed_by: string
+          profile_id: string | null
+        }
+        Insert: {
+          action: string
+          details?: Json | null
+          id?: string
+          performed_at?: string
+          performed_by: string
+          profile_id?: string | null
+        }
+        Update: {
+          action?: string
+          details?: Json | null
+          id?: string
+          performed_at?: string
+          performed_by?: string
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "psychological_audit_log_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "psychological_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      psychological_profiles: {
+        Row: {
+          academic_year: string | null
+          created_at: string
+          created_by: string
+          disability_type: string | null
+          faculty: string | null
+          id: string
+          phone: string | null
+          referral_source: string | null
+          status: string
+          student_name: string
+          university_id: string
+          updated_at: string
+        }
+        Insert: {
+          academic_year?: string | null
+          created_at?: string
+          created_by: string
+          disability_type?: string | null
+          faculty?: string | null
+          id?: string
+          phone?: string | null
+          referral_source?: string | null
+          status?: string
+          student_name: string
+          university_id: string
+          updated_at?: string
+        }
+        Update: {
+          academic_year?: string | null
+          created_at?: string
+          created_by?: string
+          disability_type?: string | null
+          faculty?: string | null
+          id?: string
+          phone?: string | null
+          referral_source?: string | null
+          status?: string
+          student_name?: string
+          university_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      psychological_sessions: {
+        Row: {
+          created_at: string
+          created_by: string
+          duration_minutes: number
+          homework: string | null
+          id: string
+          improvement_rating: number | null
+          private_notes: string | null
+          profile_id: string
+          session_date: string
+          session_type: string
+          summary: string | null
+          techniques_used: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          duration_minutes?: number
+          homework?: string | null
+          id?: string
+          improvement_rating?: number | null
+          private_notes?: string | null
+          profile_id: string
+          session_date: string
+          session_type?: string
+          summary?: string | null
+          techniques_used?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          duration_minutes?: number
+          homework?: string | null
+          id?: string
+          improvement_rating?: number | null
+          private_notes?: string | null
+          profile_id?: string
+          session_date?: string
+          session_type?: string
+          summary?: string | null
+          techniques_used?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "psychological_sessions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "psychological_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           id: string
@@ -1504,6 +1775,56 @@ export type Database = {
             columns: ["course_id"]
             isOneToOne: false
             referencedRelation: "training_courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treatment_plans: {
+        Row: {
+          created_at: string
+          created_by: string
+          expected_sessions: number | null
+          id: string
+          long_term_goals: string | null
+          plan_status: string
+          preliminary_diagnosis: string | null
+          profile_id: string
+          short_term_goals: string | null
+          therapeutic_approach: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          expected_sessions?: number | null
+          id?: string
+          long_term_goals?: string | null
+          plan_status?: string
+          preliminary_diagnosis?: string | null
+          profile_id: string
+          short_term_goals?: string | null
+          therapeutic_approach?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          expected_sessions?: number | null
+          id?: string
+          long_term_goals?: string | null
+          plan_status?: string
+          preliminary_diagnosis?: string | null
+          profile_id?: string
+          short_term_goals?: string | null
+          therapeutic_approach?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treatment_plans_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "psychological_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -1923,7 +2244,12 @@ export type Database = {
         | "assistive_technology"
         | "other"
       time_slot: "morning" | "afternoon" | "evening"
-      user_role: "admin" | "supervisor" | "volunteer" | "disability_coordinator"
+      user_role:
+        | "admin"
+        | "supervisor"
+        | "volunteer"
+        | "disability_coordinator"
+        | "psychologist"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2070,7 +2396,13 @@ export const Constants = {
         "other",
       ],
       time_slot: ["morning", "afternoon", "evening"],
-      user_role: ["admin", "supervisor", "volunteer", "disability_coordinator"],
+      user_role: [
+        "admin",
+        "supervisor",
+        "volunteer",
+        "disability_coordinator",
+        "psychologist",
+      ],
     },
   },
 } as const
