@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Users, Shield, Settings, Search, Loader2, Calendar, Key, Mail, GraduationCap, Target, Building2 } from 'lucide-react';
+import { Users, Shield, Settings, Search, Loader2, Calendar, Key, Mail, GraduationCap, Target, Building2, Brain, Lock } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -58,6 +58,17 @@ export function SettingsPage() {
   // Password reset state
   const [passwordResetDialogOpen, setPasswordResetDialogOpen] = useState(false);
   const [selectedUserForReset, setSelectedUserForReset] = useState<any>(null);
+
+  // Psychologist creation state
+  const [psychEmail, setPsychEmail] = useState('');
+  const [psychPassword, setPsychPassword] = useState('');
+  const [psychFirstName, setPsychFirstName] = useState('');
+  const [psychLastName, setPsychLastName] = useState('');
+  const [isCreatingPsych, setIsCreatingPsych] = useState(false);
+
+  // Psych access password state
+  const [psychAccessPassword, setPsychAccessPassword] = useState('');
+  const [isSavingPsychPassword, setIsSavingPsychPassword] = useState(false);
 
   const filteredUsers = users?.filter(
     (u: any) =>
@@ -117,7 +128,57 @@ export function SettingsPage() {
     switch (role) {
       case 'admin': return 'destructive';
       case 'supervisor': return 'default';
+      case 'psychologist': return 'default';
       default: return 'secondary';
+    }
+  };
+
+  const handleCreatePsychologist = async () => {
+    if (!psychEmail || !psychPassword || !psychFirstName || !psychLastName) {
+      toast({ title: 'Error', description: 'Please fill in all fields', variant: 'destructive' });
+      return;
+    }
+    setIsCreatingPsych(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-coordinator', {
+        body: {
+          email: psychEmail,
+          password: psychPassword,
+          first_name: psychFirstName,
+          last_name: psychLastName,
+          role: 'psychologist',
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      toast({ title: 'Success', description: 'Psychologist account created' });
+      setPsychEmail('');
+      setPsychPassword('');
+      setPsychFirstName('');
+      setPsychLastName('');
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsCreatingPsych(false);
+    }
+  };
+
+  const handleSavePsychAccessPassword = async () => {
+    if (!psychAccessPassword.trim()) return;
+    setIsSavingPsychPassword(true);
+    try {
+      const { error } = await supabase.from('system_settings').upsert({
+        setting_key: 'psych_access_password',
+        setting_value: { password: psychAccessPassword } as any,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'setting_key' });
+      if (error) throw error;
+      toast({ title: 'Saved', description: 'Clinical access password updated' });
+      setPsychAccessPassword('');
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsSavingPsychPassword(false);
     }
   };
 
@@ -146,7 +207,7 @@ export function SettingsPage() {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-flex">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
@@ -174,6 +235,10 @@ export function SettingsPage() {
             <TabsTrigger value="security" className="gap-2">
               <Key className="h-4 w-4" />
               <span className="hidden sm:inline">Security</span>
+            </TabsTrigger>
+            <TabsTrigger value="psychologists" className="gap-2">
+              <Brain className="h-4 w-4" />
+              <span className="hidden sm:inline">Psych</span>
             </TabsTrigger>
           </TabsList>
 
@@ -315,6 +380,75 @@ export function SettingsPage() {
 
           <TabsContent value="security" className="space-y-4">
             <PasswordManagementPanel />
+          </TabsContent>
+
+          <TabsContent value="psychologists" className="space-y-4">
+            {/* Create Psychologist Account */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="h-5 w-5" />
+                  Create Psychologist Account
+                </CardTitle>
+                <CardDescription>
+                  Create a new psychologist user with access to the clinical support module
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>First Name</Label>
+                    <Input value={psychFirstName} onChange={(e) => setPsychFirstName(e.target.value)} placeholder="First name" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Last Name</Label>
+                    <Input value={psychLastName} onChange={(e) => setPsychLastName(e.target.value)} placeholder="Last name" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Email</Label>
+                    <Input type="email" value={psychEmail} onChange={(e) => setPsychEmail(e.target.value)} placeholder="psychologist@university.edu" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Password</Label>
+                    <Input type="password" value={psychPassword} onChange={(e) => setPsychPassword(e.target.value)} placeholder="Secure password" />
+                  </div>
+                </div>
+                <Button onClick={handleCreatePsychologist} disabled={isCreatingPsych}>
+                  {isCreatingPsych && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Create Psychologist Account
+                </Button>
+              </CardContent>
+            </Card>
+
+            {/* Clinical Access Password */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Clinical Access Password
+                </CardTitle>
+                <CardDescription>
+                  Set or change the password required to access clinical data. Psychologists must enter this password each session.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>New Clinical Access Password</Label>
+                  <Input
+                    type="password"
+                    value={psychAccessPassword}
+                    onChange={(e) => setPsychAccessPassword(e.target.value)}
+                    placeholder="Enter new access password"
+                  />
+                </div>
+                <Button onClick={handleSavePsychAccessPassword} disabled={isSavingPsychPassword || !psychAccessPassword.trim()}>
+                  {isSavingPsychPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Save Access Password
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 

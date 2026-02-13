@@ -12,11 +12,13 @@ import {
   Loader2,
   Shield,
   AlertTriangle,
+  Download,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { PsychSessionTemplates } from '@/components/psych/PsychSessionTemplates';
+import { exportSessionsToJSON, downloadLocalFile } from '@/lib/psychSessionTemplates';
 
 export function PsychologistDashboard() {
   const navigate = useNavigate();
@@ -157,14 +159,13 @@ export function PsychologistDashboard() {
                 variant="outline"
                 className="h-auto py-4 flex-col gap-2"
                 onClick={() => {
-                  const { exportSessionsToJSON, downloadLocalFile } = require('@/lib/psychSessionTemplates');
                   if (sessions && sessions.length > 0) {
                     const json = exportSessionsToJSON(sessions);
                     downloadLocalFile(json, `psych-sessions-${new Date().toISOString().split('T')[0]}.json`);
                   }
                 }}
               >
-                <Calendar className="h-6 w-6 text-primary" />
+                <Download className="h-6 w-6 text-primary" />
                 <span>Export Data</span>
               </Button>
             </div>
