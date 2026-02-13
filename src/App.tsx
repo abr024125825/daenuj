@@ -36,6 +36,10 @@ import { DisabilityExamsPage } from "./pages/admin/DisabilityExamsPage";
 import { MyDisabilityAssignmentsPage } from "./pages/volunteer/MyDisabilityAssignmentsPage";
 import { DisabilityExamSubmission } from "./pages/DisabilityExamSubmission";
 
+// Psychological Support Pages
+import { PsychProfilesPage } from "./pages/psych/PsychProfilesPage";
+import { PsychologicalProfilePage } from "./pages/psych/PsychologicalProfilePage";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -83,6 +87,10 @@ const App = () => (
             {/* Disability Exams Routes */}
             <Route path="/dashboard/disability-exams" element={<DisabilityExamsPage />} />
             <Route path="/dashboard/my-disability-assignments" element={<MyDisabilityAssignmentsPage />} />
+            
+            {/* Psychological Support Routes */}
+            <Route path="/dashboard/psych-profiles" element={<PsychProfilesPage />} />
+            <Route path="/dashboard/psych-profiles/:profileId" element={<PsychologicalProfilePage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
