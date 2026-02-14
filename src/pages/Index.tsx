@@ -1,7 +1,7 @@
 import { Logo } from '@/components/Logo';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Heart, Users, Award, ArrowRight } from 'lucide-react';
+import { UserPlus, Heart, Users, Award, ArrowRight, Accessibility } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
@@ -25,6 +25,10 @@ const Index = () => {
             </a>
             <Button variant="outline" size="sm" onClick={() => navigate('/verify')}>
               Verify Certificate
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/disability-exam-submit')} className="gap-1">
+              <Accessibility className="h-4 w-4" />
+              Disability Exams
             </Button>
           </nav>
         </div>
@@ -125,6 +129,33 @@ const Index = () => {
                 title="Create Impact"
                 description="Contribute to meaningful projects that address real community needs and make a difference."
               />
+            </div>
+          </div>
+        </section>
+
+        {/* Disability Exam Access Section */}
+        <section className="py-12 bg-muted/50 border-t border-border">
+          <div className="container mx-auto px-4 text-center">
+            <div className="max-w-xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-full text-accent text-sm font-medium mb-4">
+                <Accessibility className="h-4 w-4" />
+                Disability Support Services
+              </div>
+              <h2 className="text-2xl font-display font-bold text-foreground mb-3">
+                Disability Exam Submissions
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Students with disabilities can submit their exam schedules for volunteer support assistance.
+              </p>
+              <Button
+                variant="outline"
+                size="lg"
+                onClick={() => navigate('/disability-exam-submit')}
+                className="gap-2"
+              >
+                <Accessibility className="h-5 w-5" />
+                Submit Exam Schedule
+              </Button>
             </div>
           </div>
         </section>
