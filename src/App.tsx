@@ -44,6 +44,7 @@ import { PsychologicalProfilePage } from "./pages/psych/PsychologicalProfilePage
 import { PatientListPage } from "./pages/emr/PatientListPage";
 import { PatientMasterFile } from "./pages/emr/PatientMasterFile";
 import { EncounterDetailPage } from "./pages/emr/EncounterDetailPage";
+import { ClinicCoordinatorPage } from "./pages/emr/ClinicCoordinatorPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -101,6 +102,7 @@ const App = () => (
             <Route path="/dashboard/emr" element={<PatientListPage />} />
             <Route path="/dashboard/emr/patient/:patientId" element={<PatientMasterFile />} />
             <Route path="/dashboard/emr/encounter/:encounterId" element={<EncounterDetailPage />} />
+            <Route path="/dashboard/clinic-appointments" element={<ClinicCoordinatorPage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>

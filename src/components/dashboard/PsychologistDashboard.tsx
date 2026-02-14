@@ -11,49 +11,63 @@ import {
   ArrowRight,
   Loader2,
   Shield,
-  AlertTriangle,
-  Download,
+  Lock,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { PsychSessionTemplates } from '@/components/psych/PsychSessionTemplates';
-import { exportSessionsToJSON, downloadLocalFile } from '@/lib/psychSessionTemplates';
 
 export function PsychologistDashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const { data: profiles, isLoading: profilesLoading } = useQuery({
-    queryKey: ['psych-profiles-count', user?.id],
+  // Count assigned patients
+  const { data: assignedPatients, isLoading: patientsLoading } = useQuery({
+    queryKey: ['my-assigned-patients', user?.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('psychological_profiles')
-        .select('id, status');
+        .from('patient_provider_assignments')
+        .select('id, patient_id')
+        .eq('provider_id', user!.id)
+        .eq('is_active', true);
       if (error) throw error;
       return data;
     },
     enabled: !!user,
   });
 
-  const { data: sessions, isLoading: sessionsLoading } = useQuery({
-    queryKey: ['psych-sessions-all', user?.id],
+  // Count today's appointments
+  const { data: todayAppointments, isLoading: apptLoading } = useQuery({
+    queryKey: ['my-today-appointments', user?.id],
     queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
-        .from('psychological_sessions')
+        .from('appointments')
         .select('*')
-        .order('session_date', { ascending: false });
+        .eq('provider_id', user!.id)
+        .eq('appointment_date', today)
+        .eq('status', 'scheduled');
       if (error) throw error;
       return data;
     },
     enabled: !!user,
   });
 
-  const isLoading = profilesLoading || sessionsLoading;
+  // Count encounters
+  const { data: encounters, isLoading: encLoading } = useQuery({
+    queryKey: ['my-encounters-count', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('encounters')
+        .select('id, status')
+        .eq('provider_id', user!.id);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
 
-  const totalProfiles = profiles?.length || 0;
-  const activeProfiles = profiles?.filter(p => p.status === 'active').length || 0;
-  const totalSessions = sessions?.length || 0;
+  const isLoading = patientsLoading || apptLoading || encLoading;
 
   if (isLoading) {
     return (
@@ -70,13 +84,13 @@ export function PsychologistDashboard() {
       <div className="space-y-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/dashboard/psych-profiles')}>
+          <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/dashboard/emr')}>
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Student Profiles</p>
-                  <p className="text-3xl font-bold mt-2">{totalProfiles}</p>
-                  <Badge variant="secondary" className="mt-2">{activeProfiles} Active</Badge>
+                  <p className="text-sm text-muted-foreground">My Patients</p>
+                  <p className="text-3xl font-bold mt-2">{assignedPatients?.length || 0}</p>
+                  <Badge variant="secondary" className="mt-2">Assigned</Badge>
                 </div>
                 <div className="p-3 rounded-xl bg-primary/10 text-primary">
                   <Users className="h-6 w-6" />
@@ -89,12 +103,12 @@ export function PsychologistDashboard() {
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Sessions</p>
-                  <p className="text-3xl font-bold mt-2">{totalSessions}</p>
-                  <Badge variant="secondary" className="mt-2">Recorded</Badge>
+                  <p className="text-sm text-muted-foreground">Today's Appointments</p>
+                  <p className="text-3xl font-bold mt-2">{todayAppointments?.length || 0}</p>
+                  <Badge variant="secondary" className="mt-2">Scheduled</Badge>
                 </div>
                 <div className="p-3 rounded-xl bg-accent/10 text-accent">
-                  <Brain className="h-6 w-6" />
+                  <Calendar className="h-6 w-6" />
                 </div>
               </div>
             </CardContent>
@@ -104,33 +118,20 @@ export function PsychologistDashboard() {
             <CardContent className="p-6">
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">Privacy</p>
-                  <p className="text-lg font-bold mt-2">Protected</p>
+                  <p className="text-sm text-muted-foreground">Total Encounters</p>
+                  <p className="text-3xl font-bold mt-2">{encounters?.length || 0}</p>
                   <Badge variant="outline" className="mt-2">
                     <Shield className="h-3 w-3 mr-1" />
                     Confidential
                   </Badge>
                 </div>
                 <div className="p-3 rounded-xl bg-primary/10 text-primary">
-                  <Shield className="h-6 w-6" />
+                  <Brain className="h-6 w-6" />
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-
-        {/* Session Templates & Snippets */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-primary" />
-              Session Templates & Clinical Tools
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <PsychSessionTemplates sessions={sessions || []} />
-          </CardContent>
-        </Card>
 
         {/* Quick Actions */}
         <Card>
@@ -142,31 +143,26 @@ export function PsychologistDashboard() {
               <Button
                 variant="outline"
                 className="h-auto py-4 flex-col gap-2"
-                onClick={() => navigate('/dashboard/psych-profiles')}
-              >
-                <Users className="h-6 w-6 text-primary" />
-                <span>View Profiles</span>
-              </Button>
-              <Button
-                variant="outline"
-                className="h-auto py-4 flex-col gap-2"
-                onClick={() => navigate('/dashboard/psych-profiles')}
+                onClick={() => navigate('/dashboard/emr')}
               >
                 <FileText className="h-6 w-6 text-primary" />
-                <span>New Session</span>
+                <span>Patient Records</span>
               </Button>
               <Button
                 variant="outline"
                 className="h-auto py-4 flex-col gap-2"
-                onClick={() => {
-                  if (sessions && sessions.length > 0) {
-                    const json = exportSessionsToJSON(sessions);
-                    downloadLocalFile(json, `psych-sessions-${new Date().toISOString().split('T')[0]}.json`);
-                  }
-                }}
+                onClick={() => navigate('/dashboard/emr')}
               >
-                <Download className="h-6 w-6 text-primary" />
-                <span>Export Data</span>
+                <Brain className="h-6 w-6 text-primary" />
+                <span>New Encounter</span>
+              </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col gap-2"
+                onClick={() => navigate('/dashboard/notifications')}
+              >
+                <Lock className="h-6 w-6 text-primary" />
+                <span>Notifications</span>
               </Button>
             </div>
           </CardContent>

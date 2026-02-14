@@ -240,6 +240,59 @@ export type Database = {
           },
         ]
       }
+      appointments: {
+        Row: {
+          appointment_date: string
+          appointment_time: string
+          appointment_type: string
+          created_at: string
+          created_by: string
+          duration_minutes: number
+          id: string
+          notes: string | null
+          patient_id: string
+          provider_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          appointment_date: string
+          appointment_time: string
+          appointment_type?: string
+          created_at?: string
+          created_by: string
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          patient_id: string
+          provider_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          appointment_date?: string
+          appointment_time?: string
+          appointment_type?: string
+          created_at?: string
+          created_by?: string
+          duration_minutes?: number
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          provider_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "appointments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       attendance: {
         Row: {
           check_in_method: string | null
@@ -2086,6 +2139,41 @@ export type Database = {
           },
         ]
       }
+      patient_provider_assignments: {
+        Row: {
+          assigned_at: string
+          assigned_by: string
+          id: string
+          is_active: boolean
+          patient_id: string
+          provider_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by: string
+          id?: string
+          is_active?: boolean
+          patient_id: string
+          provider_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string
+          id?: string
+          is_active?: boolean
+          patient_id?: string
+          provider_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_provider_assignments_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_referrals: {
         Row: {
           completed_at: string | null
@@ -2112,7 +2200,7 @@ export type Database = {
           reason: string
           referral_type?: string
           referred_by: string
-          referred_to: string
+          referred_to?: string
           result_notes?: string | null
           specialty?: string | null
           status?: string
@@ -2155,6 +2243,7 @@ export type Database = {
       patients: {
         Row: {
           allergies: string[] | null
+          assigned_provider_id: string | null
           chronic_problems: string[] | null
           created_at: string
           created_by: string
@@ -2174,6 +2263,7 @@ export type Database = {
         }
         Insert: {
           allergies?: string[] | null
+          assigned_provider_id?: string | null
           chronic_problems?: string[] | null
           created_at?: string
           created_by: string
@@ -2193,6 +2283,7 @@ export type Database = {
         }
         Update: {
           allergies?: string[] | null
+          assigned_provider_id?: string | null
           chronic_problems?: string[] | null
           created_at?: string
           created_by?: string
@@ -2217,6 +2308,7 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           email: string
+          emr_password: string | null
           faculty_id: string | null
           first_name: string
           id: string
@@ -2230,6 +2322,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email: string
+          emr_password?: string | null
           faculty_id?: string | null
           first_name: string
           id?: string
@@ -2243,6 +2336,7 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           email?: string
+          emr_password?: string | null
           faculty_id?: string | null
           first_name?: string
           id?: string
@@ -3192,6 +3286,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_clinic_coordinator: { Args: { _user_id: string }; Returns: boolean }
       is_disability_coordinator: {
         Args: { _user_id: string }
         Returns: boolean
@@ -3225,6 +3320,7 @@ export type Database = {
         | "volunteer"
         | "disability_coordinator"
         | "psychologist"
+        | "clinic_coordinator"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3377,6 +3473,7 @@ export const Constants = {
         "volunteer",
         "disability_coordinator",
         "psychologist",
+        "clinic_coordinator",
       ],
     },
   },
