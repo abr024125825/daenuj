@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Users, Shield, Settings, Search, Loader2, Calendar, Key, Mail, GraduationCap, Target, Building2, Brain, Lock } from 'lucide-react';
+import { Users, Shield, Settings, Search, Loader2, Calendar, Key, Mail, GraduationCap, Target, Building2, Brain, Lock, Stethoscope, Database } from 'lucide-react';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,6 +42,7 @@ import { PasswordManagementPanel } from '@/components/admin/PasswordManagementPa
 import { FacultyManagement } from '@/components/admin/FacultyManagement';
 import { FacultyCoordinatorCreator } from '@/components/admin/FacultyCoordinatorCreator';
 import { VolunteerHoursTargetSettings } from '@/components/admin/VolunteerHoursTargetSettings';
+import { ClinicCoordinatorCreator } from '@/components/admin/ClinicCoordinatorCreator';
 import { usePasswordManagement } from '@/hooks/usePasswordManagement';
 
 export function SettingsPage() {
@@ -69,6 +70,9 @@ export function SettingsPage() {
   // Psych access password state
   const [psychAccessPassword, setPsychAccessPassword] = useState('');
   const [isSavingPsychPassword, setIsSavingPsychPassword] = useState(false);
+  
+  // Seed state
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const filteredUsers = users?.filter(
     (u: any) =>
@@ -204,10 +208,25 @@ export function SettingsPage() {
             <Shield className="h-4 w-4 mr-2" />
             Create Admin User
           </Button>
+          <Button variant="outline" disabled={isSeeding} onClick={async () => {
+            setIsSeeding(true);
+            try {
+              const { data, error } = await supabase.functions.invoke('seed-demo-data');
+              if (error) throw error;
+              toast({ title: 'Seed Complete', description: data?.results?.join(', ') || 'Done' });
+            } catch (e: any) {
+              toast({ title: 'Error', description: e.message, variant: 'destructive' });
+            } finally {
+              setIsSeeding(false);
+            }
+          }}>
+            {isSeeding ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Database className="h-4 w-4 mr-2" />}
+            Seed Demo Data
+          </Button>
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-flex">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
@@ -239,6 +258,10 @@ export function SettingsPage() {
             <TabsTrigger value="psychologists" className="gap-2">
               <Brain className="h-4 w-4" />
               <span className="hidden sm:inline">Psych</span>
+            </TabsTrigger>
+            <TabsTrigger value="clinic" className="gap-2">
+              <Stethoscope className="h-4 w-4" />
+              <span className="hidden sm:inline">Clinic</span>
             </TabsTrigger>
           </TabsList>
 
@@ -450,6 +473,10 @@ export function SettingsPage() {
                 </Button>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="clinic" className="space-y-4">
+            <ClinicCoordinatorCreator />
           </TabsContent>
         </Tabs>
 
