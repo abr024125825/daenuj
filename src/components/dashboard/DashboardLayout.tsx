@@ -73,11 +73,18 @@ const disabilityCoordinatorNavItems: NavItem[] = [
   { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
 ];
 
-// Psychologist - clinical support
+// Psychologist - clinical support (EMR only, no student profiles)
 const psychologistNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: FileText, label: 'Patient Records (EMR)', href: '/dashboard/emr' },
-  { icon: Users, label: 'Student Profiles', href: '/dashboard/psych-profiles' },
+  { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
+];
+
+// Clinic Coordinator - appointment booking, patient intake
+const clinicCoordinatorNavItems: NavItem[] = [
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: Calendar, label: 'Appointments', href: '/dashboard/clinic-appointments' },
+  { icon: Users, label: 'Patient Records', href: '/dashboard/emr' },
   { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
 ];
 
@@ -102,18 +109,21 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const isFacultyCoordinator = profile?.role === 'supervisor' && profile?.faculty_id;
   const isDisabilityCoordinator = profile?.role === 'disability_coordinator';
   const isPsychologist = profile?.role === 'psychologist';
+  const isClinicCoordinator = profile?.role === 'clinic_coordinator' as string;
   
   let navItems: NavItem[];
   if (profile?.role === 'admin') {
     navItems = adminNavItems;
   } else if (isPsychologist) {
     navItems = psychologistNavItems;
+  } else if (isClinicCoordinator) {
+    navItems = clinicCoordinatorNavItems;
   } else if (isDisabilityCoordinator) {
     navItems = disabilityCoordinatorNavItems;
   } else if (isFacultyCoordinator) {
     navItems = facultyCoordinatorNavItems;
   } else if (profile?.role === 'supervisor') {
-    navItems = adminNavItems; // Regular supervisors get admin nav
+    navItems = adminNavItems;
   } else {
     navItems = volunteerNavItems;
   }

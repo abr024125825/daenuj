@@ -327,6 +327,7 @@ export function SettingsPage() {
                                     <SelectItem value="supervisor">Supervisor</SelectItem>
                                     <SelectItem value="disability_coordinator">Disability Coord.</SelectItem>
                                     <SelectItem value="psychologist">Psychologist</SelectItem>
+                                    <SelectItem value="clinic_coordinator">Clinic Coordinator</SelectItem>
                                     <SelectItem value="admin">Admin</SelectItem>
                                   </SelectContent>
                                 </Select>

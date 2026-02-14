@@ -7,13 +7,63 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { useLabResults, useCreateLabResult } from '@/hooks/useEMR';
+import { useLabResults, useCreateLabResult, usePatient } from '@/hooks/useEMR';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, Printer } from 'lucide-react';
+
+function printLabRequest(lab: any, patient: any) {
+  const win = window.open('', '_blank');
+  if (!win) return;
+  win.document.write(`
+    <html><head><title>Lab Request</title>
+    <style>
+      body { font-family: Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
+      .header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 15px; margin-bottom: 20px; }
+      .header h1 { font-size: 20px; margin: 0; }
+      .header h2 { font-size: 14px; color: #666; margin: 5px 0 0; }
+      .field { margin-bottom: 12px; }
+      .field label { font-weight: bold; display: block; font-size: 12px; color: #555; }
+      .field p { margin: 4px 0; font-size: 14px; }
+      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .footer { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 15px; font-size: 11px; color: #888; }
+      .stamp { margin-top: 30px; text-align: right; }
+      @media print { body { padding: 20px; } }
+    </style></head><body>
+    <div class="header">
+      <h1>University of Jordan - Student Health Clinic</h1>
+      <h2>Laboratory Investigation Request</h2>
+    </div>
+    <div class="grid">
+      <div class="field"><label>Patient Name</label><p>${patient?.full_name || 'N/A'}</p></div>
+      <div class="field"><label>File Number</label><p>${patient?.file_number || 'N/A'}</p></div>
+      <div class="field"><label>National ID</label><p>${patient?.national_id || 'N/A'}</p></div>
+      <div class="field"><label>Request Date</label><p>${lab.test_date || new Date().toLocaleDateString()}</p></div>
+    </div>
+    <hr style="margin: 15px 0"/>
+    <div class="field"><label>Test Requested</label><p style="font-size:16px; font-weight:bold">${lab.test_name}</p></div>
+    <div class="grid">
+      <div class="field"><label>Category</label><p style="text-transform:capitalize">${lab.test_category || 'General'}</p></div>
+      <div class="field"><label>Priority</label><p>Routine</p></div>
+    </div>
+    ${lab.notes ? `<div class="field"><label>Clinical Notes</label><p>${lab.notes}</p></div>` : ''}
+    <div class="stamp">
+      <p>Requesting Physician: _______________________</p>
+      <p>Date: ${new Date().toLocaleDateString()}</p>
+    </div>
+    <div class="footer">
+      <p>Please send results to the Psychological Services Unit.</p>
+      <p>Generated on: ${new Date().toLocaleString()}</p>
+    </div>
+    </body></html>
+  `);
+  win.document.close();
+  win.print();
+}
 
 export function LabsTab({ patientId }: { patientId: string }) {
   const { user } = useAuth();
   const { data: labs, isLoading } = useLabResults(patientId);
+  const { data: patient } = usePatient(patientId);
   const createLab = useCreateLabResult();
   const [isOpen, setIsOpen] = useState(false);
   const [form, setForm] = useState({
@@ -66,6 +116,7 @@ export function LabsTab({ patientId }: { patientId: string }) {
                 <Label>Abnormal?</Label>
                 <Switch checked={form.is_abnormal} onCheckedChange={v => setForm(f => ({ ...f, is_abnormal: v }))} />
               </div>
+              <div><Label>Notes</Label><Input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Clinical notes for lab" /></div>
               <Button onClick={handleCreate} disabled={createLab.isPending} className="w-full">Save Result</Button>
             </div>
           </DialogContent>
@@ -86,10 +137,15 @@ export function LabsTab({ patientId }: { patientId: string }) {
                     {l.is_abnormal && <Badge variant="destructive" className="text-xs">Abnormal</Badge>}
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Result: {l.result_value || 'N/A'} {l.unit} {l.reference_range && `(Ref: ${l.reference_range})`}
+                    Result: {l.result_value || 'Pending'} {l.unit} {l.reference_range && `(Ref: ${l.reference_range})`}
                   </p>
                 </div>
-                <span className="text-xs text-muted-foreground">{l.test_date}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{l.test_date}</span>
+                  <Button variant="ghost" size="icon" onClick={() => printLabRequest(l, patient)} title="Print Lab Request">
+                    <Printer className="h-4 w-4" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}

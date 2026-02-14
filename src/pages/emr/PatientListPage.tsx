@@ -1,50 +1,61 @@
 import { useState } from 'react';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { usePatients, useCreatePatient, usePatientAlerts } from '@/hooks/useEMR';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, UserPlus, AlertTriangle, FileText, Loader2 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { Search, AlertTriangle, FileText, Loader2 } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { EMRAccessGate } from './EMRAccessGate';
 
-export function PatientListPage() {
-  const { user } = useAuth();
+function PatientListContent() {
+  const { user, profile } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
-  const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [newPatient, setNewPatient] = useState({
-    full_name: '', national_id: '', date_of_birth: '', gender: '', marital_status: '',
-    phone: '', email: '', emergency_contact_name: '', emergency_contact_phone: '',
+
+  // Psychologists only see assigned patients; admins/coordinators see all
+  const isProvider = profile?.role === 'psychologist';
+
+  const { data: patients, isLoading } = useQuery({
+    queryKey: ['my-patients', user?.id, searchTerm, isProvider],
+    queryFn: async () => {
+      if (isProvider) {
+        // Get assigned patient IDs first
+        const { data: assignments, error: aErr } = await supabase
+          .from('patient_provider_assignments')
+          .select('patient_id')
+          .eq('provider_id', user!.id)
+          .eq('is_active', true);
+        if (aErr) throw aErr;
+        const patientIds = assignments?.map(a => a.patient_id) || [];
+        if (patientIds.length === 0) return [];
+
+        let query = supabase.from('patients').select('*').in('id', patientIds).order('created_at', { ascending: false });
+        if (searchTerm?.trim()) {
+          query = query.or(`national_id.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,file_number.ilike.%${searchTerm}%`);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+      } else {
+        let query = supabase.from('patients').select('*').order('created_at', { ascending: false });
+        if (searchTerm?.trim()) {
+          query = query.or(`national_id.ilike.%${searchTerm}%,full_name.ilike.%${searchTerm}%,file_number.ilike.%${searchTerm}%`);
+        }
+        const { data, error } = await query;
+        if (error) throw error;
+        return data;
+      }
+    },
+    enabled: !!user,
   });
-
-  const { data: patients, isLoading } = usePatients(searchTerm);
-  const createPatient = useCreatePatient();
-
-  const handleCreate = async () => {
-    if (!newPatient.full_name.trim() || !newPatient.national_id.trim()) {
-      toast({ title: 'Required', description: 'Name and National ID are required', variant: 'destructive' });
-      return;
-    }
-    await createPatient.mutateAsync({
-      ...newPatient,
-      date_of_birth: newPatient.date_of_birth || null,
-      created_by: user?.id,
-    });
-    setIsCreateOpen(false);
-    setNewPatient({ full_name: '', national_id: '', date_of_birth: '', gender: '', marital_status: '', phone: '', email: '', emergency_contact_name: '', emergency_contact_phone: '' });
-  };
 
   return (
     <DashboardLayout title="Patient Records">
       <div className="space-y-6">
-        {/* Search & Actions */}
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -55,78 +66,13 @@ export function PatientListPage() {
               className="pl-9"
             />
           </div>
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-              <Button><UserPlus className="h-4 w-4 mr-2" /> New Patient</Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader><DialogTitle>Register New Patient</DialogTitle></DialogHeader>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <Label>Full Name *</Label>
-                  <Input value={newPatient.full_name} onChange={e => setNewPatient(p => ({ ...p, full_name: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>National ID *</Label>
-                  <Input value={newPatient.national_id} onChange={e => setNewPatient(p => ({ ...p, national_id: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>Date of Birth</Label>
-                  <Input type="date" value={newPatient.date_of_birth} onChange={e => setNewPatient(p => ({ ...p, date_of_birth: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>Gender</Label>
-                  <Select value={newPatient.gender} onValueChange={v => setNewPatient(p => ({ ...p, gender: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Marital Status</Label>
-                  <Select value={newPatient.marital_status} onValueChange={v => setNewPatient(p => ({ ...p, marital_status: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="single">Single</SelectItem>
-                      <SelectItem value="married">Married</SelectItem>
-                      <SelectItem value="divorced">Divorced</SelectItem>
-                      <SelectItem value="widowed">Widowed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Phone</Label>
-                  <Input value={newPatient.phone} onChange={e => setNewPatient(p => ({ ...p, phone: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>Email</Label>
-                  <Input type="email" value={newPatient.email} onChange={e => setNewPatient(p => ({ ...p, email: e.target.value }))} />
-                </div>
-                <div>
-                  <Label>Emergency Contact</Label>
-                  <Input value={newPatient.emergency_contact_name} onChange={e => setNewPatient(p => ({ ...p, emergency_contact_name: e.target.value }))} placeholder="Name" />
-                </div>
-                <div>
-                  <Label>Emergency Phone</Label>
-                  <Input value={newPatient.emergency_contact_phone} onChange={e => setNewPatient(p => ({ ...p, emergency_contact_phone: e.target.value }))} />
-                </div>
-              </div>
-              <Button onClick={handleCreate} disabled={createPatient.isPending} className="w-full mt-4">
-                {createPatient.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Plus className="h-4 w-4 mr-2" />}
-                Create Patient
-              </Button>
-            </DialogContent>
-          </Dialog>
         </div>
 
-        {/* Patient List */}
         {isLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : !patients?.length ? (
           <Card><CardContent className="py-12 text-center text-muted-foreground">
-            {searchTerm ? 'No patients found matching your search' : 'No patients registered yet. Click "New Patient" to get started.'}
+            {isProvider ? 'No patients assigned to you yet. Contact the clinic coordinator.' : (searchTerm ? 'No patients found matching your search' : 'No patients registered yet.')}
           </CardContent></Card>
         ) : (
           <div className="grid gap-3">
@@ -169,5 +115,13 @@ export function PatientListPage() {
         )}
       </div>
     </DashboardLayout>
+  );
+}
+
+export function PatientListPage() {
+  return (
+    <EMRAccessGate>
+      <PatientListContent />
+    </EMRAccessGate>
   );
 }
