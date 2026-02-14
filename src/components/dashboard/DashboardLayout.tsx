@@ -76,6 +76,7 @@ const disabilityCoordinatorNavItems: NavItem[] = [
 // Psychologist - clinical support
 const psychologistNavItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: FileText, label: 'Patient Records (EMR)', href: '/dashboard/emr' },
   { icon: Users, label: 'Student Profiles', href: '/dashboard/psych-profiles' },
   { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
 ];

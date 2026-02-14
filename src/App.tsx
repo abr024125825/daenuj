@@ -40,6 +40,11 @@ import { DisabilityExamSubmission } from "./pages/DisabilityExamSubmission";
 import { PsychProfilesPage } from "./pages/psych/PsychProfilesPage";
 import { PsychologicalProfilePage } from "./pages/psych/PsychologicalProfilePage";
 
+// EMR Pages
+import { PatientListPage } from "./pages/emr/PatientListPage";
+import { PatientMasterFile } from "./pages/emr/PatientMasterFile";
+import { EncounterDetailPage } from "./pages/emr/EncounterDetailPage";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -91,6 +96,11 @@ const App = () => (
             {/* Psychological Support Routes */}
             <Route path="/dashboard/psych-profiles" element={<PsychProfilesPage />} />
             <Route path="/dashboard/psych-profiles/:profileId" element={<PsychologicalProfilePage />} />
+            
+            {/* EMR Routes */}
+            <Route path="/dashboard/emr" element={<PatientListPage />} />
+            <Route path="/dashboard/emr/patient/:patientId" element={<PatientMasterFile />} />
+            <Route path="/dashboard/emr/encounter/:encounterId" element={<EncounterDetailPage />} />
             
             <Route path="*" element={<NotFound />} />
           </Routes>
