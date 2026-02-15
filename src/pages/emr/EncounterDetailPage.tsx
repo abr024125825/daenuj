@@ -12,7 +12,10 @@ import { ArrowLeft, Loader2, Save, Plus, Calendar, User, MapPin, Lock } from 'lu
 import { useEncounter, useUpdateEncounter, useMSE, useUpsertMSE, useEncounterHistories, useUpsertHistory, useAddendums, useCreateAddendum } from '@/hooks/useEMR';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiagnosesTab } from '@/components/emr/DiagnosesTab';
+import { MedicationsTab } from '@/components/emr/MedicationsTab';
 import { RiskAssessmentsTab } from '@/components/emr/RiskAssessmentsTab';
+import { LabsTab } from '@/components/emr/LabsTab';
+import { ReferralsTab } from '@/components/emr/ReferralsTab';
 import { useToast } from '@/hooks/use-toast';
 
 const MSE_FIELDS = [
