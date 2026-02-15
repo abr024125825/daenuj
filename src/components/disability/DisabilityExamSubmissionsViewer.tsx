@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Table,
   TableBody,
@@ -21,7 +22,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, Search, Inbox, Check, Trash2, Plus } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Loader2, Search, Inbox, Check, Trash2, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +50,8 @@ interface ExamSubmission {
   notes: string | null;
   submitted_at: string;
   is_processed: boolean;
+  status: string;
+  rejection_reason: string | null;
   student?: {
     student_name: string;
     university_id: string;
@@ -56,6 +66,9 @@ export function DisabilityExamSubmissionsViewer() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [approveDialogOpen, setApproveDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectId, setRejectId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const { data: submissions, isLoading } = useQuery({
     queryKey: ['disability-exam-submissions'],
@@ -75,12 +88,12 @@ export function DisabilityExamSubmissionsViewer() {
 
   const approveSubmissions = useMutation({
     mutationFn: async (ids: string[]) => {
-      if (!user || !activeSemester) throw new Error('Missing context');
+      if (!user || !activeSemester) throw new Error('Missing context - ensure an active semester is set');
 
       const toApprove = submissions?.filter(s => ids.includes(s.id)) || [];
 
-      // Create disability exams from submissions
       for (const sub of toApprove) {
+        // Create disability exam
         const { error: examError } = await supabase
           .from('disability_exams')
           .insert({
@@ -102,11 +115,18 @@ export function DisabilityExamSubmissionsViewer() {
 
         if (examError) throw examError;
 
-        // Mark as processed
-        await supabase
+        // Update submission status
+        const { error: updateError } = await supabase
           .from('disability_student_exam_submissions')
-          .update({ is_processed: true, processed_at: new Date().toISOString(), processed_by: user.id })
+          .update({
+            is_processed: true,
+            processed_at: new Date().toISOString(),
+            processed_by: user.id,
+            status: 'approved',
+          })
           .eq('id', sub.id);
+
+        if (updateError) throw updateError;
       }
     },
     onSuccess: () => {
@@ -115,6 +135,33 @@ export function DisabilityExamSubmissionsViewer() {
       toast({ title: 'Success', description: `${selectedIds.length} submission(s) approved and added to exams` });
       setSelectedIds([]);
       setApproveDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  const rejectSubmission = useMutation({
+    mutationFn: async ({ id, reason }: { id: string; reason: string }) => {
+      if (!user) throw new Error('Not authenticated');
+      const { error } = await supabase
+        .from('disability_student_exam_submissions')
+        .update({
+          is_processed: true,
+          processed_at: new Date().toISOString(),
+          processed_by: user.id,
+          status: 'rejected',
+          rejection_reason: reason,
+        })
+        .eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['disability-exam-submissions'] });
+      toast({ title: 'Rejected', description: 'Submission has been rejected' });
+      setRejectDialogOpen(false);
+      setRejectId(null);
+      setRejectionReason('');
     },
     onError: (error: Error) => {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
@@ -141,13 +188,21 @@ export function DisabilityExamSubmissionsViewer() {
     s.student?.university_id?.includes(searchQuery)
   );
 
-  const pendingSubmissions = filtered?.filter(s => !s.is_processed) || [];
-  const processedSubmissions = filtered?.filter(s => s.is_processed) || [];
+  const pendingSubmissions = filtered?.filter(s => s.status === 'pending') || [];
+  const processedSubmissions = filtered?.filter(s => s.status !== 'pending') || [];
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev =>
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     );
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'approved': return <Badge variant="default" className="bg-green-600">Approved</Badge>;
+      case 'rejected': return <Badge variant="destructive">Rejected</Badge>;
+      default: return <Badge variant="secondary">Pending</Badge>;
+    }
   };
 
   if (isLoading) {
@@ -209,7 +264,7 @@ export function DisabilityExamSubmissionsViewer() {
                       <TableHead>Date & Time</TableHead>
                       <TableHead>Duration</TableHead>
                       <TableHead>Submitted</TableHead>
-                      <TableHead className="w-20">Actions</TableHead>
+                      <TableHead className="w-24">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -220,7 +275,6 @@ export function DisabilityExamSubmissionsViewer() {
                             type="checkbox"
                             checked={selectedIds.includes(sub.id)}
                             onChange={() => toggleSelect(sub.id)}
-                            aria-label={`Select submission for ${sub.course_name}`}
                             className="h-4 w-4"
                           />
                         </TableCell>
@@ -241,14 +295,24 @@ export function DisabilityExamSubmissionsViewer() {
                           {format(new Date(sub.submitted_at), 'MMM dd, HH:mm')}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => deleteSubmission.mutate(sub.id)}
-                            aria-label="Delete submission"
-                          >
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => { setRejectId(sub.id); setRejectDialogOpen(true); }}
+                              title="Reject"
+                            >
+                              <X className="h-4 w-4 text-destructive" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => deleteSubmission.mutate(sub.id)}
+                              title="Delete"
+                            >
+                              <Trash2 className="h-4 w-4 text-muted-foreground" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}
@@ -273,7 +337,7 @@ export function DisabilityExamSubmissionsViewer() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {processedSubmissions.slice(0, 10).map(sub => (
+                    {processedSubmissions.slice(0, 20).map(sub => (
                       <TableRow key={sub.id}>
                         <TableCell>{sub.student?.student_name}</TableCell>
                         <TableCell>{sub.course_name}</TableCell>
@@ -282,7 +346,10 @@ export function DisabilityExamSubmissionsViewer() {
                           {format(new Date(sub.submitted_at), 'MMM dd, HH:mm')}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="secondary">Processed</Badge>
+                          {getStatusBadge(sub.status)}
+                          {sub.rejection_reason && (
+                            <p className="text-xs text-muted-foreground mt-1">{sub.rejection_reason}</p>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -293,6 +360,7 @@ export function DisabilityExamSubmissionsViewer() {
           </div>
         )}
 
+        {/* Approve Dialog */}
         <AlertDialog open={approveDialogOpen} onOpenChange={setApproveDialogOpen}>
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -318,6 +386,39 @@ export function DisabilityExamSubmissionsViewer() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Reject Dialog */}
+        <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Reject Submission</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Reason for rejection</label>
+                <Textarea
+                  value={rejectionReason}
+                  onChange={e => setRejectionReason(e.target.value)}
+                  placeholder="Enter reason for rejection..."
+                  rows={3}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setRejectDialogOpen(false); setRejectId(null); setRejectionReason(''); }}>
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => rejectId && rejectSubmission.mutate({ id: rejectId, reason: rejectionReason })}
+                disabled={rejectSubmission.isPending}
+              >
+                {rejectSubmission.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Reject
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

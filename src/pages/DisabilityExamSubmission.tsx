@@ -35,12 +35,14 @@ interface ExamEntry {
 
 export function DisabilityExamSubmission() {
   const { toast } = useToast();
-  const [step, setStep] = useState<'verify' | 'exams' | 'success'>('verify');
+  const [step, setStep] = useState<'verify' | 'exams' | 'success' | 'track'>('verify');
   const [isVerifying, setIsVerifying] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [universityId, setUniversityId] = useState('');
   const [nationalId, setNationalId] = useState('');
   const [studentInfo, setStudentInfo] = useState<{ id: string; student_name: string } | null>(null);
+  const [trackedSubmissions, setTrackedSubmissions] = useState<any[]>([]);
+  const [isLoadingTrack, setIsLoadingTrack] = useState(false);
   const [exams, setExams] = useState<ExamEntry[]>([
     createEmptyExam(),
   ]);
@@ -109,10 +111,28 @@ export function DisabilityExamSubmission() {
     setExams(prev => prev.filter(e => e.id !== id));
   };
 
+  const handleTrackStatus = async () => {
+    if (!studentInfo) return;
+    setIsLoadingTrack(true);
+    try {
+      const { data, error } = await supabase
+        .from('disability_student_exam_submissions')
+        .select('*')
+        .eq('student_id', studentInfo.id)
+        .order('submitted_at', { ascending: false });
+      if (error) throw error;
+      setTrackedSubmissions(data || []);
+      setStep('track');
+    } catch (err) {
+      toast({ title: 'Error', description: (err as Error).message, variant: 'destructive' });
+    } finally {
+      setIsLoadingTrack(false);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!studentInfo) return;
 
-    // Validate all exams
     const invalidExams = exams.filter(e => !e.course_name || !e.exam_date || !e.start_time || !e.end_time);
     if (invalidExams.length > 0) {
       toast({ title: 'Error', description: 'Please fill in the required fields for all exams (Course Name, Date, Start Time, End Time)', variant: 'destructive' });
@@ -145,6 +165,14 @@ export function DisabilityExamSubmission() {
       toast({ title: 'Error', description: (err as Error).message, variant: 'destructive' });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'approved': return 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-200';
+      case 'rejected': return 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200';
+      default: return 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-200';
     }
   };
 
@@ -241,6 +269,15 @@ export function DisabilityExamSubmission() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {step === 'exams' && studentInfo && (
+          <div className="space-y-2 mb-6">
+            <Button variant="outline" onClick={handleTrackStatus} disabled={isLoadingTrack} className="w-full">
+              {isLoadingTrack ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Calendar className="h-4 w-4 mr-2" />}
+              Track My Submissions
+            </Button>
+          </div>
         )}
 
         {step === 'exams' && studentInfo && (
@@ -473,6 +510,62 @@ export function DisabilityExamSubmission() {
               </Button>
             </CardContent>
           </Card>
+        )}
+
+        {step === 'track' && studentInfo && (
+          <div className="space-y-6">
+            <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-green-600" />
+                  <div>
+                    <p className="font-medium text-green-800 dark:text-green-200">Verified: {studentInfo.student_name}</p>
+                    <p className="text-sm text-green-600 dark:text-green-400">University ID: {universityId}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Submission Status</CardTitle>
+                <CardDescription>Track the status of your exam submissions</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {trackedSubmissions.length === 0 ? (
+                  <p className="text-center py-8 text-muted-foreground">No submissions found</p>
+                ) : (
+                  <div className="space-y-3">
+                    {trackedSubmissions.map((sub: any) => (
+                      <div key={sub.id} className="p-4 border rounded-lg">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="font-medium">{sub.course_name}</h4>
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(sub.status)}`}>
+                            {sub.status === 'pending' ? 'Under Review' : sub.status === 'approved' ? 'Approved' : 'Rejected'}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                          {sub.course_code && <span className="font-mono">{sub.course_code}</span>}
+                          <span>{sub.exam_date}</span>
+                          <span>{sub.start_time} - {sub.end_time}</span>
+                        </div>
+                        {sub.rejection_reason && (
+                          <div className="mt-2 p-2 rounded text-sm bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300">
+                            <strong>Reason:</strong> {sub.rejection_reason}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="mt-4 flex gap-3">
+                  <Button variant="outline" onClick={() => setStep('exams')} className="flex-1">
+                    Back to Submit
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </main>
 
