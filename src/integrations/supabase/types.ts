@@ -849,7 +849,9 @@ export type Database = {
           notes: string | null
           processed_at: string | null
           processed_by: string | null
+          rejection_reason: string | null
           start_time: string
+          status: string
           student_id: string
           submitted_at: string
         }
@@ -865,7 +867,9 @@ export type Database = {
           notes?: string | null
           processed_at?: string | null
           processed_by?: string | null
+          rejection_reason?: string | null
           start_time: string
+          status?: string
           student_id: string
           submitted_at?: string
         }
@@ -881,7 +885,9 @@ export type Database = {
           notes?: string | null
           processed_at?: string | null
           processed_by?: string | null
+          rejection_reason?: string | null
           start_time?: string
+          status?: string
           student_id?: string
           submitted_at?: string
         }
