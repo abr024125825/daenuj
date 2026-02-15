@@ -22,10 +22,19 @@ function useProviders() {
   return useQuery({
     queryKey: ['emr-providers'],
     queryFn: async () => {
+      // Get psychologist user_ids from user_roles (source of truth)
+      const { data: roleData, error: roleError } = await supabase
+        .from('user_roles')
+        .select('user_id')
+        .eq('role', 'psychologist');
+      if (roleError) throw roleError;
+      const psychIds = roleData?.map(r => r.user_id) || [];
+      if (psychIds.length === 0) return [];
+
       const { data, error } = await supabase
         .from('profiles')
         .select('user_id, first_name, last_name, email')
-        .in('role', ['psychologist']);
+        .in('user_id', psychIds);
       if (error) throw error;
       return data;
     },
