@@ -45,6 +45,16 @@ export function MFASetup() {
   const handleEnroll = async () => {
     setIsEnrolling(true);
     try {
+      // Remove any existing unverified factors to avoid name conflict
+      const { data: existing } = await supabase.auth.mfa.listFactors();
+      if (existing?.totp) {
+        for (const factor of existing.totp) {
+          if ((factor.status as string) === 'unverified') {
+            await supabase.auth.mfa.unenroll({ factorId: factor.id });
+          }
+        }
+      }
+
       const { data, error } = await supabase.auth.mfa.enroll({
         factorType: 'totp',
         friendlyName: 'Authenticator App',
