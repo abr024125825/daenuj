@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { MFAChallengeForm } from './MFAChallengeForm';
 
 export function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showMFAChallenge, setShowMFAChallenge] = useState(false);
   
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -24,11 +26,15 @@ export function LoginForm() {
     const result = await login(email, password);
 
     if (result.success) {
-      toast({
-        title: "Welcome back!",
-        description: "You have been successfully logged in.",
-      });
-      navigate('/dashboard');
+      if (result.mfaRequired) {
+        setShowMFAChallenge(true);
+      } else {
+        toast({
+          title: "Welcome back!",
+          description: "You have been successfully logged in.",
+        });
+        navigate('/dashboard');
+      }
     } else {
       toast({
         variant: "destructive",
@@ -40,6 +46,22 @@ export function LoginForm() {
     setIsLoading(false);
   };
 
+  const handleMFASuccess = () => {
+    toast({
+      title: "Welcome back!",
+      description: "You have been successfully logged in.",
+    });
+    navigate('/dashboard');
+  };
+
+  const handleMFABack = () => {
+    setShowMFAChallenge(false);
+    setPassword('');
+  };
+
+  if (showMFAChallenge) {
+    return <MFAChallengeForm onSuccess={handleMFASuccess} onBack={handleMFABack} />;
+  }
 
   return (
     <form onSubmit={handleLogin} className="space-y-5">
@@ -100,7 +122,6 @@ export function LoginForm() {
           </>
         )}
       </Button>
-
     </form>
   );
 }

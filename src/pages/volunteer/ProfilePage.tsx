@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
+import { MFASetup } from '@/components/auth/MFASetup';
 import { 
   User, 
   Mail, 
@@ -213,6 +214,7 @@ export function ProfilePage() {
           <TabsList>
             <TabsTrigger value="personal">Personal Info</TabsTrigger>
             <TabsTrigger value="academic">Academic Info</TabsTrigger>
+            <TabsTrigger value="security">Security</TabsTrigger>
           </TabsList>
 
           <TabsContent value="personal">
@@ -320,6 +322,10 @@ export function ProfilePage() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="security">
+            <MFASetup />
           </TabsContent>
         </Tabs>
       </div>
