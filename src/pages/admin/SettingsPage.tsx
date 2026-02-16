@@ -44,6 +44,7 @@ import { FacultyCoordinatorCreator } from '@/components/admin/FacultyCoordinator
 import { VolunteerHoursTargetSettings } from '@/components/admin/VolunteerHoursTargetSettings';
 import { ClinicCoordinatorCreator } from '@/components/admin/ClinicCoordinatorCreator';
 import { usePasswordManagement } from '@/hooks/usePasswordManagement';
+import { MFASetup } from '@/components/auth/MFASetup';
 
 export function SettingsPage() {
   const { users, isLoading, updateUserRole, toggleUserActive } = useUsers();
@@ -404,6 +405,7 @@ export function SettingsPage() {
 
           <TabsContent value="security" className="space-y-4">
             <PasswordManagementPanel />
+            <MFASetup />
           </TabsContent>
 
           <TabsContent value="psychologists" className="space-y-4">
