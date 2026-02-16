@@ -21,7 +21,7 @@ interface AuthContextType {
   session: Session | null;
   profile: UserProfile | null;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; mfaRequired?: boolean }>;
   signup: (email: string, password: string, metadata?: { first_name?: string; last_name?: string }) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   isAuthenticated: boolean;
@@ -121,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; mfaRequired?: boolean }> => {
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
@@ -130,6 +130,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         return { success: false, error: error.message };
+      }
+
+      // Check if MFA is required (AAL1 session but user has TOTP factors)
+      const { data: factorsData } = await supabase.auth.mfa.listFactors();
+      const hasVerifiedTOTP = factorsData?.totp?.some(f => f.status === 'verified');
+      
+      if (hasVerifiedTOTP) {
+        // Check current AAL level
+        const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (aalData?.currentLevel === 'aal1' && aalData?.nextLevel === 'aal2') {
+          return { success: true, mfaRequired: true };
+        }
       }
 
       return { success: true };
