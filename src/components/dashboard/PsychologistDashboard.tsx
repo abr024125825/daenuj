@@ -86,8 +86,9 @@ export function PsychologistDashboard() {
   return (
     <DashboardLayout title="Psychologist Dashboard">
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
+        <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="today">Today's Schedule</TabsTrigger>
           <TabsTrigger value="register">Register Patient</TabsTrigger>
           <TabsTrigger value="availability">Availability</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
@@ -172,6 +173,39 @@ export function PsychologistDashboard() {
                   <span>Register Patient</span>
                 </Button>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="today">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base flex items-center gap-2">
+                <Calendar className="h-4 w-4" />
+                Today's Appointments
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {todayAppointments && todayAppointments.length > 0 ? (
+                <div className="space-y-3">
+                  {todayAppointments.map((appt: any) => (
+                    <div key={appt.id} className="flex items-center justify-between p-3 rounded-lg border">
+                      <div>
+                        <p className="text-sm font-medium">{appt.appointment_time}</p>
+                        <p className="text-xs text-muted-foreground capitalize">{appt.appointment_type}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">{appt.status}</Badge>
+                        <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/emr/patient/${appt.patient_id}`)}>
+                          <ArrowRight className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-8">No appointments scheduled for today</p>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

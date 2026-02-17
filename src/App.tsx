@@ -48,6 +48,9 @@ import { PatientMasterFile } from "./pages/emr/PatientMasterFile";
 import { EncounterDetailPage } from "./pages/emr/EncounterDetailPage";
 import { EMRStatsPage } from "./pages/emr/EMRStatsPage";
 
+// Screening
+import ScreeningTestPage from "./pages/ScreeningTestPage";
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -71,6 +74,7 @@ const App = () => (
               <Route path="/kiosk" element={<KioskPage />} />
               <Route path="/disability-exam-submit" element={<DisabilityExamSubmission />} />
               <Route path="/book-appointment" element={<BookAppointmentPage />} />
+              <Route path="/screening" element={<ScreeningTestPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/dashboard/applications" element={<ApplicationsPage />} />
