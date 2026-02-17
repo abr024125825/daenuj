@@ -3326,12 +3326,10 @@ export type Database = {
       generate_achievement_cert_number: { Args: never; Returns: string }
       generate_badge_code: { Args: never; Returns: string }
       generate_certificate_number: { Args: never; Returns: string }
-      generate_file_number:
-        | { Args: never; Returns: string }
-        | {
-            Args: { _first_letter?: string; _semester?: number; _year?: string }
-            Returns: string
-          }
+      generate_file_number: {
+        Args: { _first_letter?: string; _semester?: number; _year?: string }
+        Returns: string
+      }
       get_application_faculty_id: {
         Args: { _application_id: string }
         Returns: string

@@ -56,11 +56,8 @@ export default function Dashboard() {
     return <PsychologistDashboard />;
   }
 
-  // Clinic coordinator redirects to their page
-  if ((profile.role as string) === 'clinic_coordinator') {
-    navigate('/dashboard/clinic-appointments');
-    return null;
-  }
+  // Clinic coordinator role removed - treat as volunteer
+
 
   // Faculty coordinator is a supervisor with faculty_id
   if (profile.role === 'supervisor' && profile.faculty_id) {
