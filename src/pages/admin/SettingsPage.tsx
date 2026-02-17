@@ -45,12 +45,14 @@ import { VolunteerHoursTargetSettings } from '@/components/admin/VolunteerHoursT
 import { ClinicCoordinatorCreator } from '@/components/admin/ClinicCoordinatorCreator';
 import { usePasswordManagement } from '@/hooks/usePasswordManagement';
 import { MFASetup } from '@/components/auth/MFASetup';
+import { useMaintenanceMode } from '@/hooks/useMaintenanceMode';
 
 export function SettingsPage() {
   const { users, isLoading, updateUserRole, toggleUserActive } = useUsers();
   const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const { resetUserPassword, isUpdating: isResettingPassword } = usePasswordManagement();
+  const { isMaintenanceMode, isLoading: maintenanceLoading, toggleMaintenance } = useMaintenanceMode();
   const [searchQuery, setSearchQuery] = useState('');
   const [seederDialogOpen, setSeederDialogOpen] = useState(false);
   const [seederEmail, setSeederEmail] = useState('');
@@ -227,7 +229,7 @@ export function SettingsPage() {
         </div>
 
         <Tabs defaultValue="users" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-9 lg:w-auto lg:inline-flex">
+          <TabsList className="grid w-full grid-cols-8 lg:w-auto lg:inline-flex">
             <TabsTrigger value="users" className="gap-2">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Users</span>
@@ -259,10 +261,6 @@ export function SettingsPage() {
             <TabsTrigger value="psychologists" className="gap-2">
               <Brain className="h-4 w-4" />
               <span className="hidden sm:inline">Psych</span>
-            </TabsTrigger>
-            <TabsTrigger value="clinic" className="gap-2">
-              <Stethoscope className="h-4 w-4" />
-              <span className="hidden sm:inline">Clinic</span>
             </TabsTrigger>
           </TabsList>
 
@@ -351,7 +349,6 @@ export function SettingsPage() {
                                     <SelectItem value="supervisor">Supervisor</SelectItem>
                                     <SelectItem value="disability_coordinator">Disability Coord.</SelectItem>
                                     <SelectItem value="psychologist">Psychologist</SelectItem>
-                                    <SelectItem value="clinic_coordinator">Clinic Coordinator</SelectItem>
                                     <SelectItem value="admin">Admin</SelectItem>
                                   </SelectContent>
                                 </Select>
@@ -400,6 +397,33 @@ export function SettingsPage() {
           </TabsContent>
 
           <TabsContent value="config" className="space-y-4">
+            {/* Maintenance Mode */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Settings className="h-5 w-5" />
+                  Maintenance Mode
+                </CardTitle>
+                <CardDescription>
+                  When enabled, all non-admin users will see a maintenance page instead of the application.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div>
+                    <p className="font-medium">{isMaintenanceMode ? 'Maintenance Mode is ON' : 'Maintenance Mode is OFF'}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isMaintenanceMode ? 'Only admins can access the site' : 'All users can access the site normally'}
+                    </p>
+                  </div>
+                  <Switch
+                    checked={isMaintenanceMode}
+                    onCheckedChange={(checked) => toggleMaintenance.mutate(checked)}
+                    disabled={maintenanceLoading || toggleMaintenance.isPending}
+                  />
+                </div>
+              </CardContent>
+            </Card>
             <SystemConfigurationPanel />
           </TabsContent>
 
@@ -477,9 +501,7 @@ export function SettingsPage() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="clinic" className="space-y-4">
-            <ClinicCoordinatorCreator />
-          </TabsContent>
+          {/* Clinic coordinator tab removed */}
         </Tabs>
 
         {/* Admin Seeder Dialog */}

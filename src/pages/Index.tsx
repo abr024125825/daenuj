@@ -1,7 +1,7 @@
 import { Logo } from '@/components/Logo';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Heart, Users, Award, ArrowRight, Accessibility } from 'lucide-react';
+import { UserPlus, Heart, Users, Award, ArrowRight, Accessibility, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
@@ -25,6 +25,10 @@ const Index = () => {
             </a>
             <Button variant="outline" size="sm" onClick={() => navigate('/verify')}>
               Verify Certificate
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => navigate('/book-appointment')} className="gap-1">
+              <Calendar className="h-4 w-4" />
+              Book Appointment
             </Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/disability-exam-submit')} className="gap-1">
               <Accessibility className="h-4 w-4" />

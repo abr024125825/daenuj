@@ -81,11 +81,10 @@ const psychologistNavItems: NavItem[] = [
   { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
 ];
 
-// Clinic Coordinator - appointment booking, patient intake
-const clinicCoordinatorNavItems: NavItem[] = [
+// Psychologist nav now includes availability
+const psychologistNavItemsFull: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: Calendar, label: 'Appointments', href: '/dashboard/clinic-appointments' },
-  { icon: Users, label: 'Patient Records', href: '/dashboard/emr' },
+  { icon: FileText, label: 'Patient Records (EMR)', href: '/dashboard/emr' },
   { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
 ];
 
@@ -110,15 +109,12 @@ export function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const isFacultyCoordinator = profile?.role === 'supervisor' && profile?.faculty_id;
   const isDisabilityCoordinator = profile?.role === 'disability_coordinator';
   const isPsychologist = profile?.role === 'psychologist';
-  const isClinicCoordinator = profile?.role === 'clinic_coordinator' as string;
   
   let navItems: NavItem[];
   if (profile?.role === 'admin') {
     navItems = adminNavItems;
   } else if (isPsychologist) {
-    navItems = psychologistNavItems;
-  } else if (isClinicCoordinator) {
-    navItems = clinicCoordinatorNavItems;
+    navItems = psychologistNavItemsFull;
   } else if (isDisabilityCoordinator) {
     navItems = disabilityCoordinatorNavItems;
   } else if (isFacultyCoordinator) {
