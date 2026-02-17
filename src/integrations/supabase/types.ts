@@ -2664,6 +2664,59 @@ export type Database = {
           },
         ]
       }
+      screening_results: {
+        Row: {
+          created_at: string
+          id: string
+          is_anonymous: boolean
+          patient_id: string | null
+          questions_answered: Json
+          session_id: string
+          severity_level: string | null
+          student_email: string | null
+          student_name: string | null
+          student_phone: string | null
+          suggested_icd_codes: Json
+          summary: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          patient_id?: string | null
+          questions_answered?: Json
+          session_id: string
+          severity_level?: string | null
+          student_email?: string | null
+          student_name?: string | null
+          student_phone?: string | null
+          suggested_icd_codes?: Json
+          summary?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_anonymous?: boolean
+          patient_id?: string | null
+          questions_answered?: Json
+          session_id?: string
+          severity_level?: string | null
+          student_email?: string | null
+          student_name?: string | null
+          student_phone?: string | null
+          suggested_icd_codes?: Json
+          summary?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "screening_results_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       system_settings: {
         Row: {
           id: string

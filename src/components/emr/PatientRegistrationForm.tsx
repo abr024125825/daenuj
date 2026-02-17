@@ -88,11 +88,26 @@ export function PatientRegistrationForm() {
         assigned_by: user.id,
       });
 
-      toast({ title: 'Patient Registered', description: `File Number: ${fileNumber}` });
+      // Auto-create first encounter (initial visit)
+      const profileRes = await supabase.from('profiles').select('first_name, last_name').eq('user_id', user.id).single();
+      const providerName = profileRes.data ? `${profileRes.data.first_name} ${profileRes.data.last_name}` : 'Provider';
+      await supabase.from('encounters').insert({
+        patient_id: newPatient.id,
+        provider_id: user.id,
+        provider_name: providerName,
+        clinic_type: 'psychological',
+        visit_type: 'initial',
+        status: 'open',
+        chief_complaint: 'Initial intake - first visit',
+      });
+
+      toast({ title: 'Patient Registered', description: `File Number: ${fileNumber} - First encounter created automatically` });
       qc.invalidateQueries({ queryKey: ['patients'] });
       qc.invalidateQueries({ queryKey: ['my-assigned-patients'] });
       qc.invalidateQueries({ queryKey: ['my-patients'] });
       qc.invalidateQueries({ queryKey: ['provider-assignments'] });
+      qc.invalidateQueries({ queryKey: ['encounters'] });
+      qc.invalidateQueries({ queryKey: ['my-encounters-count'] });
       setForm({
         full_name: '', date_of_birth: '', gender: '', phone: '', email: '',
         emergency_contact_name: '', emergency_contact_phone: '',

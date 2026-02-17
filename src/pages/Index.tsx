@@ -1,7 +1,7 @@
 import { Logo } from '@/components/Logo';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Heart, Users, Award, ArrowRight, Accessibility, Calendar } from 'lucide-react';
+import { UserPlus, Heart, Users, Award, ArrowRight, Accessibility, Calendar, Brain } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Index = () => {
@@ -33,6 +33,10 @@ const Index = () => {
             <Button variant="outline" size="sm" onClick={() => navigate('/disability-exam-submit')} className="gap-1">
               <Accessibility className="h-4 w-4" />
               Disability Exams
+            </Button>
+            <Button variant="default" size="sm" onClick={() => navigate('/screening')} className="gap-1">
+              <Brain className="h-4 w-4" />
+              Self-Screening
             </Button>
           </nav>
         </div>
@@ -133,6 +137,34 @@ const Index = () => {
                 title="Create Impact"
                 description="Contribute to meaningful projects that address real community needs and make a difference."
               />
+            </div>
+          </div>
+        </section>
+
+        {/* Psychological Screening Section */}
+        <section className="py-12 bg-primary/5 border-t border-border">
+          <div className="container mx-auto px-4 text-center">
+            <div className="max-w-xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-4">
+                <Brain className="h-4 w-4" />
+                Mental Health Support
+              </div>
+              <h2 className="text-2xl font-display font-bold text-foreground mb-3">
+                Free Psychological Screening
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Take a confidential, AI-powered adaptive screening test to understand your mental health. 
+                Results are private and you can choose to register for professional support.
+              </p>
+              <Button
+                variant="hero"
+                size="lg"
+                onClick={() => navigate('/screening')}
+                className="gap-2"
+              >
+                <Brain className="h-5 w-5" />
+                Start Screening Test
+              </Button>
             </div>
           </div>
         </section>
