@@ -52,7 +52,7 @@ const adminNavItems: NavItem[] = [
   { icon: MessageSquare, label: 'Evaluations', href: '/dashboard/evaluations' },
   { icon: GraduationCap, label: 'Training', href: '/dashboard/training' },
   { icon: Accessibility, label: 'Disability Exams', href: '/dashboard/disability-exams' },
-  { icon: FileText, label: 'EMR Management', href: '/dashboard/emr' },
+  { icon: FileText, label: 'EMR Statistics', href: '/dashboard/emr/stats' },
   { icon: BarChart3, label: 'Reports', href: '/dashboard/reports' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];

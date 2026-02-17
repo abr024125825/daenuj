@@ -53,9 +53,25 @@ export function EMRAccessGate({ children }: EMRAccessGateProps) {
     }
   };
 
-  // Admins bypass
+  // Admins should not access patient records - redirect to stats
   if (profile?.role === 'admin') {
-    return <>{children}</>;
+    return (
+      <DashboardLayout title="Access Restricted">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Card className="w-full max-w-md text-center">
+            <CardHeader>
+              <div className="mx-auto p-4 rounded-full bg-destructive/10 w-fit mb-4">
+                <Shield className="h-8 w-8 text-destructive" />
+              </div>
+              <CardTitle>Access Restricted</CardTitle>
+              <CardDescription>
+                Patient records are confidential. Admin access is limited to aggregate statistics only.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      </DashboardLayout>
+    );
   }
 
   const handleVerify = async () => {
