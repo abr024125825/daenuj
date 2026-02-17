@@ -2262,7 +2262,7 @@ export type Database = {
           gender: string | null
           id: string
           marital_status: string | null
-          national_id: string
+          national_id: string | null
           phone: string | null
           status: string
           updated_at: string
@@ -2282,7 +2282,7 @@ export type Database = {
           gender?: string | null
           id?: string
           marital_status?: string | null
-          national_id: string
+          national_id?: string | null
           phone?: string | null
           status?: string
           updated_at?: string
@@ -2302,7 +2302,7 @@ export type Database = {
           gender?: string | null
           id?: string
           marital_status?: string | null
-          national_id?: string
+          national_id?: string | null
           phone?: string | null
           status?: string
           updated_at?: string
@@ -2685,6 +2685,72 @@ export type Database = {
           setting_value?: Json
           updated_at?: string
           updated_by?: string | null
+        }
+        Relationships: []
+      }
+      therapist_availability_slots: {
+        Row: {
+          booking_window_days: number
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_active: boolean
+          provider_id: string
+          slot_duration_minutes: number
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          booking_window_days?: number
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_active?: boolean
+          provider_id: string
+          slot_duration_minutes?: number
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          booking_window_days?: number
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          provider_id?: string
+          slot_duration_minutes?: number
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      therapist_leaves: {
+        Row: {
+          created_at: string
+          end_date: string
+          id: string
+          provider_id: string
+          reason: string | null
+          start_date: string
+        }
+        Insert: {
+          created_at?: string
+          end_date: string
+          id?: string
+          provider_id: string
+          reason?: string | null
+          start_date: string
+        }
+        Update: {
+          created_at?: string
+          end_date?: string
+          id?: string
+          provider_id?: string
+          reason?: string | null
+          start_date?: string
         }
         Relationships: []
       }
@@ -3260,7 +3326,12 @@ export type Database = {
       generate_achievement_cert_number: { Args: never; Returns: string }
       generate_badge_code: { Args: never; Returns: string }
       generate_certificate_number: { Args: never; Returns: string }
-      generate_file_number: { Args: never; Returns: string }
+      generate_file_number:
+        | { Args: never; Returns: string }
+        | {
+            Args: { _first_letter?: string; _semester?: number; _year?: string }
+            Returns: string
+          }
       get_application_faculty_id: {
         Args: { _application_id: string }
         Returns: string
