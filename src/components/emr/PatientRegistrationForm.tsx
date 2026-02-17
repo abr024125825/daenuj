@@ -66,7 +66,7 @@ export function PatientRegistrationForm() {
         fileNumber = fnData;
       }
 
-      const { error } = await supabase.from('patients').insert({
+      const { data: newPatient, error } = await supabase.from('patients').insert({
         full_name: form.full_name,
         file_number: fileNumber,
         date_of_birth: form.date_of_birth || null,
@@ -77,12 +77,22 @@ export function PatientRegistrationForm() {
         emergency_contact_phone: form.emergency_contact_phone || null,
         created_by: user.id,
         assigned_provider_id: user.id,
-      });
+      }).select().single();
 
       if (error) throw error;
 
+      // Auto-assign patient to the registering provider
+      await supabase.from('patient_provider_assignments').insert({
+        patient_id: newPatient.id,
+        provider_id: user.id,
+        assigned_by: user.id,
+      });
+
       toast({ title: 'Patient Registered', description: `File Number: ${fileNumber}` });
       qc.invalidateQueries({ queryKey: ['patients'] });
+      qc.invalidateQueries({ queryKey: ['my-assigned-patients'] });
+      qc.invalidateQueries({ queryKey: ['my-patients'] });
+      qc.invalidateQueries({ queryKey: ['provider-assignments'] });
       setForm({
         full_name: '', date_of_birth: '', gender: '', phone: '', email: '',
         emergency_contact_name: '', emergency_contact_phone: '',
