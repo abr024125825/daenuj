@@ -2330,6 +2330,7 @@ export type Database = {
           marital_status: string | null
           national_id: string | null
           phone: string | null
+          screening_session_id: string | null
           status: string
           updated_at: string
         }
@@ -2350,6 +2351,7 @@ export type Database = {
           marital_status?: string | null
           national_id?: string | null
           phone?: string | null
+          screening_session_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -2370,6 +2372,7 @@ export type Database = {
           marital_status?: string | null
           national_id?: string | null
           phone?: string | null
+          screening_session_id?: string | null
           status?: string
           updated_at?: string
         }
@@ -2810,36 +2813,48 @@ export type Database = {
       therapist_availability_slots: {
         Row: {
           booking_window_days: number
+          break_minutes: number | null
+          buffer_minutes: number | null
           created_at: string
           day_of_week: number
           end_time: string
           id: string
           is_active: boolean
+          max_daily_patients: number | null
           provider_id: string
+          session_minutes: number | null
           slot_duration_minutes: number
           start_time: string
           updated_at: string
         }
         Insert: {
           booking_window_days?: number
+          break_minutes?: number | null
+          buffer_minutes?: number | null
           created_at?: string
           day_of_week: number
           end_time: string
           id?: string
           is_active?: boolean
+          max_daily_patients?: number | null
           provider_id: string
+          session_minutes?: number | null
           slot_duration_minutes?: number
           start_time: string
           updated_at?: string
         }
         Update: {
           booking_window_days?: number
+          break_minutes?: number | null
+          buffer_minutes?: number | null
           created_at?: string
           day_of_week?: number
           end_time?: string
           id?: string
           is_active?: boolean
+          max_daily_patients?: number | null
           provider_id?: string
+          session_minutes?: number | null
           slot_duration_minutes?: number
           start_time?: string
           updated_at?: string

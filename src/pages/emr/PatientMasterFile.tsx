@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, ArrowLeft, Plus, Activity, Pill, Brain, FileText, ClipboardList, TestTube, ArrowRightLeft, ScrollText, Shield } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowLeft, Activity, Pill, Brain, FileText, ClipboardList, TestTube, ArrowRightLeft, Shield } from 'lucide-react';
 import { usePatient, usePatientAlerts, useDiagnoses, usePatientMedications, useEncounters } from '@/hooks/useEMR';
 import { EncountersTab } from '@/components/emr/EncountersTab';
 import { DiagnosesTab } from '@/components/emr/DiagnosesTab';
@@ -16,6 +16,59 @@ import { LabsTab } from '@/components/emr/LabsTab';
 import { ReferralsTab } from '@/components/emr/ReferralsTab';
 import { DocumentsTab } from '@/components/emr/DocumentsTab';
 import { AuditTrailTab } from '@/components/emr/AuditTrailTab';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+
+function ScreeningDiagnosisCard({ patientId }: { patientId: string }) {
+  const { data } = useQuery({
+    queryKey: ['patient-screening-diag', patientId],
+    queryFn: async () => {
+      const { data: pat } = await supabase.from('patients').select('screening_session_id').eq('id', patientId).single();
+      if (!pat?.screening_session_id) {
+        // Try via file_open_requests
+        const { data: req } = await supabase
+          .from('file_open_requests' as any)
+          .select('screening_summary, suggested_icd_codes, severity_level')
+          .eq('patient_id', patientId)
+          .eq('status', 'approved')
+          .limit(1)
+          .maybeSingle();
+        return req;
+      }
+      const { data: sr } = await supabase.from('screening_results').select('*').eq('session_id', pat.screening_session_id).maybeSingle();
+      return sr;
+    },
+  });
+
+  if (!data) return null;
+  const d = data as any;
+
+  return (
+    <Card className="border-primary/20 bg-primary/5">
+      <CardContent className="py-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <Brain className="h-4 w-4 text-primary" />
+          <span className="text-sm font-semibold">AI Screening Diagnosis</span>
+          {d.severity_level && (
+            <Badge variant={d.severity_level === 'severe' ? 'destructive' : d.severity_level === 'moderate' ? 'default' : 'secondary'} className="text-xs capitalize">
+              {d.severity_level}
+            </Badge>
+          )}
+        </div>
+        {(d.summary || d.screening_summary) && (
+          <p className="text-xs text-foreground">{d.summary || d.screening_summary}</p>
+        )}
+        {d.suggested_icd_codes?.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {d.suggested_icd_codes.map((c: any, i: number) => (
+              <Badge key={i} variant="outline" className="text-xs">{c.code} — {c.description}</Badge>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 function PatientSummary({ patientId }: { patientId: string }) {
   const { data: patient, isLoading } = usePatient(patientId);
@@ -38,7 +91,6 @@ function PatientSummary({ patientId }: { patientId: string }) {
 
   return (
     <div className="space-y-3">
-      {/* Critical Alerts Bar */}
       {highRiskAlerts.length > 0 && (
         <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-3 flex items-center gap-2 flex-wrap">
           <AlertTriangle className="h-5 w-5 text-destructive shrink-0" />
@@ -49,39 +101,17 @@ function PatientSummary({ patientId }: { patientId: string }) {
         </div>
       )}
 
-      {/* Patient Info Grid */}
       <Card>
         <CardContent className="py-4">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 text-sm">
-            <div>
-              <p className="text-muted-foreground text-xs">Full Name</p>
-              <p className="font-semibold text-foreground">{patient.full_name}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">National ID</p>
-              <p className="font-medium text-foreground">{patient.national_id}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Age / Gender</p>
-              <p className="font-medium text-foreground">{age ? `${age}y` : 'N/A'} / {patient.gender === 'male' ? 'M' : patient.gender === 'female' ? 'F' : 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Marital Status</p>
-              <p className="font-medium text-foreground capitalize">{patient.marital_status || 'N/A'}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">File Number</p>
-              <p className="font-medium text-foreground">{patient.file_number}</p>
-            </div>
-            <div>
-              <p className="text-muted-foreground text-xs">Last Visit</p>
-              <p className="font-medium text-foreground">
-                {lastEncounter ? new Date(lastEncounter.encounter_date).toLocaleDateString() : 'None'}
-              </p>
-            </div>
+            <div><p className="text-muted-foreground text-xs">Full Name</p><p className="font-semibold text-foreground">{patient.full_name}</p></div>
+            <div><p className="text-muted-foreground text-xs">National ID</p><p className="font-medium text-foreground">{patient.national_id}</p></div>
+            <div><p className="text-muted-foreground text-xs">Age / Gender</p><p className="font-medium text-foreground">{age ? `${age}y` : 'N/A'} / {patient.gender === 'male' ? 'M' : patient.gender === 'female' ? 'F' : 'N/A'}</p></div>
+            <div><p className="text-muted-foreground text-xs">Marital Status</p><p className="font-medium text-foreground capitalize">{patient.marital_status || 'N/A'}</p></div>
+            <div><p className="text-muted-foreground text-xs">File Number</p><p className="font-medium text-foreground">{patient.file_number}</p></div>
+            <div><p className="text-muted-foreground text-xs">Last Visit</p><p className="font-medium text-foreground">{lastEncounter ? new Date(lastEncounter.encounter_date).toLocaleDateString() : 'None'}</p></div>
           </div>
 
-          {/* Allergies, Chronic, Active Dx, Active Meds */}
           <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
               <p className="text-xs text-muted-foreground mb-1">Allergies</p>
@@ -105,7 +135,6 @@ function PatientSummary({ patientId }: { patientId: string }) {
                 {activeDiagnoses.length > 0
                   ? activeDiagnoses.slice(0, 3).map(d => <Badge key={d.id} variant="secondary" className="text-xs">{d.icd_code}</Badge>)
                   : <span className="text-xs text-muted-foreground">None</span>}
-                {activeDiagnoses.length > 3 && <Badge variant="secondary" className="text-xs">+{activeDiagnoses.length - 3}</Badge>}
               </div>
             </div>
             <div>
@@ -114,7 +143,6 @@ function PatientSummary({ patientId }: { patientId: string }) {
                 {activeMeds.length > 0
                   ? activeMeds.slice(0, 3).map(m => <Badge key={m.id} variant="outline" className="text-xs">{m.medication_name}</Badge>)
                   : <span className="text-xs text-muted-foreground">None</span>}
-                {activeMeds.length > 3 && <Badge variant="outline" className="text-xs">+{activeMeds.length - 3}</Badge>}
               </div>
             </div>
           </div>
@@ -138,12 +166,11 @@ export function PatientMasterFile() {
           <ArrowLeft className="h-4 w-4 mr-1" /> Back to Patients
         </Button>
 
-        {/* Sticky Summary */}
-        <div className="sticky top-16 z-20 bg-background pb-2">
+        <div className="sticky top-16 z-20 bg-background pb-2 space-y-2">
           <PatientSummary patientId={patientId} />
+          <ScreeningDiagnosisCard patientId={patientId} />
         </div>
 
-        {/* Main Tabs */}
         <Tabs defaultValue="encounters" className="w-full">
           <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted p-1">
             <TabsTrigger value="encounters" className="gap-1 text-xs sm:text-sm"><ClipboardList className="h-4 w-4" /> Encounters</TabsTrigger>
