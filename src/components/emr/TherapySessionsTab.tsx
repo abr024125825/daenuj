@@ -3,7 +3,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
@@ -11,7 +10,12 @@ import { useTherapySessions, useCreateTherapySession } from '@/hooks/useEMR';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2 } from 'lucide-react';
 
-export function TherapySessionsTab({ patientId }: { patientId: string }) {
+interface TherapySessionsTabProps {
+  patientId: string;
+  encounterId?: string;
+}
+
+export function TherapySessionsTab({ patientId, encounterId }: TherapySessionsTabProps) {
   const { user } = useAuth();
   const { data: sessions, isLoading } = useTherapySessions(patientId);
   const createSession = useCreateTherapySession();
@@ -28,6 +32,7 @@ export function TherapySessionsTab({ patientId }: { patientId: string }) {
       patient_id: patientId,
       session_number: nextSessionNumber,
       provider_id: user?.id,
+      encounter_id: encounterId || null,
       ...form,
       functional_status_score: form.functional_status_score,
     });
@@ -37,10 +42,14 @@ export function TherapySessionsTab({ patientId }: { patientId: string }) {
 
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
+  const filteredSessions = encounterId
+    ? sessions?.filter(s => s.encounter_id === encounterId)
+    : sessions;
+
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h3 className="font-semibold text-foreground">Therapy Sessions ({sessions?.length || 0})</h3>
+        <h3 className="font-semibold text-foreground">Therapy Sessions ({filteredSessions?.length || 0})</h3>
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
           <DialogTrigger asChild><Button size="sm"><Plus className="h-4 w-4 mr-1" /> New Session</Button></DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
@@ -80,11 +89,11 @@ export function TherapySessionsTab({ patientId }: { patientId: string }) {
         </Dialog>
       </div>
 
-      {!sessions?.length ? (
+      {!filteredSessions?.length ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">No therapy sessions recorded</CardContent></Card>
       ) : (
         <div className="space-y-3">
-          {sessions.map(s => (
+          {filteredSessions.map(s => (
             <Card key={s.id}>
               <CardContent className="py-4">
                 <div className="flex items-center justify-between mb-2">

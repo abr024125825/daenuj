@@ -12,7 +12,13 @@ import { useRiskAssessments, useCreateRiskAssessment } from '@/hooks/useEMR';
 import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Loader2, AlertTriangle, ShieldAlert } from 'lucide-react';
 
-export function RiskAssessmentsTab({ patientId }: { patientId: string }) {
+interface RiskAssessmentsTabProps {
+  patientId: string;
+  encounterId?: string;
+  isSigned?: boolean;
+}
+
+export function RiskAssessmentsTab({ patientId, encounterId, isSigned = false }: RiskAssessmentsTabProps) {
   const { user } = useAuth();
   const { data: assessments, isLoading } = useRiskAssessments(patientId);
   const createRA = useCreateRiskAssessment();
@@ -44,8 +50,9 @@ export function RiskAssessmentsTab({ patientId }: { patientId: string }) {
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <h3 className="font-semibold text-foreground">Risk Assessments ({assessments?.length || 0})</h3>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-          <DialogTrigger asChild><Button size="sm" variant="destructive"><ShieldAlert className="h-4 w-4 mr-1" /> Assess Risk</Button></DialogTrigger>
+        {!isSigned && (
+          <Dialog open={isOpen} onOpenChange={setIsOpen}>
+            <DialogTrigger asChild><Button size="sm" variant="destructive"><ShieldAlert className="h-4 w-4 mr-1" /> Assess Risk</Button></DialogTrigger>
           <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
             <DialogHeader><DialogTitle>Suicide & Violence Risk Assessment</DialogTitle></DialogHeader>
             <div className="space-y-4">
@@ -85,6 +92,7 @@ export function RiskAssessmentsTab({ patientId }: { patientId: string }) {
             </div>
           </DialogContent>
         </Dialog>
+        )}
       </div>
 
       {!assessments?.length ? (

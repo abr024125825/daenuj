@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Logo } from '@/components/Logo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -20,6 +20,8 @@ interface AvailableSlot {
   provider_id: string;
 }
 
+const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
 export default function BookAppointmentPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -32,6 +34,7 @@ export default function BookAppointmentPage() {
   const [isBooking, setIsBooking] = useState(false);
   const [bookedSlot, setBookedSlot] = useState<AvailableSlot | null>(null);
   const [existingAppointment, setExistingAppointment] = useState<any>(null);
+  const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
   const handleVerify = async () => {
     if (!fileNumber || !dateOfBirth) {
@@ -70,7 +73,7 @@ export default function BookAppointmentPage() {
 
       if (activeAppt) {
         setExistingAppointment(activeAppt);
-        setStep('slots'); // Show existing appointment info
+        setStep('slots');
         return;
       }
 
@@ -82,26 +85,22 @@ export default function BookAppointmentPage() {
 
       if (slotsError) throw slotsError;
 
-      // Fetch leaves
       const { data: leaves } = await supabase
         .from('therapist_leaves')
         .select('*')
         .gte('end_date', new Date().toISOString().split('T')[0]);
 
-      // Fetch existing appointments to avoid double-booking
       const { data: existingAppts } = await supabase
         .from('appointments')
         .select('appointment_date, appointment_time, provider_id')
         .in('status', ['scheduled', 'confirmed']);
 
-      // Generate available dates - only within next 7 days
       const today = new Date();
       const generatedSlots: AvailableSlot[] = [];
 
       for (const slot of (slots || [])) {
         const maxDailyPatients = (slot as any).max_daily_patients || 8;
         
-        // Only show slots within 7 days
         for (let d = 1; d <= 7; d++) {
           const date = addDays(today, d);
           const dayOfWeek = getDay(date);
@@ -110,19 +109,16 @@ export default function BookAppointmentPage() {
 
           const dateStr = format(date, 'yyyy-MM-dd');
 
-          // Check if provider is on leave
           const isOnLeave = (leaves || []).some(
             (l: any) => l.provider_id === slot.provider_id && dateStr >= l.start_date && dateStr <= l.end_date
           );
           if (isOnLeave) continue;
 
-          // Count how many appointments this provider has on this date
           const dayAppts = (existingAppts || []).filter(
             (a: any) => a.provider_id === slot.provider_id && a.appointment_date === dateStr
           );
           if (dayAppts.length >= maxDailyPatients) continue;
 
-          // Generate individual time slots based on session structure (45+5+10=60min each)
           const sessionMinutes = (slot as any).session_minutes || 45;
           const bufferMinutes = (slot as any).buffer_minutes || 5;
           const breakMinutes = (slot as any).break_minutes || 10;
@@ -166,6 +162,23 @@ export default function BookAppointmentPage() {
     if (!patient) return;
     setIsBooking(true);
     try {
+      // Double-check no one else booked this slot
+      const { data: conflict } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('provider_id', slot.provider_id)
+        .eq('appointment_date', slot.date)
+        .eq('appointment_time', slot.start_time)
+        .in('status', ['scheduled', 'confirmed'])
+        .maybeSingle();
+
+      if (conflict) {
+        toast({ title: 'Slot taken', description: 'This slot was just booked by another patient. Please choose another.', variant: 'destructive' });
+        // Remove from local list
+        setAvailableSlots(prev => prev.filter(s => !(s.date === slot.date && s.start_time === slot.start_time && s.provider_id === slot.provider_id)));
+        return;
+      }
+
       const { error } = await supabase
         .from('appointments')
         .insert({
@@ -190,7 +203,18 @@ export default function BookAppointmentPage() {
     }
   };
 
-  const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  // Group slots by date for day-based UI
+  const slotsByDate = useMemo(() => {
+    const grouped: Record<string, AvailableSlot[]> = {};
+    for (const slot of availableSlots) {
+      if (!grouped[slot.date]) grouped[slot.date] = [];
+      grouped[slot.date].push(slot);
+    }
+    return grouped;
+  }, [availableSlots]);
+
+  const availableDates = Object.keys(slotsByDate).sort();
+  const displayedSlots = selectedDay ? (slotsByDate[selectedDay] || []) : [];
 
   return (
     <div className="min-h-screen bg-background">
@@ -204,7 +228,7 @@ export default function BookAppointmentPage() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12 max-w-lg">
+      <main className="container mx-auto px-4 py-12 max-w-2xl">
         {step === 'verify' && (
           <Card>
             <CardHeader className="text-center">
@@ -214,19 +238,11 @@ export default function BookAppointmentPage() {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Medical File Number</Label>
-                <Input
-                  placeholder="e.g. A-2026-1-00001"
-                  value={fileNumber}
-                  onChange={(e) => setFileNumber(e.target.value)}
-                />
+                <Input placeholder="e.g. A-2026-1-00001" value={fileNumber} onChange={(e) => setFileNumber(e.target.value)} />
               </div>
               <div className="space-y-2">
                 <Label>Date of Birth</Label>
-                <Input
-                  type="date"
-                  value={dateOfBirth}
-                  onChange={(e) => setDateOfBirth(e.target.value)}
-                />
+                <Input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
               </div>
               <Button className="w-full" onClick={handleVerify} disabled={isVerifying}>
                 {isVerifying && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
@@ -238,9 +254,8 @@ export default function BookAppointmentPage() {
 
         {step === 'slots' && (
           <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => { setStep('verify'); setExistingAppointment(null); }}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back
+            <Button variant="ghost" size="sm" onClick={() => { setStep('verify'); setExistingAppointment(null); setSelectedDay(null); }}>
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back
             </Button>
 
             {existingAppointment ? (
@@ -253,12 +268,12 @@ export default function BookAppointmentPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    You already have a scheduled appointment. You cannot book another until your current appointment is completed.
+                    You already have a scheduled appointment. You cannot book another until your current session is completed and signed by the provider.
                   </p>
-                  <div className="p-4 border rounded-lg space-y-2">
+                  <div className="p-4 border rounded-lg space-y-2 bg-muted/30">
                     <div className="flex items-center gap-2 font-medium">
                       <Calendar className="h-4 w-4 text-primary" />
-                      {format(new Date(existingAppointment.appointment_date), 'EEEE, MMMM dd, yyyy')}
+                      {format(new Date(existingAppointment.appointment_date + 'T00:00:00'), 'EEEE, MMMM dd, yyyy')}
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Clock className="h-4 w-4" />
@@ -273,36 +288,78 @@ export default function BookAppointmentPage() {
                 <CardHeader>
                   <CardTitle>Available Appointments</CardTitle>
                   <CardDescription>
-                    Welcome back, {patient?.full_name}. Select a time slot to book your appointment. Showing slots for the next 7 days.
+                    Welcome back, {patient?.full_name}. Select a day to see available time slots (next 7 days).
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  {availableSlots.length === 0 ? (
+                <CardContent className="space-y-4">
+                  {availableDates.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
                       <p>No available appointment slots at this time.</p>
                       <p className="text-sm mt-1">Please check back later.</p>
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {availableSlots.map((slot, i) => (
-                        <div key={i} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 font-medium">
-                              <Calendar className="h-4 w-4 text-primary" />
-                              {DAY_NAMES[slot.day_of_week]}, {format(new Date(slot.date + 'T00:00:00'), 'MMM dd, yyyy')}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <Clock className="h-4 w-4" />
-                              {slot.start_time} - {slot.end_time} ({slot.slot_duration_minutes} min)
-                            </div>
+                    <>
+                      {/* Day selector */}
+                      <div className="flex flex-wrap gap-2">
+                        {availableDates.map(dateStr => {
+                          const date = new Date(dateStr + 'T00:00:00');
+                          const dayName = DAY_NAMES[getDay(date)];
+                          const isSelected = selectedDay === dateStr;
+                          const slotCount = slotsByDate[dateStr].length;
+                          return (
+                            <Button
+                              key={dateStr}
+                              variant={isSelected ? 'default' : 'outline'}
+                              className="flex-col h-auto py-3 px-4 min-w-[100px]"
+                              onClick={() => setSelectedDay(dateStr)}
+                            >
+                              <span className="text-xs font-medium">{dayName}</span>
+                              <span className="text-sm font-bold">{format(date, 'MMM dd')}</span>
+                              <Badge variant={isSelected ? 'secondary' : 'outline'} className="text-xs mt-1">
+                                {slotCount} slot{slotCount !== 1 ? 's' : ''}
+                              </Badge>
+                            </Button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Time slots for selected day */}
+                      {selectedDay && (
+                        <div className="space-y-2 mt-4">
+                          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                            <Clock className="h-4 w-4 text-primary" />
+                            Available times for {DAY_NAMES[getDay(new Date(selectedDay + 'T00:00:00'))]}, {format(new Date(selectedDay + 'T00:00:00'), 'MMMM dd, yyyy')}
+                          </h4>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                            {displayedSlots.map((slot, i) => (
+                              <Button
+                                key={i}
+                                variant="outline"
+                                className="h-auto py-3 flex-col gap-1 hover:border-primary hover:bg-primary/5"
+                                onClick={() => handleBook(slot)}
+                                disabled={isBooking}
+                              >
+                                {isBooking ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <>
+                                    <span className="font-semibold text-sm">{slot.start_time}</span>
+                                    <span className="text-xs text-muted-foreground">{slot.slot_duration_minutes} min</span>
+                                  </>
+                                )}
+                              </Button>
+                            ))}
                           </div>
-                          <Button size="sm" onClick={() => handleBook(slot)} disabled={isBooking}>
-                            {isBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Book'}
-                          </Button>
                         </div>
-                      ))}
-                    </div>
+                      )}
+
+                      {!selectedDay && (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          ← Select a day above to see available time slots
+                        </p>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>

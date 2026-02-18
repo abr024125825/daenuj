@@ -8,14 +8,14 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ArrowLeft, Loader2, Save, Plus, Calendar, User, MapPin, Lock } from 'lucide-react';
+import { ArrowLeft, Loader2, Save, Plus, Lock, Activity, Brain, AlertTriangle, ArrowRightLeft, FileText } from 'lucide-react';
 import { useEncounter, useUpdateEncounter, useMSE, useUpsertMSE, useEncounterHistories, useUpsertHistory, useAddendums, useCreateAddendum } from '@/hooks/useEMR';
 import { useAuth } from '@/contexts/AuthContext';
 import { DiagnosesTab } from '@/components/emr/DiagnosesTab';
-import { MedicationsTab } from '@/components/emr/MedicationsTab';
+import { TherapySessionsTab } from '@/components/emr/TherapySessionsTab';
 import { RiskAssessmentsTab } from '@/components/emr/RiskAssessmentsTab';
-import { LabsTab } from '@/components/emr/LabsTab';
 import { ReferralsTab } from '@/components/emr/ReferralsTab';
+import { DocumentsTab } from '@/components/emr/DocumentsTab';
 import { useToast } from '@/hooks/use-toast';
 
 const MSE_FIELDS = [
@@ -58,7 +58,6 @@ export function EncounterDetailPage() {
   const [historyForms, setHistoryForms] = useState<Record<string, string>>({});
   const [addendumText, setAddendumText] = useState('');
 
-  // Initialize forms when data loads
   useState(() => {
     if (encounter?.chief_complaint) setChiefComplaint(encounter.chief_complaint);
   });
@@ -134,7 +133,6 @@ export function EncounterDetailPage() {
           </div>
         </div>
 
-        {/* Admin Section */}
         <Card>
           <CardContent className="py-3">
             <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-sm">
@@ -151,13 +149,15 @@ export function EncounterDetailPage() {
           <TabsList className="w-full flex flex-wrap h-auto gap-1">
             <TabsTrigger value="clinical">Clinical Assessment</TabsTrigger>
             <TabsTrigger value="mse">MSE</TabsTrigger>
-            <TabsTrigger value="diagnosis">Diagnosis</TabsTrigger>
-            <TabsTrigger value="risk">Risk Assessment</TabsTrigger>
+            <TabsTrigger value="diagnosis"><Activity className="h-3 w-3 mr-1" />Diagnoses</TabsTrigger>
+            <TabsTrigger value="therapy"><Brain className="h-3 w-3 mr-1" />Therapy</TabsTrigger>
+            <TabsTrigger value="risk"><AlertTriangle className="h-3 w-3 mr-1" />Risk</TabsTrigger>
+            <TabsTrigger value="referrals"><ArrowRightLeft className="h-3 w-3 mr-1" />Referrals</TabsTrigger>
+            <TabsTrigger value="documents"><FileText className="h-3 w-3 mr-1" />Documents</TabsTrigger>
             <TabsTrigger value="addendums">Addendums ({addendums?.length || 0})</TabsTrigger>
           </TabsList>
 
           <TabsContent value="clinical" className="space-y-4">
-            {/* Chief Complaint */}
             <Card>
               <CardHeader className="py-3"><CardTitle className="text-sm">Chief Complaint</CardTitle></CardHeader>
               <CardContent className="pb-4">
@@ -171,7 +171,6 @@ export function EncounterDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Structured History Blocks */}
             {HISTORY_TYPES.map(ht => {
               const existing = histories?.find(h => h.history_type === ht.key);
               return (
@@ -229,11 +228,23 @@ export function EncounterDetailPage() {
           </TabsContent>
 
           <TabsContent value="diagnosis">
-            <DiagnosesTab patientId={encounter.patient_id} />
+            <DiagnosesTab patientId={encounter.patient_id} encounterId={encounter.id} isSigned={isSigned} />
+          </TabsContent>
+
+          <TabsContent value="therapy">
+            <TherapySessionsTab patientId={encounter.patient_id} encounterId={encounter.id} />
           </TabsContent>
 
           <TabsContent value="risk">
-            <RiskAssessmentsTab patientId={encounter.patient_id} />
+            <RiskAssessmentsTab patientId={encounter.patient_id} encounterId={encounter.id} isSigned={isSigned} />
+          </TabsContent>
+
+          <TabsContent value="referrals">
+            <ReferralsTab patientId={encounter.patient_id} encounterId={encounter.id} isSigned={isSigned} />
+          </TabsContent>
+
+          <TabsContent value="documents">
+            <DocumentsTab patientId={encounter.patient_id} encounterId={encounter.id} isSigned={isSigned} />
           </TabsContent>
 
           <TabsContent value="addendums" className="space-y-4">
