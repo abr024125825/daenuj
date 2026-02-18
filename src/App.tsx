@@ -47,6 +47,8 @@ import { PatientListPage } from "./pages/emr/PatientListPage";
 import { PatientMasterFile } from "./pages/emr/PatientMasterFile";
 import { EncounterDetailPage } from "./pages/emr/EncounterDetailPage";
 import { EMRStatsPage } from "./pages/emr/EMRStatsPage";
+import { FileOpenRequestsPage } from "./pages/emr/FileOpenRequestsPage";
+import { AllPatientsReadOnlyPage } from "./pages/emr/AllPatientsReadOnlyPage";
 
 // Screening
 import ScreeningTestPage from "./pages/ScreeningTestPage";
@@ -67,54 +69,58 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
-          <MaintenanceGuard>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/verify" element={<VerifyCertificate />} />
-              <Route path="/kiosk" element={<KioskPage />} />
-              <Route path="/disability-exam-submit" element={<DisabilityExamSubmission />} />
-              <Route path="/book-appointment" element={<BookAppointmentPage />} />
-              <Route path="/screening" element={<ScreeningTestPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/dashboard/applications" element={<ApplicationsPage />} />
-              <Route path="/dashboard/opportunities/*" element={<OpportunitiesRouter />} />
-              <Route path="/dashboard/certificates" element={<CertificatesRouter />} />
-              <Route path="/dashboard/certificate-verifications" element={<CertificateVerificationsPage />} />
-              <Route path="/dashboard/badges" element={<BadgeTransactionsPage />} />
-              <Route path="/dashboard/evaluations" element={<EvaluationsRouter />} />
-              <Route path="/dashboard/training" element={<TrainingRouter />} />
-              <Route path="/dashboard/schedule" element={<SchedulePage />} />
-              <Route path="/dashboard/schedules" element={<SchedulesPage />} />
-              <Route path="/dashboard/profile" element={<ProfilePage />} />
-              <Route path="/dashboard/volunteers" element={<VolunteersPage />} />
-              <Route path="/dashboard/reports" element={<ReportsPage />} />
-              <Route path="/dashboard/settings" element={<SettingsPage />} />
-              <Route path="/dashboard/notifications" element={<NotificationsPage />} />
-              
-              {/* Faculty Coordinator Routes */}
-              <Route path="/dashboard/faculty-volunteers" element={<FacultyVolunteersPage />} />
-              <Route path="/dashboard/faculty-applications" element={<FacultyApplicationsPage />} />
-              <Route path="/dashboard/faculty-schedules" element={<FacultySchedulesPage />} />
-              <Route path="/dashboard/faculty-reports" element={<FacultyReportsPage />} />
-              
-              {/* Disability Exams Routes */}
-              <Route path="/dashboard/disability-exams" element={<DisabilityExamsPage />} />
-              <Route path="/dashboard/my-disability-assignments" element={<MyDisabilityAssignmentsPage />} />
-              
-              {/* Psychological Support Routes */}
-              <Route path="/dashboard/psych-profiles" element={<PsychProfilesPage />} />
-              <Route path="/dashboard/psych-profiles/:profileId" element={<PsychologicalProfilePage />} />
-              
-              {/* EMR Routes */}
-              <Route path="/dashboard/emr" element={<PatientListPage />} />
-              <Route path="/dashboard/emr/stats" element={<EMRStatsPage />} />
-              <Route path="/dashboard/emr/patient/:patientId" element={<PatientMasterFile />} />
-              <Route path="/dashboard/emr/encounter/:encounterId" element={<EncounterDetailPage />} />
-              
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </MaintenanceGuard>
+          <Routes>
+            {/* Public routes always accessible */}
+            <Route path="/verify" element={<VerifyCertificate />} />
+            <Route path="/kiosk" element={<KioskPage />} />
+            <Route path="/disability-exam-submit" element={<DisabilityExamSubmission />} />
+            <Route path="/book-appointment" element={<BookAppointmentPage />} />
+            <Route path="/screening" element={<ScreeningTestPage />} />
+            {/* Settings always accessible (so admin can turn off maintenance) */}
+            <Route path="/dashboard/settings" element={<SettingsPage />} />
+
+            {/* All other routes wrapped in MaintenanceGuard */}
+            <Route path="/" element={<MaintenanceGuard><Index /></MaintenanceGuard>} />
+            <Route path="/register" element={<MaintenanceGuard><RegisterPage /></MaintenanceGuard>} />
+            <Route path="/dashboard" element={<MaintenanceGuard><Dashboard /></MaintenanceGuard>} />
+            <Route path="/dashboard/applications" element={<MaintenanceGuard><ApplicationsPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/opportunities/*" element={<MaintenanceGuard><OpportunitiesRouter /></MaintenanceGuard>} />
+            <Route path="/dashboard/certificates" element={<MaintenanceGuard><CertificatesRouter /></MaintenanceGuard>} />
+            <Route path="/dashboard/certificate-verifications" element={<MaintenanceGuard><CertificateVerificationsPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/badges" element={<MaintenanceGuard><BadgeTransactionsPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/evaluations" element={<MaintenanceGuard><EvaluationsRouter /></MaintenanceGuard>} />
+            <Route path="/dashboard/training" element={<MaintenanceGuard><TrainingRouter /></MaintenanceGuard>} />
+            <Route path="/dashboard/schedule" element={<MaintenanceGuard><SchedulePage /></MaintenanceGuard>} />
+            <Route path="/dashboard/schedules" element={<MaintenanceGuard><SchedulesPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/profile" element={<MaintenanceGuard><ProfilePage /></MaintenanceGuard>} />
+            <Route path="/dashboard/volunteers" element={<MaintenanceGuard><VolunteersPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/reports" element={<MaintenanceGuard><ReportsPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/notifications" element={<MaintenanceGuard><NotificationsPage /></MaintenanceGuard>} />
+
+            {/* Faculty Coordinator Routes */}
+            <Route path="/dashboard/faculty-volunteers" element={<MaintenanceGuard><FacultyVolunteersPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/faculty-applications" element={<MaintenanceGuard><FacultyApplicationsPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/faculty-schedules" element={<MaintenanceGuard><FacultySchedulesPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/faculty-reports" element={<MaintenanceGuard><FacultyReportsPage /></MaintenanceGuard>} />
+
+            {/* Disability Exams Routes */}
+            <Route path="/dashboard/disability-exams" element={<MaintenanceGuard><DisabilityExamsPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/my-disability-assignments" element={<MaintenanceGuard><MyDisabilityAssignmentsPage /></MaintenanceGuard>} />
+
+            {/* Psychological Support Routes */}
+            <Route path="/dashboard/psych-profiles" element={<MaintenanceGuard><PsychProfilesPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/psych-profiles/:profileId" element={<MaintenanceGuard><PsychologicalProfilePage /></MaintenanceGuard>} />
+
+            {/* EMR Routes */}
+            <Route path="/dashboard/emr" element={<MaintenanceGuard><PatientListPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/emr/stats" element={<MaintenanceGuard><EMRStatsPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/emr/all" element={<MaintenanceGuard><AllPatientsReadOnlyPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/emr/requests" element={<MaintenanceGuard><FileOpenRequestsPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/emr/patient/:patientId" element={<MaintenanceGuard><PatientMasterFile /></MaintenanceGuard>} />
+            <Route path="/dashboard/emr/encounter/:encounterId" element={<MaintenanceGuard><EncounterDetailPage /></MaintenanceGuard>} />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

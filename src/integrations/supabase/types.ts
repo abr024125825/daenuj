@@ -1419,6 +1419,72 @@ export type Database = {
         }
         Relationships: []
       }
+      file_open_requests: {
+        Row: {
+          created_at: string
+          gender: string | null
+          id: string
+          notes: string | null
+          patient_id: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          screening_summary: string | null
+          session_id: string | null
+          severity_level: string | null
+          status: string
+          student_dob: string | null
+          student_email: string | null
+          student_name: string
+          student_national_id: string | null
+          student_phone: string | null
+          suggested_icd_codes: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          gender?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screening_summary?: string | null
+          session_id?: string | null
+          severity_level?: string | null
+          status?: string
+          student_dob?: string | null
+          student_email?: string | null
+          student_name: string
+          student_national_id?: string | null
+          student_phone?: string | null
+          suggested_icd_codes?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          gender?: string | null
+          id?: string
+          notes?: string | null
+          patient_id?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          screening_summary?: string | null
+          session_id?: string | null
+          severity_level?: string | null
+          status?: string
+          student_dob?: string | null
+          student_email?: string | null
+          student_name?: string
+          student_national_id?: string | null
+          student_phone?: string | null
+          suggested_icd_codes?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       icd_codes: {
         Row: {
           category: string | null

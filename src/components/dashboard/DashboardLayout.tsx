@@ -75,16 +75,11 @@ const disabilityCoordinatorNavItems: NavItem[] = [
 ];
 
 // Psychologist - clinical support (EMR only, no student profiles)
-const psychologistNavItems: NavItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: FileText, label: 'Patient Records (EMR)', href: '/dashboard/emr' },
-  { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
-];
-
-// Psychologist nav now includes availability
 const psychologistNavItemsFull: NavItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: FileText, label: 'Patient Records (EMR)', href: '/dashboard/emr' },
+  { icon: FileText, label: 'My Patients (EMR)', href: '/dashboard/emr' },
+  { icon: Users, label: 'All Patient Records', href: '/dashboard/emr/all' },
+  { icon: ClipboardList, label: 'File Requests', href: '/dashboard/emr/requests' },
   { icon: Bell, label: 'Notifications', href: '/dashboard/notifications' },
 ];
 
