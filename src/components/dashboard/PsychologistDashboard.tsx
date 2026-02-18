@@ -18,6 +18,75 @@ import { TherapistAvailabilityManager } from '@/components/therapist/TherapistAv
 import { PatientRegistrationForm } from '@/components/emr/PatientRegistrationForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { format } from 'date-fns';
+import { Clock } from 'lucide-react';
+
+function UpcomingAppointmentsWidget({ userId }: { userId?: string }) {
+  const navigate = useNavigate();
+  const { data: upcoming, isLoading } = useQuery({
+    queryKey: ['upcoming-appointments', userId],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*, patients(full_name, file_number)')
+        .eq('provider_id', userId!)
+        .gte('appointment_date', today)
+        .in('status', ['scheduled', 'confirmed'])
+        .order('appointment_date', { ascending: true })
+        .order('appointment_time', { ascending: true })
+        .limit(10);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+
+  if (isLoading) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-primary" />
+          Upcoming Appointments
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {upcoming && upcoming.length > 0 ? (
+          <div className="space-y-2">
+            {upcoming.map((appt: any) => (
+              <div key={appt.id} className="flex items-center justify-between p-3 rounded-lg border hover:border-primary/40 transition-colors">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-sm text-foreground">{appt.patients?.full_name || 'Unknown'}</span>
+                    <Badge variant="outline" className="text-xs">{appt.patients?.file_number}</Badge>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    <span>{format(new Date(appt.appointment_date + 'T00:00:00'), 'EEE, MMM dd')}</span>
+                    <Clock className="h-3 w-3" />
+                    <span>{appt.appointment_time}</span>
+                    <span>·</span>
+                    <span>{appt.duration_minutes} min</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="secondary" className="text-xs capitalize">{appt.status}</Badge>
+                  <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/emr/patient/${appt.patient_id}`)}>
+                    <ArrowRight className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-4">No upcoming appointments</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
 
 export function PsychologistDashboard() {
   const navigate = useNavigate();
@@ -207,6 +276,9 @@ export function PsychologistDashboard() {
               </CardContent>
             </Card>
           </div>
+
+          {/* Upcoming Appointments */}
+          <UpcomingAppointmentsWidget userId={user?.id} />
 
           <Card>
             <CardHeader><CardTitle>Quick Actions</CardTitle></CardHeader>

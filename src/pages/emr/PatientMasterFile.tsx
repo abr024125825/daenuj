@@ -5,19 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, ArrowLeft, Activity, Pill, Brain, FileText, ClipboardList, TestTube, ArrowRightLeft, Shield } from 'lucide-react';
+import { Loader2, AlertTriangle, ArrowLeft, Activity, Pill, Brain, FileText, ClipboardList, TestTube, Shield, Calendar, Clock } from 'lucide-react';
 import { usePatient, usePatientAlerts, useDiagnoses, usePatientMedications, useEncounters } from '@/hooks/useEMR';
 import { EncountersTab } from '@/components/emr/EncountersTab';
-import { DiagnosesTab } from '@/components/emr/DiagnosesTab';
 import { MedicationsTab } from '@/components/emr/MedicationsTab';
-import { TherapySessionsTab } from '@/components/emr/TherapySessionsTab';
-import { RiskAssessmentsTab } from '@/components/emr/RiskAssessmentsTab';
 import { LabsTab } from '@/components/emr/LabsTab';
-import { ReferralsTab } from '@/components/emr/ReferralsTab';
-import { DocumentsTab } from '@/components/emr/DocumentsTab';
 import { AuditTrailTab } from '@/components/emr/AuditTrailTab';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { format } from 'date-fns';
 
 function ScreeningDiagnosisCard({ patientId }: { patientId: string }) {
   const { data } = useQuery({
@@ -25,7 +21,6 @@ function ScreeningDiagnosisCard({ patientId }: { patientId: string }) {
     queryFn: async () => {
       const { data: pat } = await supabase.from('patients').select('screening_session_id').eq('id', patientId).single();
       if (!pat?.screening_session_id) {
-        // Try via file_open_requests
         const { data: req } = await supabase
           .from('file_open_requests' as any)
           .select('screening_summary, suggested_icd_codes, severity_level')
@@ -65,6 +60,49 @@ function ScreeningDiagnosisCard({ patientId }: { patientId: string }) {
             ))}
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function UpcomingAppointmentsCard({ patientId }: { patientId: string }) {
+  const { data: appointments, isLoading } = useQuery({
+    queryKey: ['patient-upcoming-appointments', patientId],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('patient_id', patientId)
+        .gte('appointment_date', today)
+        .in('status', ['scheduled', 'confirmed'])
+        .order('appointment_date', { ascending: true })
+        .limit(5);
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  if (isLoading || !appointments?.length) return null;
+
+  return (
+    <Card className="border-accent/20">
+      <CardContent className="py-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-accent" />
+          <span className="text-sm font-semibold">Upcoming Appointments</span>
+        </div>
+        <div className="space-y-2">
+          {appointments.map((appt: any) => (
+            <div key={appt.id} className="flex items-center gap-3 text-xs p-2 rounded bg-muted/50">
+              <Calendar className="h-3 w-3 text-primary shrink-0" />
+              <span className="font-medium">{format(new Date(appt.appointment_date + 'T00:00:00'), 'EEE, MMM dd, yyyy')}</span>
+              <Clock className="h-3 w-3 text-muted-foreground shrink-0" />
+              <span>{appt.appointment_time}</span>
+              <Badge variant="secondary" className="text-xs capitalize ml-auto">{appt.status}</Badge>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   );
@@ -169,29 +207,20 @@ export function PatientMasterFile() {
         <div className="sticky top-16 z-20 bg-background pb-2 space-y-2">
           <PatientSummary patientId={patientId} />
           <ScreeningDiagnosisCard patientId={patientId} />
+          <UpcomingAppointmentsCard patientId={patientId} />
         </div>
 
         <Tabs defaultValue="encounters" className="w-full">
           <TabsList className="w-full flex flex-wrap h-auto gap-1 bg-muted p-1">
             <TabsTrigger value="encounters" className="gap-1 text-xs sm:text-sm"><ClipboardList className="h-4 w-4" /> Encounters</TabsTrigger>
-            <TabsTrigger value="diagnoses" className="gap-1 text-xs sm:text-sm"><Activity className="h-4 w-4" /> Diagnoses</TabsTrigger>
             <TabsTrigger value="medications" className="gap-1 text-xs sm:text-sm"><Pill className="h-4 w-4" /> Medications</TabsTrigger>
-            <TabsTrigger value="therapy" className="gap-1 text-xs sm:text-sm"><Brain className="h-4 w-4" /> Therapy</TabsTrigger>
-            <TabsTrigger value="risk" className="gap-1 text-xs sm:text-sm"><AlertTriangle className="h-4 w-4" /> Risk</TabsTrigger>
             <TabsTrigger value="labs" className="gap-1 text-xs sm:text-sm"><TestTube className="h-4 w-4" /> Labs</TabsTrigger>
-            <TabsTrigger value="referrals" className="gap-1 text-xs sm:text-sm"><ArrowRightLeft className="h-4 w-4" /> Referrals</TabsTrigger>
-            <TabsTrigger value="documents" className="gap-1 text-xs sm:text-sm"><FileText className="h-4 w-4" /> Documents</TabsTrigger>
             <TabsTrigger value="audit" className="gap-1 text-xs sm:text-sm"><Shield className="h-4 w-4" /> Audit</TabsTrigger>
           </TabsList>
 
           <TabsContent value="encounters"><EncountersTab patientId={patientId} /></TabsContent>
-          <TabsContent value="diagnoses"><DiagnosesTab patientId={patientId} /></TabsContent>
           <TabsContent value="medications"><MedicationsTab patientId={patientId} /></TabsContent>
-          <TabsContent value="therapy"><TherapySessionsTab patientId={patientId} /></TabsContent>
-          <TabsContent value="risk"><RiskAssessmentsTab patientId={patientId} /></TabsContent>
           <TabsContent value="labs"><LabsTab patientId={patientId} /></TabsContent>
-          <TabsContent value="referrals"><ReferralsTab patientId={patientId} /></TabsContent>
-          <TabsContent value="documents"><DocumentsTab patientId={patientId} /></TabsContent>
           <TabsContent value="audit"><AuditTrailTab patientId={patientId} /></TabsContent>
         </Tabs>
       </div>
