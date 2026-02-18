@@ -12,8 +12,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Trash2, Loader2, Clock, CalendarOff } from 'lucide-react';
-import { format } from 'date-fns';
+import { Plus, Trash2, Loader2, Clock, CalendarOff, Info } from 'lucide-react';
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 
@@ -25,9 +24,9 @@ export function TherapistAvailabilityManager() {
   const [isLeaveOpen, setIsLeaveOpen] = useState(false);
   const [newSlot, setNewSlot] = useState({
     day_of_week: '0',
-    start_time: '09:00',
-    end_time: '10:00',
-    slot_duration_minutes: '30',
+    start_time: '08:00',
+    end_time: '16:00',
+    max_daily_patients: '8',
     booking_window_days: '7',
   });
   const [leaveForm, setLeaveForm] = useState({ start_date: '', end_date: '', reason: '' });
@@ -64,14 +63,19 @@ export function TherapistAvailabilityManager() {
 
   const addSlot = useMutation({
     mutationFn: async (slot: any) => {
+      // Session structure: 45min session + 5min buffer + 10min break = 60min total per slot
       const { error } = await supabase.from('therapist_availability_slots').insert({
         provider_id: user!.id,
         day_of_week: parseInt(slot.day_of_week),
         start_time: slot.start_time,
         end_time: slot.end_time,
-        slot_duration_minutes: parseInt(slot.slot_duration_minutes),
+        slot_duration_minutes: 50, // 45 + 5 buffer
+        session_minutes: 45,
+        buffer_minutes: 5,
+        break_minutes: 10,
+        max_daily_patients: parseInt(slot.max_daily_patients),
         booking_window_days: parseInt(slot.booking_window_days),
-      });
+      } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -129,8 +133,29 @@ export function TherapistAvailabilityManager() {
     },
   });
 
+  // Calculate how many sessions fit in a time block
+  const calcSessionCount = (start: string, end: string) => {
+    const sp = start.split(':').map(Number);
+    const ep = end.split(':').map(Number);
+    const totalMin = (ep[0] * 60 + ep[1]) - (sp[0] * 60 + sp[1]);
+    return Math.floor(totalMin / 60); // 60min per full slot cycle
+  };
+
   return (
     <div className="space-y-6">
+      {/* Info Card */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="py-3">
+          <div className="flex items-start gap-2 text-sm text-muted-foreground">
+            <Info className="h-4 w-4 text-primary mt-0.5 shrink-0" />
+            <div>
+              <p className="font-medium text-foreground">Session Structure</p>
+              <p>Each session slot is 60 minutes total: <strong>45 min</strong> core session + <strong>5 min</strong> buffer + <strong>10 min</strong> break before next session.</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Availability Slots */}
       <Card>
         <CardHeader>
@@ -141,7 +166,7 @@ export function TherapistAvailabilityManager() {
                 My Availability Schedule
               </CardTitle>
               <CardDescription>
-                Set your available time slots for patient appointments. Patients can only book within the booking window you specify.
+                Set your working hours. Sessions are automatically divided into 60-minute blocks.
               </CardDescription>
             </div>
             <Button onClick={() => setIsAddOpen(true)}>
@@ -162,8 +187,8 @@ export function TherapistAvailabilityManager() {
                   <TableHead>Day</TableHead>
                   <TableHead>Start</TableHead>
                   <TableHead>End</TableHead>
-                  <TableHead>Session Duration</TableHead>
-                  <TableHead>Booking Window</TableHead>
+                  <TableHead>Sessions/Day</TableHead>
+                  <TableHead>Max Patients</TableHead>
                   <TableHead>Active</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -174,8 +199,10 @@ export function TherapistAvailabilityManager() {
                     <TableCell className="font-medium">{DAY_NAMES[slot.day_of_week]}</TableCell>
                     <TableCell>{slot.start_time}</TableCell>
                     <TableCell>{slot.end_time}</TableCell>
-                    <TableCell>{slot.slot_duration_minutes} min</TableCell>
-                    <TableCell>{slot.booking_window_days} days ahead</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{calcSessionCount(slot.start_time, slot.end_time)} sessions</Badge>
+                    </TableCell>
+                    <TableCell>{slot.max_daily_patients || 8}</TableCell>
                     <TableCell>
                       <Switch
                         checked={slot.is_active}
@@ -205,7 +232,7 @@ export function TherapistAvailabilityManager() {
                 Leave / Unavailable Dates
               </CardTitle>
               <CardDescription>
-                Mark dates when you are unavailable. No appointments will be bookable during these periods.
+                Mark dates when you are unavailable.
               </CardDescription>
             </div>
             <Button variant="outline" onClick={() => setIsLeaveOpen(true)}>
@@ -242,6 +269,9 @@ export function TherapistAvailabilityManager() {
             <DialogTitle>Add Availability Slot</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
+            <div className="p-3 rounded-lg bg-muted text-xs text-muted-foreground">
+              Sessions are automatically structured as: 45 min session + 5 min buffer + 10 min break = 60 min per slot.
+            </div>
             <div>
               <Label>Day of Week</Label>
               <Select value={newSlot.day_of_week} onValueChange={v => setNewSlot(s => ({ ...s, day_of_week: v }))}>
@@ -263,16 +293,15 @@ export function TherapistAvailabilityManager() {
                 <Input type="time" value={newSlot.end_time} onChange={e => setNewSlot(s => ({ ...s, end_time: e.target.value }))} />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Session Duration (minutes)</Label>
-                <Input type="number" value={newSlot.slot_duration_minutes} onChange={e => setNewSlot(s => ({ ...s, slot_duration_minutes: e.target.value }))} />
-              </div>
-              <div>
-                <Label>Booking Window (days ahead)</Label>
-                <Input type="number" value={newSlot.booking_window_days} onChange={e => setNewSlot(s => ({ ...s, booking_window_days: e.target.value }))} />
-              </div>
+            <div>
+              <Label>Max Patients per Day</Label>
+              <Input type="number" value={newSlot.max_daily_patients} onChange={e => setNewSlot(s => ({ ...s, max_daily_patients: e.target.value }))} />
             </div>
+            {newSlot.start_time && newSlot.end_time && (
+              <p className="text-xs text-muted-foreground">
+                This slot can accommodate up to <strong>{calcSessionCount(newSlot.start_time, newSlot.end_time)}</strong> sessions.
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddOpen(false)}>Cancel</Button>

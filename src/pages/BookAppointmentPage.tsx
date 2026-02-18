@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, Loader2, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Calendar, Clock, Loader2, CheckCircle, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, addDays, getDay } from 'date-fns';
 
@@ -31,6 +31,7 @@ export default function BookAppointmentPage() {
   const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
   const [isBooking, setIsBooking] = useState(false);
   const [bookedSlot, setBookedSlot] = useState<AvailableSlot | null>(null);
+  const [existingAppointment, setExistingAppointment] = useState<any>(null);
 
   const handleVerify = async () => {
     if (!fileNumber || !dateOfBirth) {
@@ -56,6 +57,23 @@ export default function BookAppointmentPage() {
 
       setPatient(data);
 
+      // Check if patient already has a scheduled/confirmed appointment
+      const { data: activeAppt } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('patient_id', data.id)
+        .in('status', ['scheduled', 'confirmed'])
+        .gte('appointment_date', new Date().toISOString().split('T')[0])
+        .order('appointment_date', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (activeAppt) {
+        setExistingAppointment(activeAppt);
+        setStep('slots'); // Show existing appointment info
+        return;
+      }
+
       // Fetch available slots
       const { data: slots, error: slotsError } = await supabase
         .from('therapist_availability_slots')
@@ -76,15 +94,15 @@ export default function BookAppointmentPage() {
         .select('appointment_date, appointment_time, provider_id')
         .in('status', ['scheduled', 'confirmed']);
 
-      // Generate available dates based on slots and booking windows
+      // Generate available dates - only within next 7 days
       const today = new Date();
       const generatedSlots: AvailableSlot[] = [];
 
       for (const slot of (slots || [])) {
-        const bookingWindowDays = slot.booking_window_days || 7;
+        const maxDailyPatients = (slot as any).max_daily_patients || 8;
         
-        // Only show slots after the booking window
-        for (let d = bookingWindowDays; d <= bookingWindowDays + 14; d++) {
+        // Only show slots within 7 days
+        for (let d = 1; d <= 7; d++) {
           const date = addDays(today, d);
           const dayOfWeek = getDay(date);
           
@@ -98,20 +116,39 @@ export default function BookAppointmentPage() {
           );
           if (isOnLeave) continue;
 
-          // Check if slot already booked
-          const isBooked = (existingAppts || []).some(
-            (a: any) => a.provider_id === slot.provider_id && a.appointment_date === dateStr && a.appointment_time === slot.start_time
+          // Count how many appointments this provider has on this date
+          const dayAppts = (existingAppts || []).filter(
+            (a: any) => a.provider_id === slot.provider_id && a.appointment_date === dateStr
           );
-          if (isBooked) continue;
+          if (dayAppts.length >= maxDailyPatients) continue;
 
-          generatedSlots.push({
-            date: dateStr,
-            day_of_week: slot.day_of_week,
-            start_time: slot.start_time,
-            end_time: slot.end_time,
-            slot_duration_minutes: slot.slot_duration_minutes,
-            provider_id: slot.provider_id,
-          });
+          // Generate individual time slots based on session structure (45+5+10=60min each)
+          const sessionMinutes = (slot as any).session_minutes || 45;
+          const bufferMinutes = (slot as any).buffer_minutes || 5;
+          const breakMinutes = (slot as any).break_minutes || 10;
+          const totalSlotMinutes = sessionMinutes + bufferMinutes + breakMinutes;
+
+          const startParts = slot.start_time.split(':').map(Number);
+          const endParts = slot.end_time.split(':').map(Number);
+          const startMin = startParts[0] * 60 + startParts[1];
+          const endMin = endParts[0] * 60 + endParts[1];
+
+          for (let t = startMin; t + sessionMinutes + bufferMinutes <= endMin; t += totalSlotMinutes) {
+            const slotStart = `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+            const slotEnd = `${String(Math.floor((t + sessionMinutes + bufferMinutes) / 60)).padStart(2, '0')}:${String((t + sessionMinutes + bufferMinutes) % 60).padStart(2, '0')}`;
+
+            const isBooked = dayAppts.some((a: any) => a.appointment_time === slotStart);
+            if (isBooked) continue;
+
+            generatedSlots.push({
+              date: dateStr,
+              day_of_week: slot.day_of_week,
+              start_time: slotStart,
+              end_time: slotEnd,
+              slot_duration_minutes: sessionMinutes + bufferMinutes,
+              provider_id: slot.provider_id,
+            });
+          }
         }
       }
 
@@ -201,57 +238,85 @@ export default function BookAppointmentPage() {
 
         {step === 'slots' && (
           <div className="space-y-4">
-            <Button variant="ghost" size="sm" onClick={() => setStep('verify')}>
+            <Button variant="ghost" size="sm" onClick={() => { setStep('verify'); setExistingAppointment(null); }}>
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
-            <Card>
-              <CardHeader>
-                <CardTitle>Available Appointments</CardTitle>
-                <CardDescription>
-                  Welcome back, {patient?.full_name}. Select a time slot to book your appointment.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {availableSlots.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p>No available appointment slots at this time.</p>
-                    <p className="text-sm mt-1">Please check back later.</p>
+
+            {existingAppointment ? (
+              <Card className="border-accent/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-accent" />
+                    Existing Appointment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    You already have a scheduled appointment. You cannot book another until your current appointment is completed.
+                  </p>
+                  <div className="p-4 border rounded-lg space-y-2">
+                    <div className="flex items-center gap-2 font-medium">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      {format(new Date(existingAppointment.appointment_date), 'EEEE, MMMM dd, yyyy')}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      {existingAppointment.appointment_time} ({existingAppointment.duration_minutes} min)
+                    </div>
+                    <Badge variant="secondary" className="capitalize">{existingAppointment.status}</Badge>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {availableSlots.map((slot, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2 font-medium">
-                            <Calendar className="h-4 w-4 text-primary" />
-                            {DAY_NAMES[slot.day_of_week]}, {format(new Date(slot.date), 'MMM dd, yyyy')}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Available Appointments</CardTitle>
+                  <CardDescription>
+                    Welcome back, {patient?.full_name}. Select a time slot to book your appointment. Showing slots for the next 7 days.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {availableSlots.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>No available appointment slots at this time.</p>
+                      <p className="text-sm mt-1">Please check back later.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {availableSlots.map((slot, i) => (
+                        <div key={i} className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2 font-medium">
+                              <Calendar className="h-4 w-4 text-primary" />
+                              {DAY_NAMES[slot.day_of_week]}, {format(new Date(slot.date + 'T00:00:00'), 'MMM dd, yyyy')}
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Clock className="h-4 w-4" />
+                              {slot.start_time} - {slot.end_time} ({slot.slot_duration_minutes} min)
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Clock className="h-4 w-4" />
-                            {slot.start_time} - {slot.end_time} ({slot.slot_duration_minutes} min)
-                          </div>
+                          <Button size="sm" onClick={() => handleBook(slot)} disabled={isBooking}>
+                            {isBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Book'}
+                          </Button>
                         </div>
-                        <Button size="sm" onClick={() => handleBook(slot)} disabled={isBooking}>
-                          {isBooking ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Book'}
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
         {step === 'success' && bookedSlot && (
           <Card>
             <CardContent className="py-12 text-center space-y-4">
-              <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+              <CheckCircle className="h-16 w-16 text-primary mx-auto" />
               <h2 className="text-2xl font-bold">Appointment Booked!</h2>
               <div className="space-y-2 text-muted-foreground">
-                <p><strong>Date:</strong> {DAY_NAMES[bookedSlot.day_of_week]}, {format(new Date(bookedSlot.date), 'MMMM dd, yyyy')}</p>
+                <p><strong>Date:</strong> {DAY_NAMES[bookedSlot.day_of_week]}, {format(new Date(bookedSlot.date + 'T00:00:00'), 'MMMM dd, yyyy')}</p>
                 <p><strong>Time:</strong> {bookedSlot.start_time}</p>
                 <p><strong>Duration:</strong> {bookedSlot.slot_duration_minutes} minutes</p>
               </div>
