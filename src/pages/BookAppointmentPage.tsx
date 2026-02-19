@@ -10,6 +10,11 @@ import { useToast } from '@/hooks/use-toast';
 import { Calendar, Clock, Loader2, CheckCircle, ArrowLeft, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, addDays, getDay } from 'date-fns';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface AvailableSlot {
   date: string;
@@ -35,6 +40,7 @@ export default function BookAppointmentPage() {
   const [bookedSlot, setBookedSlot] = useState<AvailableSlot | null>(null);
   const [existingAppointment, setExistingAppointment] = useState<any>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
+  const [confirmSlot, setConfirmSlot] = useState<AvailableSlot | null>(null);
 
   const handleVerify = async () => {
     if (!fileNumber || !dateOfBirth) {
@@ -77,6 +83,23 @@ export default function BookAppointmentPage() {
         return;
       }
 
+      // Also check if there's an encounter from today that is not signed yet
+      const today = new Date().toISOString().split('T')[0];
+      const { data: unsignedEnc } = await supabase
+        .from('encounters')
+        .select('id')
+        .eq('patient_id', data.id)
+        .is('signed_at', null)
+        .gte('encounter_date', today + 'T00:00:00')
+        .limit(1)
+        .maybeSingle();
+
+      if (unsignedEnc) {
+        setExistingAppointment({ status: 'in_session', appointment_date: today, appointment_time: '--', duration_minutes: 0 });
+        setStep('slots');
+        return;
+      }
+
       // Fetch available slots
       const { data: slots, error: slotsError } = await supabase
         .from('therapist_availability_slots')
@@ -95,14 +118,14 @@ export default function BookAppointmentPage() {
         .select('appointment_date, appointment_time, provider_id')
         .in('status', ['scheduled', 'confirmed']);
 
-      const today = new Date();
+      const todayDate = new Date();
       const generatedSlots: AvailableSlot[] = [];
 
       for (const slot of (slots || [])) {
         const maxDailyPatients = (slot as any).max_daily_patients || 8;
         
         for (let d = 1; d <= 7; d++) {
-          const date = addDays(today, d);
+          const date = addDays(todayDate, d);
           const dayOfWeek = getDay(date);
           
           if (dayOfWeek !== slot.day_of_week) continue;
@@ -162,7 +185,7 @@ export default function BookAppointmentPage() {
     if (!patient) return;
     setIsBooking(true);
     try {
-      // Double-check no one else booked this slot
+      // Double-check no one else booked this slot (unique index will also prevent it)
       const { data: conflict } = await supabase
         .from('appointments')
         .select('id')
@@ -174,8 +197,21 @@ export default function BookAppointmentPage() {
 
       if (conflict) {
         toast({ title: 'Slot taken', description: 'This slot was just booked by another patient. Please choose another.', variant: 'destructive' });
-        // Remove from local list
         setAvailableSlots(prev => prev.filter(s => !(s.date === slot.date && s.start_time === slot.start_time && s.provider_id === slot.provider_id)));
+        return;
+      }
+
+      // Also re-check that this patient doesn't already have an active appointment
+      const { data: patientConflict } = await supabase
+        .from('appointments')
+        .select('id')
+        .eq('patient_id', patient.id)
+        .in('status', ['scheduled', 'confirmed'])
+        .gte('appointment_date', new Date().toISOString().split('T')[0])
+        .maybeSingle();
+
+      if (patientConflict) {
+        toast({ title: 'Already booked', description: 'You already have an active appointment.', variant: 'destructive' });
         return;
       }
 
@@ -200,10 +236,11 @@ export default function BookAppointmentPage() {
       toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setIsBooking(false);
+      setConfirmSlot(null);
     }
   };
 
-  // Group slots by date for day-based UI
+  // Group slots by date
   const slotsByDate = useMemo(() => {
     const grouped: Record<string, AvailableSlot[]> = {};
     for (const slot of availableSlots) {
@@ -263,24 +300,28 @@ export default function BookAppointmentPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <AlertCircle className="h-5 w-5 text-accent" />
-                    Existing Appointment
+                    {existingAppointment.status === 'in_session' ? 'Active Session' : 'Existing Appointment'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    You already have a scheduled appointment. You cannot book another until your current session is completed and signed by the provider.
+                    {existingAppointment.status === 'in_session'
+                      ? 'You have an active session in progress. You cannot book another until your provider signs and closes the current session.'
+                      : 'You already have a scheduled appointment. You cannot book another until your current session is completed and signed by the provider.'}
                   </p>
-                  <div className="p-4 border rounded-lg space-y-2 bg-muted/30">
-                    <div className="flex items-center gap-2 font-medium">
-                      <Calendar className="h-4 w-4 text-primary" />
-                      {format(new Date(existingAppointment.appointment_date + 'T00:00:00'), 'EEEE, MMMM dd, yyyy')}
+                  {existingAppointment.status !== 'in_session' && (
+                    <div className="p-4 border rounded-lg space-y-2 bg-muted/30">
+                      <div className="flex items-center gap-2 font-medium">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        {format(new Date(existingAppointment.appointment_date + 'T00:00:00'), 'EEEE, MMMM dd, yyyy')}
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        {existingAppointment.appointment_time} ({existingAppointment.duration_minutes} min)
+                      </div>
+                      <Badge variant="secondary" className="capitalize">{existingAppointment.status}</Badge>
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      {existingAppointment.appointment_time} ({existingAppointment.duration_minutes} min)
-                    </div>
-                    <Badge variant="secondary" className="capitalize">{existingAppointment.status}</Badge>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             ) : (
@@ -300,7 +341,6 @@ export default function BookAppointmentPage() {
                     </div>
                   ) : (
                     <>
-                      {/* Day selector */}
                       <div className="flex flex-wrap gap-2">
                         {availableDates.map(dateStr => {
                           const date = new Date(dateStr + 'T00:00:00');
@@ -324,7 +364,6 @@ export default function BookAppointmentPage() {
                         })}
                       </div>
 
-                      {/* Time slots for selected day */}
                       {selectedDay && (
                         <div className="space-y-2 mt-4">
                           <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -337,17 +376,11 @@ export default function BookAppointmentPage() {
                                 key={i}
                                 variant="outline"
                                 className="h-auto py-3 flex-col gap-1 hover:border-primary hover:bg-primary/5"
-                                onClick={() => handleBook(slot)}
+                                onClick={() => setConfirmSlot(slot)}
                                 disabled={isBooking}
                               >
-                                {isBooking ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <span className="font-semibold text-sm">{slot.start_time}</span>
-                                    <span className="text-xs text-muted-foreground">{slot.slot_duration_minutes} min</span>
-                                  </>
-                                )}
+                                <span className="font-semibold text-sm">{slot.start_time}</span>
+                                <span className="text-xs text-muted-foreground">{slot.slot_duration_minutes} min</span>
                               </Button>
                             ))}
                           </div>
@@ -385,6 +418,36 @@ export default function BookAppointmentPage() {
           </Card>
         )}
       </main>
+
+      {/* Confirmation Dialog */}
+      <AlertDialog open={!!confirmSlot} onOpenChange={(open) => !open && setConfirmSlot(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Appointment</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Are you sure you want to book this appointment?</p>
+              {confirmSlot && (
+                <div className="p-3 rounded-lg bg-muted/50 border mt-2 space-y-1">
+                  <p className="font-medium text-foreground">
+                    {DAY_NAMES[confirmSlot.day_of_week]}, {format(new Date(confirmSlot.date + 'T00:00:00'), 'MMMM dd, yyyy')}
+                  </p>
+                  <p className="text-sm">Time: {confirmSlot.start_time} · Duration: {confirmSlot.slot_duration_minutes} min</p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBooking}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => confirmSlot && handleBook(confirmSlot)}
+              disabled={isBooking}
+            >
+              {isBooking && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Confirm Booking
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
