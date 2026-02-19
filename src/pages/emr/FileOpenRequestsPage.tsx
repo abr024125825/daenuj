@@ -6,11 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { EMRAccessGate } from './EMRAccessGate';
-import { CheckCircle, XCircle, Loader2, Brain, Clock, User, Mail, Phone } from 'lucide-react';
+import { CheckCircle, XCircle, Loader2, Brain, Clock, User, Mail, Phone, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 function FileOpenRequestsContent() {
@@ -51,7 +51,7 @@ function FileOpenRequestsContent() {
       });
       if (fnError) throw fnError;
 
-      // Create patient
+      // Create patient with created_by
       const { data: patient, error: pErr } = await supabase.from('patients').insert({
         full_name: req.student_name,
         file_number: fileNumber,
@@ -61,6 +61,8 @@ function FileOpenRequestsContent() {
         national_id: req.student_national_id || null,
         gender: req.gender || null,
         status: 'active',
+        created_by: user!.id,
+        screening_session_id: req.session_id || null,
       } as any).select().single();
       if (pErr) throw pErr;
 
@@ -73,29 +75,52 @@ function FileOpenRequestsContent() {
       } as any);
       if (assignErr) throw assignErr;
 
-      // Create initial encounter
-      await supabase.from('encounters').insert({
+      // Build chief complaint from screening data
+      let chiefComplaint = 'Initial intake via screening';
+      if (req.screening_summary) {
+        chiefComplaint = req.screening_summary;
+      }
+
+      // Create initial encounter with screening data
+      const { error: encErr } = await supabase.from('encounters').insert({
         patient_id: patient.id,
         provider_id: user!.id,
         provider_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim(),
         clinic_type: 'psychiatry',
         visit_type: 'new',
-        chief_complaint: req.screening_summary ? `Screening: ${req.screening_summary}` : 'Initial intake via screening',
+        chief_complaint: chiefComplaint,
         status: 'in_progress',
       } as any);
+      if (encErr) throw encErr;
+
+      // If there are suggested ICD codes from screening, add them as diagnoses
+      if (req.suggested_icd_codes && req.suggested_icd_codes.length > 0) {
+        const diagnoses = req.suggested_icd_codes.map((c: any) => ({
+          patient_id: patient.id,
+          icd_code: c.code,
+          icd_description: c.description,
+          diagnosis_type: 'provisional',
+          status: 'active',
+          created_by: user!.id,
+          notes: 'Auto-generated from AI screening assessment',
+        }));
+        await supabase.from('patient_diagnoses').insert(diagnoses);
+      }
 
       // Update request
-      await supabase.from('file_open_requests' as any).update({
+      const { error: updateErr } = await supabase.from('file_open_requests' as any).update({
         status: 'approved',
         reviewed_by: user!.id,
         reviewed_at: new Date().toISOString(),
         patient_id: patient.id,
       }).eq('id', req.id);
+      if (updateErr) throw updateErr;
 
       qc.invalidateQueries({ queryKey: ['file-open-requests'] });
       qc.invalidateQueries({ queryKey: ['my-assigned-patients'] });
       toast({ title: 'Patient file opened', description: `File #${fileNumber} created and assigned to you` });
     } catch (e: any) {
+      console.error('Approve error:', e);
       toast({ title: 'Error', description: e.message, variant: 'destructive' });
     } finally {
       setProcessing(null);
@@ -137,7 +162,6 @@ function FileOpenRequestsContent() {
   return (
     <DashboardLayout title="File Open Requests">
       <div className="space-y-6">
-        {/* Pending */}
         <div>
           <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
             <Clock className="h-5 w-5 text-accent" />
@@ -162,19 +186,30 @@ function FileOpenRequestsContent() {
                         <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
                           {req.student_email && <span className="flex items-center gap-1"><Mail className="h-3 w-3" />{req.student_email}</span>}
                           {req.student_phone && <span className="flex items-center gap-1"><Phone className="h-3 w-3" />{req.student_phone}</span>}
+                          {req.student_dob && <span className="text-xs">DOB: {req.student_dob}</span>}
+                          {req.student_national_id && <span className="text-xs">NID: {req.student_national_id}</span>}
                           <span className="text-xs">{new Date(req.created_at).toLocaleDateString()}</span>
                         </div>
                         {req.screening_summary && (
-                          <div className="p-2 rounded bg-muted/50 text-xs text-foreground">
-                            <Brain className="h-3 w-3 inline mr-1 text-primary" />
+                          <div className="p-3 rounded-lg bg-muted/50 text-sm text-foreground border">
+                            <div className="flex items-center gap-2 mb-1 font-medium text-xs text-primary">
+                              <Brain className="h-3 w-3" /> AI Screening Summary
+                            </div>
                             {req.screening_summary}
                           </div>
                         )}
                         {req.suggested_icd_codes?.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {req.suggested_icd_codes.map((c: any, i: number) => (
-                              <Badge key={i} variant="outline" className="text-xs">{c.code}</Badge>
-                            ))}
+                          <div className="space-y-1">
+                            <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                              <FileText className="h-3 w-3" /> Suggested Diagnoses
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {req.suggested_icd_codes.map((c: any, i: number) => (
+                                <Badge key={i} variant="outline" className="text-xs">
+                                  <span className="font-mono mr-1">{c.code}</span>— {c.description}
+                                </Badge>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -207,7 +242,6 @@ function FileOpenRequestsContent() {
           )}
         </div>
 
-        {/* Reviewed */}
         {reviewed.length > 0 && (
           <div>
             <h2 className="text-lg font-semibold mb-3 text-muted-foreground">Reviewed ({reviewed.length})</h2>

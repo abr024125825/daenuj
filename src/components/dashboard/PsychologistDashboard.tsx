@@ -88,6 +88,123 @@ function UpcomingAppointmentsWidget({ userId }: { userId?: string }) {
   );
 }
 
+function TodayScheduleCard({ userId, profileName }: { userId?: string; profileName: string }) {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const { data: todayAppts, isLoading } = useQuery({
+    queryKey: ['today-schedule', userId],
+    queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('*, patients(id, full_name, file_number)')
+        .eq('provider_id', userId!)
+        .eq('appointment_date', today)
+        .order('appointment_time', { ascending: true });
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!userId,
+  });
+
+  const handleStartSession = async (appt: any) => {
+    try {
+      // Check if encounter already exists for this patient today
+      const today = new Date().toISOString().split('T')[0];
+      const { data: existing } = await supabase
+        .from('encounters')
+        .select('id')
+        .eq('patient_id', appt.patient_id)
+        .eq('provider_id', userId!)
+        .gte('encounter_date', today + 'T00:00:00')
+        .lte('encounter_date', today + 'T23:59:59')
+        .maybeSingle();
+
+      if (existing) {
+        // Navigate directly to the encounter
+        navigate(`/dashboard/emr/encounter/${existing.id}`);
+        return;
+      }
+
+      // Create encounter from appointment
+      const { data: enc, error } = await supabase.from('encounters').insert({
+        patient_id: appt.patient_id,
+        provider_id: userId!,
+        provider_name: profileName,
+        clinic_type: 'psychiatry',
+        visit_type: appt.appointment_type === 'new' ? 'new' : 'follow_up',
+        chief_complaint: appt.notes || null,
+        status: 'in_progress',
+      } as any).select().single();
+
+      if (error) throw error;
+
+      // Update appointment status
+      await supabase.from('appointments').update({ status: 'in_progress' }).eq('id', appt.id);
+
+      qc.invalidateQueries({ queryKey: ['today-schedule'] });
+      toast({ title: 'Session started' });
+      navigate(`/dashboard/emr/encounter/${enc.id}`);
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <Calendar className="h-4 w-4" />
+          Today's Appointments — {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {isLoading ? (
+          <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin text-primary" /></div>
+        ) : todayAppts && todayAppts.length > 0 ? (
+          <div className="space-y-3">
+            {todayAppts.map((appt: any) => (
+              <div key={appt.id} className="flex items-center justify-between p-4 rounded-lg border hover:border-primary/40 transition-colors">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-foreground">{appt.patients?.full_name || 'Unknown Patient'}</span>
+                    <Badge variant="outline" className="text-xs">{appt.patients?.file_number}</Badge>
+                  </div>
+                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                    <span>{appt.appointment_time}</span>
+                    <span>·</span>
+                    <span className="capitalize">{appt.appointment_type?.replace('_', ' ')}</span>
+                    <span>·</span>
+                    <span>{appt.duration_minutes} min</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant={appt.status === 'scheduled' ? 'secondary' : appt.status === 'in_progress' ? 'default' : 'outline'} className="text-xs capitalize">
+                    {appt.status}
+                  </Badge>
+                  {appt.status === 'scheduled' ? (
+                    <Button size="sm" onClick={() => handleStartSession(appt)} className="gap-1">
+                      <Brain className="h-3 w-3" /> Start Session
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/emr/patient/${appt.patient_id}`)}>
+                      <ArrowRight className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-8">No appointments scheduled for today</p>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function PsychologistDashboard() {
   const navigate = useNavigate();
   const { user, profile } = useAuth();
@@ -312,49 +429,7 @@ export function PsychologistDashboard() {
 
         {/* Today's Schedule */}
         <TabsContent value="today">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
-                Today's Appointments — {new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {todayAppointments && todayAppointments.length > 0 ? (
-                <div className="space-y-3">
-                  {todayAppointments.map((appt: any) => (
-                    <div key={appt.id} className="flex items-center justify-between p-4 rounded-lg border hover:border-primary/40 transition-colors">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">
-                            {appt.patients?.full_name || 'Unknown Patient'}
-                          </span>
-                          <Badge variant="outline" className="text-xs">{appt.patients?.file_number}</Badge>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <span>{appt.appointment_time}</span>
-                          <span>·</span>
-                          <span className="capitalize">{appt.appointment_type?.replace('_', ' ')}</span>
-                          <span>·</span>
-                          <span>{appt.duration_minutes} min</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant={appt.status === 'scheduled' ? 'secondary' : 'default'} className="text-xs">
-                          {appt.status}
-                        </Badge>
-                        <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/emr/patient/${appt.patient_id}`)}>
-                          <ArrowRight className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">No appointments scheduled for today</p>
-              )}
-            </CardContent>
-          </Card>
+          <TodayScheduleCard userId={user?.id} profileName={`${profile?.first_name || ''} ${profile?.last_name || ''}`.trim()} />
         </TabsContent>
 
         {/* Link Patient */}
