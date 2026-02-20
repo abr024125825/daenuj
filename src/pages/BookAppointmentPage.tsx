@@ -241,6 +241,8 @@ export default function BookAppointmentPage() {
         throw error;
       }
 
+      // Remove the booked slot from the list so it cannot appear again
+      setAvailableSlots(prev => prev.filter(s => !(s.date === slot.date && s.start_time === slot.start_time && s.provider_id === slot.provider_id)));
       setBookedSlot(slot);
       setStep('success');
     } catch (error: any) {
