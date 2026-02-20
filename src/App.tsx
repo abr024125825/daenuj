@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MaintenanceGuard } from "@/components/MaintenanceGuard";
+import { AuthGuard } from "@/components/AuthGuard";
 import Index from "./pages/Index";
 import { RegisterPage } from "./pages/RegisterPage";
 import Dashboard from "./pages/Dashboard";
@@ -62,6 +63,15 @@ const queryClient = new QueryClient({
   },
 });
 
+// Helper wrapper: requires authentication + maintenance guard
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  return (
+    <MaintenanceGuard>
+      <AuthGuard>{children}</AuthGuard>
+    </MaintenanceGuard>
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -76,48 +86,51 @@ const App = () => (
             <Route path="/disability-exam-submit" element={<DisabilityExamSubmission />} />
             <Route path="/book-appointment" element={<BookAppointmentPage />} />
             <Route path="/screening" element={<ScreeningTestPage />} />
+            
             {/* Settings always accessible (so admin can turn off maintenance) */}
-            <Route path="/dashboard/settings" element={<SettingsPage />} />
+            <Route path="/dashboard/settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
 
-            {/* All other routes wrapped in MaintenanceGuard */}
+            {/* Public pages with maintenance guard only */}
             <Route path="/" element={<MaintenanceGuard><Index /></MaintenanceGuard>} />
             <Route path="/register" element={<MaintenanceGuard><RegisterPage /></MaintenanceGuard>} />
-            <Route path="/dashboard" element={<MaintenanceGuard><Dashboard /></MaintenanceGuard>} />
-            <Route path="/dashboard/applications" element={<MaintenanceGuard><ApplicationsPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/opportunities/*" element={<MaintenanceGuard><OpportunitiesRouter /></MaintenanceGuard>} />
-            <Route path="/dashboard/certificates" element={<MaintenanceGuard><CertificatesRouter /></MaintenanceGuard>} />
-            <Route path="/dashboard/certificate-verifications" element={<MaintenanceGuard><CertificateVerificationsPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/badges" element={<MaintenanceGuard><BadgeTransactionsPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/evaluations" element={<MaintenanceGuard><EvaluationsRouter /></MaintenanceGuard>} />
-            <Route path="/dashboard/training" element={<MaintenanceGuard><TrainingRouter /></MaintenanceGuard>} />
-            <Route path="/dashboard/schedule" element={<MaintenanceGuard><SchedulePage /></MaintenanceGuard>} />
-            <Route path="/dashboard/schedules" element={<MaintenanceGuard><SchedulesPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/profile" element={<MaintenanceGuard><ProfilePage /></MaintenanceGuard>} />
-            <Route path="/dashboard/volunteers" element={<MaintenanceGuard><VolunteersPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/reports" element={<MaintenanceGuard><ReportsPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/notifications" element={<MaintenanceGuard><NotificationsPage /></MaintenanceGuard>} />
+
+            {/* All dashboard routes: require auth + maintenance guard */}
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/dashboard/applications" element={<ProtectedRoute><ApplicationsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/opportunities/*" element={<ProtectedRoute><OpportunitiesRouter /></ProtectedRoute>} />
+            <Route path="/dashboard/certificates" element={<ProtectedRoute><CertificatesRouter /></ProtectedRoute>} />
+            <Route path="/dashboard/certificate-verifications" element={<ProtectedRoute><CertificateVerificationsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/badges" element={<ProtectedRoute><BadgeTransactionsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/evaluations" element={<ProtectedRoute><EvaluationsRouter /></ProtectedRoute>} />
+            <Route path="/dashboard/training" element={<ProtectedRoute><TrainingRouter /></ProtectedRoute>} />
+            <Route path="/dashboard/schedule" element={<ProtectedRoute><SchedulePage /></ProtectedRoute>} />
+            <Route path="/dashboard/schedules" element={<ProtectedRoute><SchedulesPage /></ProtectedRoute>} />
+            <Route path="/dashboard/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/dashboard/volunteers" element={<ProtectedRoute><VolunteersPage /></ProtectedRoute>} />
+            <Route path="/dashboard/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
 
             {/* Faculty Coordinator Routes */}
-            <Route path="/dashboard/faculty-volunteers" element={<MaintenanceGuard><FacultyVolunteersPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/faculty-applications" element={<MaintenanceGuard><FacultyApplicationsPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/faculty-schedules" element={<MaintenanceGuard><FacultySchedulesPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/faculty-reports" element={<MaintenanceGuard><FacultyReportsPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/faculty-volunteers" element={<ProtectedRoute><FacultyVolunteersPage /></ProtectedRoute>} />
+            <Route path="/dashboard/faculty-applications" element={<ProtectedRoute><FacultyApplicationsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/faculty-schedules" element={<ProtectedRoute><FacultySchedulesPage /></ProtectedRoute>} />
+            <Route path="/dashboard/faculty-reports" element={<ProtectedRoute><FacultyReportsPage /></ProtectedRoute>} />
 
             {/* Disability Exams Routes */}
-            <Route path="/dashboard/disability-exams" element={<MaintenanceGuard><DisabilityExamsPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/my-disability-assignments" element={<MaintenanceGuard><MyDisabilityAssignmentsPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/disability-exams" element={<ProtectedRoute><DisabilityExamsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/my-disability-assignments" element={<ProtectedRoute><MyDisabilityAssignmentsPage /></ProtectedRoute>} />
 
             {/* Psychological Support Routes */}
-            <Route path="/dashboard/psych-profiles" element={<MaintenanceGuard><PsychProfilesPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/psych-profiles/:profileId" element={<MaintenanceGuard><PsychologicalProfilePage /></MaintenanceGuard>} />
+            <Route path="/dashboard/psych-profiles" element={<ProtectedRoute><PsychProfilesPage /></ProtectedRoute>} />
+            <Route path="/dashboard/psych-profiles/:profileId" element={<ProtectedRoute><PsychologicalProfilePage /></ProtectedRoute>} />
 
             {/* EMR Routes */}
-            <Route path="/dashboard/emr" element={<MaintenanceGuard><PatientListPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/emr/stats" element={<MaintenanceGuard><EMRStatsPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/emr/all" element={<MaintenanceGuard><AllPatientsReadOnlyPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/emr/requests" element={<MaintenanceGuard><FileOpenRequestsPage /></MaintenanceGuard>} />
-            <Route path="/dashboard/emr/patient/:patientId" element={<MaintenanceGuard><PatientMasterFile /></MaintenanceGuard>} />
-            <Route path="/dashboard/emr/encounter/:encounterId" element={<MaintenanceGuard><EncounterDetailPage /></MaintenanceGuard>} />
+            <Route path="/dashboard/emr" element={<ProtectedRoute><PatientListPage /></ProtectedRoute>} />
+            <Route path="/dashboard/emr/stats" element={<ProtectedRoute><EMRStatsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/emr/all" element={<ProtectedRoute><AllPatientsReadOnlyPage /></ProtectedRoute>} />
+            <Route path="/dashboard/emr/requests" element={<ProtectedRoute><FileOpenRequestsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/emr/patient/:patientId" element={<ProtectedRoute><PatientMasterFile /></ProtectedRoute>} />
+            <Route path="/dashboard/emr/encounter/:encounterId" element={<ProtectedRoute><EncounterDetailPage /></ProtectedRoute>} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
