@@ -228,7 +228,18 @@ export default function BookAppointmentPage() {
           created_by: slot.provider_id,
         });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message?.includes('already has an active appointment')) {
+          toast({ title: 'Already booked', description: 'You already have an active appointment. Only one at a time is allowed.', variant: 'destructive' });
+          return;
+        }
+        if (error.message?.includes('already booked')) {
+          toast({ title: 'Slot taken', description: 'This slot was just booked. Please choose another.', variant: 'destructive' });
+          setAvailableSlots(prev => prev.filter(s => !(s.date === slot.date && s.start_time === slot.start_time && s.provider_id === slot.provider_id)));
+          return;
+        }
+        throw error;
+      }
 
       setBookedSlot(slot);
       setStep('success');
