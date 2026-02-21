@@ -958,6 +958,105 @@ export type Database = {
         }
         Relationships: []
       }
+      election_voters: {
+        Row: {
+          box_id: string | null
+          checked_in_by: string | null
+          created_at: string
+          election_id: string
+          faculty_name: string | null
+          faculty_name_ar: string | null
+          has_voted: boolean
+          id: string
+          national_id: string | null
+          student_name: string
+          student_name_ar: string | null
+          university_id: string
+          voted_at: string | null
+        }
+        Insert: {
+          box_id?: string | null
+          checked_in_by?: string | null
+          created_at?: string
+          election_id: string
+          faculty_name?: string | null
+          faculty_name_ar?: string | null
+          has_voted?: boolean
+          id?: string
+          national_id?: string | null
+          student_name: string
+          student_name_ar?: string | null
+          university_id: string
+          voted_at?: string | null
+        }
+        Update: {
+          box_id?: string | null
+          checked_in_by?: string | null
+          created_at?: string
+          election_id?: string
+          faculty_name?: string | null
+          faculty_name_ar?: string | null
+          has_voted?: boolean
+          id?: string
+          national_id?: string | null
+          student_name?: string
+          student_name_ar?: string | null
+          university_id?: string
+          voted_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "election_voters_box_id_fkey"
+            columns: ["box_id"]
+            isOneToOne: false
+            referencedRelation: "voting_boxes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "election_voters_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      elections: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          election_date: string
+          id: string
+          name: string
+          name_ar: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          election_date: string
+          id?: string
+          name: string
+          name_ar?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          election_date?: string
+          id?: string
+          name?: string
+          name_ar?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       emr_audit_trail: {
         Row: {
           action: string
@@ -3433,6 +3532,50 @@ export type Database = {
             columns: ["schedule_submitted_for_semester"]
             isOneToOne: false
             referencedRelation: "academic_semesters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voting_boxes: {
+        Row: {
+          created_at: string
+          election_id: string
+          id: string
+          location: string | null
+          location_ar: string | null
+          name: string
+          name_ar: string | null
+          supervisor_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          election_id: string
+          id?: string
+          location?: string | null
+          location_ar?: string | null
+          name: string
+          name_ar?: string | null
+          supervisor_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          election_id?: string
+          id?: string
+          location?: string | null
+          location_ar?: string | null
+          name?: string
+          name_ar?: string | null
+          supervisor_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voting_boxes_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
             referencedColumns: ["id"]
           },
         ]
