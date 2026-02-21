@@ -22,6 +22,9 @@ export interface VotingBox {
   location: string | null;
   location_ar: string | null;
   supervisor_id: string | null;
+  allowed_ip: string | null;
+  access_token: string | null;
+  faculty_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -105,6 +108,21 @@ export function useUpdateElection() {
   });
 }
 
+export function useDeleteElection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('elections').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['elections'] });
+      toast({ title: 'Election deleted' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+}
+
 // Voting Boxes
 export function useVotingBoxes(electionId: string | undefined) {
   return useQuery({
@@ -126,8 +144,11 @@ export function useVotingBoxes(electionId: string | undefined) {
 export function useCreateVotingBox() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (box: { election_id: string; name: string; name_ar?: string; location?: string; location_ar?: string; supervisor_id?: string; allowed_ip?: string }) => {
-      const { data, error } = await supabase.from('voting_boxes').insert(box).select().single();
+    mutationFn: async (box: { election_id: string; name: string; name_ar?: string; location?: string; location_ar?: string; supervisor_id?: string; allowed_ip?: string; faculty_id?: string }) => {
+      const insertData: any = { ...box };
+      if (!insertData.supervisor_id) delete insertData.supervisor_id;
+      if (!insertData.faculty_id || insertData.faculty_id === ' ') delete insertData.faculty_id;
+      const { data, error } = await supabase.from('voting_boxes').insert(insertData).select().single();
       if (error) throw error;
       return data;
     },
