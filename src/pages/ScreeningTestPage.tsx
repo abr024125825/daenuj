@@ -22,6 +22,10 @@ interface ScreeningResult {
   suggested_icd_codes: { code: string; description: string }[];
   summary: string;
   recommendation: string;
+  instruments_used?: string[];
+  instrument_scores?: Record<string, number>;
+  risk_level?: string;
+  domains_assessed?: string[];
 }
 
 function parseScreeningResult(text: string): ScreeningResult | null {
@@ -64,6 +68,22 @@ function ScreeningSummaryPage({ result, sessionId, onRequestFile, onHome }: {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-foreground leading-relaxed" dir="auto">{result.summary}</p>
+
+          {result.instruments_used && result.instruments_used.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Instruments Administered:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {result.instruments_used.map((inst, i) => (
+                  <Badge key={i} variant="secondary" className="text-xs">
+                    {inst}
+                    {result.instrument_scores?.[inst] != null && (
+                      <span className="ml-1 font-mono">({result.instrument_scores[inst]})</span>
+                    )}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
 
           {result.suggested_icd_codes.length > 0 && (
             <div>
