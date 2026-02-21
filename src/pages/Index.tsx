@@ -1,7 +1,7 @@
 import { Logo } from '@/components/Logo';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Heart, Users, Award, ArrowRight, Accessibility, Calendar, Brain, ChevronDown, Sparkles, Shield, Clock, PartyPopper } from 'lucide-react';
+import { UserPlus, Heart, Users, Award, ArrowRight, Accessibility, Calendar, Brain, ChevronDown, Sparkles, Shield, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useRef, useState, useCallback } from 'react';
 
@@ -197,10 +197,6 @@ const Index = () => {
                   </Button>
                 </div>
 
-                {/* 🎉 Inauguration Button */}
-                <div className="animate-slide-up mt-4" style={{ animationDelay: '0.45s' }}>
-                  <InaugurationButton />
-                </div>
               </div>
 
               {/* Right — Login */}
@@ -407,69 +403,6 @@ function CTAContent({ navigate }: { navigate: (path: string) => void }) {
         <UserPlus className="h-5 w-5 group-hover:scale-110 transition-transform" />
         Apply as Volunteer
         <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
-      </Button>
-    </div>
-  );
-}
-
-/* ─── Inauguration Button ─── */
-function InaugurationButton() {
-  const [playing, setPlaying] = useState(false);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  const handleClick = () => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio('/inauguration-song.m4a');
-      audioRef.current.addEventListener('ended', () => {
-        setPlaying(false);
-        setShowConfetti(false);
-      });
-    }
-
-    if (playing) {
-      audioRef.current.pause();
-      audioRef.current.currentTime = 0;
-      setPlaying(false);
-      setShowConfetti(false);
-    } else {
-      audioRef.current.play();
-      setPlaying(true);
-      setShowConfetti(true);
-    }
-  };
-
-  return (
-    <div className="relative">
-      {showConfetti && (
-        <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
-          {Array.from({ length: 60 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute animate-confetti"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `-5%`,
-                animationDelay: `${Math.random() * 2}s`,
-                animationDuration: `${Math.random() * 2 + 2}s`,
-                width: `${Math.random() * 10 + 6}px`,
-                height: `${Math.random() * 10 + 6}px`,
-                backgroundColor: ['hsl(var(--primary))', 'hsl(var(--accent))', '#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1'][Math.floor(Math.random() * 6)],
-                borderRadius: Math.random() > 0.5 ? '50%' : '2px',
-                transform: `rotate(${Math.random() * 360}deg)`,
-              }}
-            />
-          ))}
-        </div>
-      )}
-      <Button
-        variant={playing ? 'destructive' : 'accent'}
-        size="xl"
-        onClick={handleClick}
-        className={`gap-2 group relative overflow-hidden ${playing ? 'animate-pulse' : 'shadow-glow'}`}
-      >
-        <PartyPopper className={`h-5 w-5 transition-transform ${playing ? 'animate-bounce' : 'group-hover:scale-110'}`} />
-        {playing ? '⏹ إيقاف' : '🎉 تدشين الموقع!'}
       </Button>
     </div>
   );
