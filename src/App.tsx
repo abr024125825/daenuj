@@ -59,6 +59,7 @@ import { ElectionsPage } from "./pages/admin/ElectionsPage";
 import { ElectionDetailPage } from "./pages/admin/ElectionDetailPage";
 import { ElectionCheckInPage } from "./pages/admin/ElectionCheckInPage";
 import { ElectionResultsPage } from "./pages/admin/ElectionResultsPage";
+import { ElectionBoothPage } from "./pages/ElectionBoothPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -94,6 +95,7 @@ const App = () => (
             <Route path="/book-appointment" element={<BookAppointmentPage />} />
             <Route path="/screening" element={<ScreeningTestPage />} />
             <Route path="/install" element={<InstallPage />} />
+            <Route path="/election-booth" element={<ElectionBoothPage />} />
             {/* Settings always accessible (so admin can turn off maintenance) */}
             <Route path="/dashboard/settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
 
