@@ -185,8 +185,6 @@ export function InaugurationGate({ children }: { children: React.ReactNode }) {
           clearInterval(slideTimerRef.current);
           setTimeout(() => {
             setPhase('done');
-            setLocalLaunched(true);
-            localStorage.setItem(LAUNCH_KEY, 'true');
           }, 2000);
           return prev;
         }
@@ -195,6 +193,20 @@ export function InaugurationGate({ children }: { children: React.ReactNode }) {
     }, 5000);
 
     return () => clearInterval(slideTimerRef.current);
+  }, [phase]);
+
+  /* ─── Done Phase auto-enter after 4s ─── */
+  useEffect(() => {
+    if (phase !== 'done') return;
+    const timer = setTimeout(() => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setLocalLaunched(true);
+      localStorage.setItem(LAUNCH_KEY, 'true');
+    }, 4000);
+    return () => clearTimeout(timer);
   }, [phase]);
 
   if (isLoading) {
@@ -220,7 +232,7 @@ export function InaugurationGate({ children }: { children: React.ReactNode }) {
         <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
         <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-accent/5 blur-3xl" />
 
-        <div className="relative w-full max-w-md text-center">
+        <div className="relative w-full max-w-md text-center animate-in fade-in zoom-in duration-700">
           <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-3xl blur-xl" />
           <div className="relative bg-card rounded-2xl shadow-2xl border border-border/50 p-8 backdrop-blur-sm">
             <div className="mb-6 flex justify-center">
@@ -246,7 +258,6 @@ export function InaugurationGate({ children }: { children: React.ReactNode }) {
                   audioRef.current.pause();
                   audioRef.current.currentTime = 0;
                 }
-                setPhase('gate');
                 setLocalLaunched(true);
                 localStorage.setItem(LAUNCH_KEY, 'true');
               }}
