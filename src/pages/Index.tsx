@@ -1,229 +1,338 @@
 import { Logo } from '@/components/Logo';
 import { LoginForm } from '@/components/auth/LoginForm';
 import { Button } from '@/components/ui/button';
-import { UserPlus, Heart, Users, Award, ArrowRight, Accessibility, Calendar, Brain } from 'lucide-react';
+import { UserPlus, Heart, Users, Award, ArrowRight, Accessibility, Calendar, Brain, ChevronDown, Sparkles, Shield, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState, useCallback } from 'react';
 
+/* ─── Animated Counter ─── */
+function AnimatedCounter({ end, suffix = '', duration = 2000 }: { end: number; suffix?: string; duration?: number }) {
+  const [count, setCount] = useState(0);
+  const [started, setStarted] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setStarted(true); },
+      { threshold: 0.5 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!started) return;
+    let start = 0;
+    const step = end / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= end) { setCount(end); clearInterval(timer); }
+      else setCount(Math.floor(start));
+    }, 16);
+    return () => clearInterval(timer);
+  }, [started, end, duration]);
+
+  return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
+}
+
+/* ─── Scroll-reveal hook ─── */
+function useScrollReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) setVisible(true); },
+      { threshold: 0.15, rootMargin: '0px 0px -50px 0px' }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, visible };
+}
+
+/* ─── Floating Particles ─── */
+function FloatingParticles() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {Array.from({ length: 20 }).map((_, i) => (
+        <div
+          key={i}
+          className="absolute rounded-full bg-primary/10"
+          style={{
+            width: `${Math.random() * 8 + 4}px`,
+            height: `${Math.random() * 8 + 4}px`,
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+            animation: `float ${Math.random() * 6 + 4}s ease-in-out infinite`,
+            animationDelay: `${Math.random() * 4}s`,
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ─── Feature Card ─── */
+function FeatureCard({ icon, title, description, delay }: { icon: React.ReactNode; title: string; description: string; delay: number }) {
+  const { ref, visible } = useScrollReveal();
+  return (
+    <div
+      ref={ref}
+      className={`group p-8 rounded-2xl bg-background border border-border transition-all duration-700 hover:shadow-xl hover:-translate-y-2 hover:border-primary/30 ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+        {icon}
+      </div>
+      <h3 className="text-xl font-display font-semibold text-foreground mb-3">{title}</h3>
+      <p className="text-muted-foreground leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
+/* ─── Stat Card ─── */
+function StatCard({ value, suffix, label, delay }: { value: number; suffix: string; label: string; delay: number }) {
+  const { ref, visible } = useScrollReveal();
+  return (
+    <div
+      ref={ref}
+      className={`text-center transition-all duration-700 ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      <p className="text-4xl lg:text-5xl font-display font-bold text-primary">
+        <AnimatedCounter end={value} suffix={suffix} />
+      </p>
+      <p className="text-sm text-muted-foreground mt-2">{label}</p>
+    </div>
+  );
+}
+
+/* ─── Main Page ─── */
 const Index = () => {
   const navigate = useNavigate();
+  const [headerSolid, setHeaderSolid] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setHeaderSolid(window.scrollY > 50);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
-    <div className="min-h-screen gradient-hero">
-      {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+    <div className="min-h-screen bg-background">
+      {/* ━━━ Header ━━━ */}
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        headerSolid ? 'bg-background/95 backdrop-blur-xl shadow-md border-b border-border' : 'bg-transparent'
+      }`}>
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Logo size="sm" />
-          <nav className="hidden md:flex items-center gap-6">
-            <a href="#about" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              About
-            </a>
-            <a href="#impact" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Our Impact
-            </a>
-            <a href="#join" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Join Us
-            </a>
-            <Button variant="outline" size="sm" onClick={() => navigate('/verify')}>
-              Verify Certificate
-            </Button>
+          <nav className="hidden md:flex items-center gap-5">
+            <a href="#about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">About</a>
+            <a href="#impact" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Impact</a>
+            <a href="#services" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">Services</a>
+            <Button variant="outline" size="sm" onClick={() => navigate('/verify')}>Verify Certificate</Button>
             <Button variant="outline" size="sm" onClick={() => navigate('/book-appointment')} className="gap-1">
-              <Calendar className="h-4 w-4" />
-              Book Appointment
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/disability-exam-submit')} className="gap-1">
-              <Accessibility className="h-4 w-4" />
-              Disability Exams
+              <Calendar className="h-4 w-4" /> Appointment
             </Button>
             <Button variant="default" size="sm" onClick={() => navigate('/screening')} className="gap-1">
-              <Brain className="h-4 w-4" />
-              Self-Screening
+              <Brain className="h-4 w-4" /> Self-Screening
             </Button>
           </nav>
         </div>
       </header>
 
-      <main className="pt-16">
-        {/* Hero Section */}
-        <section className="relative overflow-hidden py-20 lg:py-32">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
-          <div className="container mx-auto px-4 relative">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              {/* Left Content */}
-              <div className="animate-slide-up">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-6">
-                  <Heart className="h-4 w-4" />
-                  University of Jordan
+      <main>
+        {/* ━━━ Hero ━━━ */}
+        <section className="relative min-h-screen flex items-center overflow-hidden">
+          {/* Gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/5" />
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] rounded-full bg-primary/5 blur-3xl -translate-y-1/2 translate-x-1/4" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-accent/5 blur-3xl translate-y-1/2 -translate-x-1/4" />
+          <FloatingParticles />
+
+          <div className="container mx-auto px-4 relative z-10 pt-16">
+            <div className="grid lg:grid-cols-2 gap-16 items-center">
+              {/* Left — Text */}
+              <div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full text-primary text-sm font-medium mb-8 animate-fade-in">
+                  <Sparkles className="h-4 w-4" />
+                  Dean of Student Affairs · University of Jordan
                 </div>
-                <h1 className="text-4xl lg:text-6xl font-display font-bold text-foreground leading-tight mb-6">
-                  Make a <span className="text-primary">Difference</span> in Your Community
+
+                <h1 className="text-5xl lg:text-7xl font-display font-bold text-foreground leading-[1.1] mb-8 animate-slide-up">
+                  Make a{' '}
+                  <span className="relative inline-block">
+                    <span className="text-primary">Difference</span>
+                    <span className="absolute -bottom-2 left-0 right-0 h-1 bg-primary/30 rounded-full" />
+                  </span>
+                  <br />in Your Community
                 </h1>
-                <p className="text-lg text-muted-foreground mb-8 max-w-lg">
-                  Join the Dean of Student Affairs volunteer program and be part of a movement 
-                  that transforms lives through volunteering. Your time and skills matter.
+
+                <p className="text-lg lg:text-xl text-muted-foreground mb-10 max-w-lg leading-relaxed animate-slide-up" style={{ animationDelay: '0.15s' }}>
+                  Join a vibrant community of 2,500+ students volunteering, growing, and earning recognition at the University of Jordan.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-4">
+
+                <div className="flex flex-col sm:flex-row gap-4 animate-slide-up" style={{ animationDelay: '0.3s' }}>
                   <Button
                     variant="hero"
                     size="xl"
                     onClick={() => navigate('/register')}
-                    className="gap-2"
+                    className="gap-2 group shadow-glow"
                   >
-                    <UserPlus className="h-5 w-5" />
+                    <UserPlus className="h-5 w-5 group-hover:scale-110 transition-transform" />
                     Become a Volunteer
+                    <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
                   </Button>
-                  <Button variant="outline" size="xl" className="gap-2">
+                  <Button variant="outline" size="xl" className="gap-2 group" onClick={() => {
+                    document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
+                  }}>
                     Learn More
-                    <ArrowRight className="h-5 w-5" />
+                    <ChevronDown className="h-4 w-4 group-hover:translate-y-1 transition-transform" />
                   </Button>
-                </div>
-
-                {/* Stats */}
-                <div className="grid grid-cols-3 gap-6 mt-12 pt-8 border-t border-border">
-                  <div>
-                    <p className="text-3xl font-display font-bold text-primary">2,500+</p>
-                    <p className="text-sm text-muted-foreground">Active Volunteers</p>
-                  </div>
-                  <div>
-                    <p className="text-3xl font-display font-bold text-accent">150+</p>
-                    <p className="text-sm text-muted-foreground">Opportunities/Year</p>
-                  </div>
-                  <div>
-                    <p className="text-3xl font-display font-bold text-foreground">50,000+</p>
-                    <p className="text-sm text-muted-foreground">Hours Contributed</p>
-                  </div>
                 </div>
               </div>
 
-              {/* Right Content - Login Card */}
-              <div className="lg:pl-12 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-                <div className="bg-card rounded-2xl shadow-xl border border-border p-8 max-w-md mx-auto">
-                  <div className="text-center mb-8">
-                    <Logo size="lg" showText={false} />
-                    <h2 className="text-2xl font-display font-bold text-foreground mt-4">Welcome Back</h2>
-                    <p className="text-muted-foreground mt-2">Sign in to your account</p>
+              {/* Right — Login */}
+              <div className="lg:pl-8 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+                <div className="relative">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-3xl blur-xl" />
+                  <div className="relative bg-card rounded-2xl shadow-2xl border border-border/50 p-8 max-w-md mx-auto backdrop-blur-sm">
+                    <div className="text-center mb-8">
+                      <Logo size="lg" showText={false} />
+                      <h2 className="text-2xl font-display font-bold text-foreground mt-4">Welcome Back</h2>
+                      <p className="text-muted-foreground mt-2">Sign in to your account</p>
+                    </div>
+                    <LoginForm />
                   </div>
-                  <LoginForm />
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Scroll indicator */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
+            <ChevronDown className="h-6 w-6 text-muted-foreground" />
+          </div>
         </section>
 
-        {/* Features Section */}
-        <section id="about" className="py-20 bg-card border-t border-border">
+        {/* ━━━ Stats ━━━ */}
+        <section id="impact" className="py-20 border-t border-border bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+              <StatCard value={2500} suffix="+" label="Active Volunteers" delay={0} />
+              <StatCard value={150} suffix="+" label="Opportunities / Year" delay={100} />
+              <StatCard value={50000} suffix="+" label="Hours Contributed" delay={200} />
+              <StatCard value={98} suffix="%" label="Satisfaction Rate" delay={300} />
+            </div>
+          </div>
+        </section>
+
+        {/* ━━━ Features ━━━ */}
+        <section id="about" className="py-24 bg-card">
           <div className="container mx-auto px-4">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">
-                Why Volunteer With Us?
-              </h2>
-              <p className="text-muted-foreground">
-                Join a vibrant community of students making real impact in Jordan and beyond.
-              </p>
+              <SectionHeader label="Why Us" title="Why Volunteer With Us?" subtitle="Join a vibrant community of students making real impact in Jordan and beyond." />
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
               <FeatureCard
                 icon={<Users className="h-8 w-8" />}
                 title="Build Connections"
-                description="Meet like-minded individuals, network with professionals, and create lasting friendships."
+                description="Meet like-minded individuals, network with professionals, and create lasting friendships through shared experiences."
+                delay={0}
               />
               <FeatureCard
                 icon={<Award className="h-8 w-8" />}
                 title="Earn Recognition"
-                description="Receive official certificates for your volunteering hours and build your professional portfolio."
+                description="Receive official certificates for your volunteering hours and build a professional portfolio that stands out."
+                delay={150}
               />
               <FeatureCard
                 icon={<Heart className="h-8 w-8" />}
                 title="Create Impact"
-                description="Contribute to meaningful projects that address real community needs and make a difference."
+                description="Contribute to meaningful projects that address real community needs and leave a lasting positive change."
+                delay={300}
               />
             </div>
           </div>
         </section>
 
-        {/* Psychological Screening Section */}
-        <section className="py-12 bg-primary/5 border-t border-border">
-          <div className="container mx-auto px-4 text-center">
-            <div className="max-w-xl mx-auto">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full text-primary text-sm font-medium mb-4">
-                <Brain className="h-4 w-4" />
-                Mental Health Support
-              </div>
-              <h2 className="text-2xl font-display font-bold text-foreground mb-3">
-                Free Psychological Screening
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                Take a confidential, AI-powered adaptive screening test to understand your mental health. 
-                Results are private and you can choose to register for professional support.
-              </p>
-              <Button
-                variant="hero"
-                size="lg"
-                onClick={() => navigate('/screening')}
-                className="gap-2"
-              >
-                <Brain className="h-5 w-5" />
-                Start Screening Test
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        {/* Disability Exam Access Section */}
-        <section className="py-12 bg-muted/50 border-t border-border">
-          <div className="container mx-auto px-4 text-center">
-            <div className="max-w-xl mx-auto">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-full text-accent text-sm font-medium mb-4">
-                <Accessibility className="h-4 w-4" />
-                Disability Support Services
-              </div>
-              <h2 className="text-2xl font-display font-bold text-foreground mb-3">
-                Disability Exam Submissions
-              </h2>
-              <p className="text-muted-foreground mb-6">
-                Students with disabilities can submit their exam schedules for volunteer support assistance.
-              </p>
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => navigate('/disability-exam-submit')}
-                className="gap-2"
-              >
-                <Accessibility className="h-5 w-5" />
-                Submit Exam Schedule
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        {/* CTA Section */}
-        <section id="join" className="py-20 gradient-primary text-primary-foreground">
-          <div className="container mx-auto px-4 text-center">
-            <h2 className="text-3xl lg:text-4xl font-display font-bold mb-4">
-              Ready to Start Your Journey?
-            </h2>
-            <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto">
-              Apply now and join thousands of students making a positive impact in our community.
-            </p>
-            <Button
-              variant="secondary"
-              size="xl"
-              onClick={() => navigate('/register')}
-              className="gap-2"
-            >
-              <UserPlus className="h-5 w-5" />
-              Apply as Volunteer
-            </Button>
-          </div>
-        </section>
-
-        {/* Footer */}
-        <footer className="bg-card border-t border-border py-8">
+        {/* ━━━ Services ━━━ */}
+        <section id="services" className="py-24 bg-background">
           <div className="container mx-auto px-4">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="text-center max-w-2xl mx-auto mb-16">
+              <SectionHeader label="Services" title="Student Support Services" subtitle="Access mental health support, disability services, and more — all in one place." />
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+              <ServiceCard
+                icon={<Brain className="h-7 w-7" />}
+                title="Psychological Screening"
+                description="Take a confidential, AI-powered adaptive screening test to understand your mental health. Results are private."
+                buttonText="Start Screening"
+                onClick={() => navigate('/screening')}
+                gradient="from-primary/10 to-primary/5"
+                delay={0}
+              />
+              <ServiceCard
+                icon={<Accessibility className="h-7 w-7" />}
+                title="Disability Exam Support"
+                description="Students with disabilities can submit exam schedules for volunteer assistance and support."
+                buttonText="Submit Schedule"
+                onClick={() => navigate('/disability-exam-submit')}
+                gradient="from-accent/10 to-accent/5"
+                delay={150}
+              />
+              <ServiceCard
+                icon={<Calendar className="h-7 w-7" />}
+                title="Book an Appointment"
+                description="Schedule a meeting with our counselors for academic, personal, or professional guidance."
+                buttonText="Book Now"
+                onClick={() => navigate('/book-appointment')}
+                gradient="from-primary/10 to-accent/5"
+                delay={300}
+              />
+              <ServiceCard
+                icon={<Shield className="h-7 w-7" />}
+                title="Certificate Verification"
+                description="Verify the authenticity of volunteer certificates issued by the Dean of Student Affairs."
+                buttonText="Verify"
+                onClick={() => navigate('/verify')}
+                gradient="from-accent/10 to-primary/5"
+                delay={450}
+              />
+            </div>
+          </div>
+        </section>
+
+        {/* ━━━ CTA ━━━ */}
+        <section id="join" className="relative py-24 overflow-hidden">
+          <div className="absolute inset-0 gradient-primary" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(0_0%_100%/0.1)_0%,_transparent_70%)]" />
+
+          <div className="container mx-auto px-4 text-center relative z-10">
+            <CTAContent navigate={navigate} />
+          </div>
+        </section>
+
+        {/* ━━━ Footer ━━━ */}
+        <footer className="bg-card border-t border-border py-10">
+          <div className="container mx-auto px-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
               <Logo size="sm" />
+              <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                <a href="#about" className="hover:text-foreground transition-colors">About</a>
+                <a href="#services" className="hover:text-foreground transition-colors">Services</a>
+                <a href="#join" className="hover:text-foreground transition-colors">Join</a>
+              </div>
               <p className="text-sm text-muted-foreground">
-                © {new Date().getFullYear()} Dean of Student Affairs. University of Jordan.
+                © {new Date().getFullYear()} Dean of Student Affairs · University of Jordan
               </p>
             </div>
           </div>
@@ -233,14 +342,67 @@ const Index = () => {
   );
 };
 
-function FeatureCard({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) {
+/* ─── Section Header ─── */
+function SectionHeader({ label, title, subtitle }: { label: string; title: string; subtitle: string }) {
+  const { ref, visible } = useScrollReveal();
   return (
-    <div className="p-8 rounded-2xl bg-background border border-border hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
-      <div className="w-16 h-16 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-6">
+    <div ref={ref} className={`transition-all duration-700 ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
+      <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-primary text-xs font-semibold uppercase tracking-wider mb-4">
+        {label}
+      </div>
+      <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">{title}</h2>
+      <p className="text-muted-foreground text-lg">{subtitle}</p>
+    </div>
+  );
+}
+
+/* ─── Service Card ─── */
+function ServiceCard({ icon, title, description, buttonText, onClick, gradient, delay }: {
+  icon: React.ReactNode; title: string; description: string; buttonText: string; onClick: () => void; gradient: string; delay: number;
+}) {
+  const { ref, visible } = useScrollReveal();
+  return (
+    <div
+      ref={ref}
+      className={`group relative p-8 rounded-2xl border border-border bg-gradient-to-br ${gradient} transition-all duration-700 hover:shadow-lg hover:border-primary/20 ${
+        visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      <div className="w-14 h-14 rounded-xl bg-background flex items-center justify-center text-primary mb-5 shadow-sm group-hover:scale-110 transition-transform duration-300">
         {icon}
       </div>
-      <h3 className="text-xl font-display font-semibold text-foreground mb-3">{title}</h3>
-      <p className="text-muted-foreground">{description}</p>
+      <h3 className="text-lg font-display font-semibold text-foreground mb-2">{title}</h3>
+      <p className="text-muted-foreground text-sm leading-relaxed mb-5">{description}</p>
+      <Button variant="outline" size="sm" onClick={onClick} className="gap-1 group/btn">
+        {buttonText}
+        <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform" />
+      </Button>
+    </div>
+  );
+}
+
+/* ─── CTA Content ─── */
+function CTAContent({ navigate }: { navigate: (path: string) => void }) {
+  const { ref, visible } = useScrollReveal();
+  return (
+    <div ref={ref} className={`transition-all duration-700 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
+      <h2 className="text-3xl lg:text-5xl font-display font-bold mb-6 text-primary-foreground">
+        Ready to Start Your Journey?
+      </h2>
+      <p className="text-primary-foreground/80 mb-10 max-w-lg mx-auto text-lg">
+        Apply now and join thousands of students making a positive impact in our community.
+      </p>
+      <Button
+        variant="secondary"
+        size="xl"
+        onClick={() => navigate('/register')}
+        className="gap-2 group shadow-xl hover:shadow-2xl transition-shadow"
+      >
+        <UserPlus className="h-5 w-5 group-hover:scale-110 transition-transform" />
+        Apply as Volunteer
+        <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+      </Button>
     </div>
   );
 }
