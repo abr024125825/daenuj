@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { MaintenanceGuard } from "@/components/MaintenanceGuard";
 import { AuthGuard } from "@/components/AuthGuard";
+import { InaugurationGate } from "@/components/InaugurationGate";
 import Index from "./pages/Index";
 import { RegisterPage } from "./pages/RegisterPage";
 import Dashboard from "./pages/Dashboard";
@@ -79,6 +80,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <InaugurationGate>
         <BrowserRouter>
           <Routes>
             {/* Public routes always accessible */}
@@ -137,6 +139,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
+        </InaugurationGate>
       </TooltipProvider>
     </AuthProvider>
   </QueryClientProvider>
