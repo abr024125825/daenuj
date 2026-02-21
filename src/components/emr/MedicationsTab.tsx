@@ -3,12 +3,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { usePatientMedications, useCreateMedication, useUpdateMedication, useMedicationCatalog } from '@/hooks/useEMR';
+import { usePatientMedications, useCreateMedication, useUpdateMedication, useDeleteMedication, useMedicationCatalog } from '@/hooks/useEMR';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Loader2, Search, AlertTriangle, Lock } from 'lucide-react';
+import { Plus, Loader2, Search, AlertTriangle, Lock, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { logAudit } from '@/lib/auditHelper';
 
 interface MedicationsTabProps {
   patientId: string;
@@ -17,14 +23,17 @@ interface MedicationsTabProps {
 }
 
 export function MedicationsTab({ patientId, encounterId, isSigned = false }: MedicationsTabProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const userName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim();
   const { toast } = useToast();
   const { data: meds, isLoading } = usePatientMedications(patientId);
   const createMed = useCreateMedication();
   const updateMed = useUpdateMedication();
+  const deleteMed = useDeleteMedication();
   const [isOpen, setIsOpen] = useState(false);
   const [medSearch, setMedSearch] = useState('');
   const { data: catalog } = useMedicationCatalog(medSearch);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [form, setForm] = useState({
     medication_name: '', dose: '', route: 'Oral', frequency: '', duration: '', interaction_group: '',
   });
@@ -56,23 +65,45 @@ export function MedicationsTab({ patientId, encounterId, isSigned = false }: Med
       toast({ title: '⚠️ Dangerous Interaction', description: conflicts.join('; '), variant: 'destructive' });
       return;
     }
-    await createMed.mutateAsync({ 
-      patient_id: patientId, ...form, prescribed_by: user?.id, 
+    const result = await createMed.mutateAsync({
+      patient_id: patientId, ...form, prescribed_by: user?.id,
       start_date: new Date().toISOString().split('T')[0],
       encounter_id: encounterId || null,
     });
+    await logAudit({
+      patientId, action: 'create', entityType: 'medication', entityId: result.id, encounterId,
+      performedBy: user?.id!, performedByName: userName,
+      newValue: { medication: form.medication_name, dose: form.dose },
+    });
     setIsOpen(false);
     setForm({ medication_name: '', dose: '', route: 'Oral', frequency: '', duration: '', interaction_group: '' });
+  };
+
+  const handleDiscontinue = async (m: any) => {
+    await updateMed.mutateAsync({ id: m.id, status: 'discontinued', end_date: new Date().toISOString().split('T')[0] });
+    await logAudit({
+      patientId, action: 'update', entityType: 'medication', entityId: m.id, encounterId,
+      performedBy: user?.id!, performedByName: userName,
+      oldValue: { status: 'active' }, newValue: { status: 'discontinued' },
+    });
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await logAudit({
+      patientId, action: 'delete', entityType: 'medication', entityId: deleteTarget.id, encounterId,
+      performedBy: user?.id!, performedByName: userName,
+      oldValue: { medication: deleteTarget.medication_name, dose: deleteTarget.dose },
+    });
+    await deleteMed.mutateAsync(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   const interactions = checkInteractions();
 
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
-  // Filter by encounter if provided
-  const filteredMeds = encounterId
-    ? meds?.filter(m => m.encounter_id === encounterId)
-    : meds;
+  const filteredMeds = encounterId ? meds?.filter(m => m.encounter_id === encounterId) : meds;
 
   return (
     <div className="space-y-4">
@@ -143,8 +174,12 @@ export function MedicationsTab({ patientId, encounterId, isSigned = false }: Med
                 <div className="flex items-center gap-2">
                   <Badge variant={m.status === 'active' ? 'default' : 'secondary'} className="text-xs">{m.status}</Badge>
                   {!isSigned && m.status === 'active' && (
-                    <Button variant="ghost" size="sm" onClick={() => updateMed.mutate({ id: m.id, status: 'discontinued', end_date: new Date().toISOString().split('T')[0] })}>
-                      D/C
+                    <Button variant="ghost" size="sm" onClick={() => handleDiscontinue(m)}>D/C</Button>
+                  )}
+                  {!isSigned && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteTarget(m)}>
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
@@ -153,6 +188,21 @@ export function MedicationsTab({ patientId, encounterId, isSigned = false }: Med
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Medication?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete {deleteTarget?.medication_name}? This action is logged in the audit trail.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -75,8 +75,12 @@ export function EncounterDetailPage() {
 
   const isSigned = encounter.status === 'signed';
 
-  const handleSaveCC = () => {
+  const userName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim();
+
+  const handleSaveCC = async () => {
     updateEncounter.mutate({ id: encounter.id, chief_complaint: chiefComplaint });
+    const { logAudit } = await import('@/lib/auditHelper');
+    await logAudit({ patientId: encounter.patient_id, action: 'update', entityType: 'encounter', entityId: encounter.id, performedBy: user?.id!, performedByName: userName, oldValue: { chief_complaint: encounter.chief_complaint }, newValue: { chief_complaint: chiefComplaint } });
     toast({ title: 'Chief complaint saved' });
   };
 
