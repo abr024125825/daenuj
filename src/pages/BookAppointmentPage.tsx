@@ -79,15 +79,16 @@ export default function BookAppointmentPage() {
       setPatient(data);
 
       // Check if patient already has a scheduled/confirmed appointment
-      const { data: activeAppt } = await supabase
+      const { data: activeAppts } = await supabase
         .from('appointments')
         .select('*')
         .eq('patient_id', data.id)
         .in('status', ['scheduled', 'confirmed'])
         .gte('appointment_date', new Date().toISOString().split('T')[0])
         .order('appointment_date', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+        .limit(1);
+
+      const activeAppt = activeAppts?.[0] || null;
 
       if (activeAppt) {
         setExistingAppointment(activeAppt);
@@ -214,13 +215,15 @@ export default function BookAppointmentPage() {
       }
 
       // Re-check patient doesn't have active appointment
-      const { data: patientConflict } = await supabase
+      const { data: patientConflicts } = await supabase
         .from('appointments')
         .select('id')
         .eq('patient_id', patient.id)
         .in('status', ['scheduled', 'confirmed'])
         .gte('appointment_date', new Date().toISOString().split('T')[0])
-        .maybeSingle();
+        .limit(1);
+
+      const patientConflict = patientConflicts?.[0] || null;
 
       if (patientConflict) {
         toast({ title: 'Existing Appointment', description: 'You already have a scheduled appointment.', variant: 'destructive' });
