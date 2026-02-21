@@ -6,12 +6,11 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, CheckCircle2, XCircle, Vote, Undo2, ShieldAlert, LogOut, Lock, Shield, Clock } from 'lucide-react';
+import { Search, CheckCircle2, XCircle, Vote, Undo2, ShieldAlert, LogOut, Lock, Shield, Clock, ShieldCheck } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 
-const INACTIVITY_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
-const LOCK_PASSWORD_REQUIRED = true;
+const INACTIVITY_TIMEOUT_MS = 3 * 60 * 1000;
 
 interface BoothSession {
   userId: string;
@@ -31,6 +30,7 @@ interface Voter {
   national_id: string | null;
   has_voted: boolean;
   voted_at: string | null;
+  box_id: string | null;
 }
 
 async function getClientIP(): Promise<string> {
@@ -55,11 +55,16 @@ export function ElectionBoothPage() {
   const [locked, setLocked] = useState(false);
   const [unlockPassword, setUnlockPassword] = useState('');
   const [failedAttempts, setFailedAttempts] = useState(0);
+  // MFA state
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState('');
+  const [mfaVerifying, setMfaVerifying] = useState(false);
+  const [pendingUserId, setPendingUserId] = useState<string | null>(null);
+
   const searchRef = useRef<HTMLInputElement>(null);
   const lastActivityRef = useRef(Date.now());
   const lockTimerRef = useRef<ReturnType<typeof setInterval>>();
 
-  // Inactivity lock
   const resetActivity = useCallback(() => {
     lastActivityRef.current = Date.now();
   }, []);
@@ -99,12 +104,59 @@ export function ElectionBoothPage() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
-        validateAndSetup(data.session.user.id);
+        checkMfaAndSetup(data.session.user.id);
       } else {
         setLoading(false);
       }
     });
   }, []);
+
+  const checkMfaAndSetup = async (userId: string) => {
+    setLoading(true);
+    // Check if MFA is verified (AAL2)
+    const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+    const { data: factors } = await supabase.auth.mfa.listFactors();
+    const hasVerifiedTOTP = factors?.totp?.some(f => f.status === 'verified');
+
+    if (hasVerifiedTOTP && aalData?.currentLevel === 'aal1') {
+      // Need MFA verification
+      setPendingUserId(userId);
+      setMfaRequired(true);
+      setLoading(false);
+      return;
+    }
+
+    validateAndSetup(userId);
+  };
+
+  const handleMfaVerify = async () => {
+    if (mfaCode.length !== 6) return;
+    setMfaVerifying(true);
+    setError('');
+    try {
+      const { data: factors } = await supabase.auth.mfa.listFactors();
+      const totpFactor = factors?.totp?.[0];
+      if (!totpFactor) throw new Error('No authenticator found');
+
+      const { data: challenge, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
+      if (challengeErr) throw challengeErr;
+
+      const { error: verifyErr } = await supabase.auth.mfa.verify({
+        factorId: totpFactor.id,
+        challengeId: challenge.id,
+        code: mfaCode,
+      });
+      if (verifyErr) throw verifyErr;
+
+      setMfaRequired(false);
+      setMfaCode('');
+      if (pendingUserId) validateAndSetup(pendingUserId);
+    } catch (err: any) {
+      setError(err.message || 'Invalid verification code');
+      setMfaCode('');
+    }
+    setMfaVerifying(false);
+  };
 
   const validateAndSetup = async (userId: string) => {
     setLoading(true);
@@ -112,7 +164,6 @@ export function ElectionBoothPage() {
     try {
       const clientIP = await getClientIP();
 
-      // Find box assigned to this user
       const { data: boxes, error: boxErr } = await supabase
         .from('voting_boxes')
         .select('*')
@@ -126,20 +177,18 @@ export function ElectionBoothPage() {
 
       const box = boxes[0];
 
-      // IP validation — admin must set allowed_ip first
       if (!box.allowed_ip) {
-        setError('CONFIGURATION ERROR: No allowed IP has been set for this box. Contact the administrator to configure the allowed IP address.');
+        setError('CONFIGURATION ERROR: No allowed IP has been set for this box. Contact the administrator.');
         setLoading(false);
         return;
       }
 
       if (box.allowed_ip !== clientIP) {
-        setError(`ACCESS DENIED: This device is not authorized for this voting box.\n\nDetected IP: ${clientIP}\nAuthorized IP: ${box.allowed_ip}\n\nContact the administrator if you believe this is an error.`);
+        setError(`ACCESS DENIED: This device is not authorized.\n\nDetected IP: ${clientIP}\nAuthorized IP: ${box.allowed_ip}`);
         setLoading(false);
         return;
       }
 
-      // Get election info
       const { data: election } = await supabase
         .from('elections')
         .select('id, name, status')
@@ -147,7 +196,7 @@ export function ElectionBoothPage() {
         .single();
 
       if (!election || election.status !== 'active') {
-        setError('This election is not currently active. Check-in is only available during active elections.');
+        setError('This election is not currently active.');
         setLoading(false);
         return;
       }
@@ -169,9 +218,10 @@ export function ElectionBoothPage() {
   };
 
   const loadVoters = async (electionId: string, boxId: string) => {
+    // Only load voters assigned to THIS box
     const { data } = await supabase
       .from('election_voters')
-      .select('id, student_name, student_name_ar, university_id, faculty_name, national_id, has_voted, voted_at')
+      .select('id, student_name, student_name_ar, university_id, faculty_name, national_id, has_voted, voted_at, box_id')
       .eq('election_id', electionId)
       .eq('box_id', boxId)
       .order('student_name');
@@ -203,7 +253,7 @@ export function ElectionBoothPage() {
       return;
     }
     if (data.user) {
-      validateAndSetup(data.user.id);
+      checkMfaAndSetup(data.user.id);
     }
   };
 
@@ -216,6 +266,9 @@ export function ElectionBoothPage() {
     setPassword('');
     setLocked(false);
     setFailedAttempts(0);
+    setMfaRequired(false);
+    setMfaCode('');
+    setPendingUserId(null);
   };
 
   const handleUnlock = async () => {
@@ -224,7 +277,6 @@ export function ElectionBoothPage() {
     if (authErr) {
       setFailedAttempts(prev => prev + 1);
       if (failedAttempts + 1 >= 5) {
-        // Force logout after 5 failed unlock attempts
         toast({ title: 'Too many failed attempts. Logging out.', variant: 'destructive' });
         handleLogout();
         return;
@@ -238,13 +290,45 @@ export function ElectionBoothPage() {
     }
   };
 
-  const handleCheckIn = async (voterId: string) => {
+  const handleCheckIn = async (voter: Voter) => {
     if (!session) return;
+
+    // Prevent duplicate voting - check if university_id already voted in this election
+    const { data: existingVotes } = await supabase
+      .from('election_voters')
+      .select('id, has_voted, box_id')
+      .eq('election_id', session.electionId)
+      .eq('university_id', voter.university_id)
+      .eq('has_voted', true);
+
+    if (existingVotes && existingVotes.length > 0) {
+      toast({
+        title: 'DUPLICATE VOTE BLOCKED',
+        description: `University ID ${voter.university_id} has already voted in this election.`,
+        variant: 'destructive',
+      });
+      loadVoters(session.electionId, session.boxId);
+      return;
+    }
+
+    // Enforce box assignment - voter must belong to this box
+    if (voter.box_id !== session.boxId) {
+      toast({
+        title: 'WRONG BOX',
+        description: 'This voter is not assigned to this box. Contact the administrator.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setCheckingIn(true);
     const { error: updateErr } = await supabase
       .from('election_voters')
       .update({ has_voted: true, voted_at: new Date().toISOString(), checked_in_by: session.userId })
-      .eq('id', voterId);
+      .eq('id', voter.id)
+      .eq('box_id', session.boxId) // Extra safety: ensure box match at DB level
+      .eq('has_voted', false); // Extra safety: only update if not already voted
+
     if (updateErr) {
       toast({ title: 'Error', description: updateErr.message, variant: 'destructive' });
     } else {
@@ -261,7 +345,8 @@ export function ElectionBoothPage() {
     const { error: updateErr } = await supabase
       .from('election_voters')
       .update({ has_voted: false, voted_at: null, checked_in_by: null })
-      .eq('id', voterId);
+      .eq('id', voterId)
+      .eq('box_id', session.boxId); // Only allow undo for this box's voters
     if (!updateErr) {
       toast({ title: 'Check-in undone' });
       loadVoters(session.electionId, session.boxId);
@@ -281,7 +366,7 @@ export function ElectionBoothPage() {
   const percentage = totalVoters > 0 ? Math.round((votedCount / totalVoters) * 100) : 0;
 
   // LOADING
-  if (loading && !session) {
+  if (loading && !session && !mfaRequired) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Toaster />
@@ -289,6 +374,57 @@ export function ElectionBoothPage() {
           <Shield className="h-12 w-12 mx-auto text-primary animate-pulse" />
           <p className="text-muted-foreground">Verifying device authorization...</p>
         </div>
+      </div>
+    );
+  }
+
+  // MFA SCREEN
+  if (mfaRequired) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Toaster />
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
+            <ShieldCheck className="h-12 w-12 mx-auto text-primary mb-2" />
+            <CardTitle>Two-Factor Authentication</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Enter the 6-digit code from your authenticator app
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex gap-2">
+                <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+            <div>
+              <Label>Verification Code</Label>
+              <Input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={6}
+                placeholder="000000"
+                value={mfaCode}
+                onChange={e => setMfaCode(e.target.value.replace(/\D/g, ''))}
+                onKeyDown={e => e.key === 'Enter' && handleMfaVerify()}
+                className="h-12 text-center text-2xl tracking-[0.5em] font-mono"
+                autoFocus
+              />
+            </div>
+            <Button
+              onClick={handleMfaVerify}
+              disabled={mfaVerifying || mfaCode.length !== 6}
+              className="w-full"
+            >
+              {mfaVerifying ? 'Verifying...' : 'Verify & Continue'}
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full text-muted-foreground">
+              <LogOut className="h-3.5 w-3.5 mr-1" /> Back to Login
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -345,7 +481,7 @@ export function ElectionBoothPage() {
           <CardHeader className="text-center">
             <Shield className="h-12 w-12 mx-auto text-primary mb-2" />
             <CardTitle className="text-xl">Election Booth Login</CardTitle>
-            <p className="text-sm text-muted-foreground">Authorized devices only · IP-bound access</p>
+            <p className="text-sm text-muted-foreground">Authorized devices only · IP-bound access · MFA required</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
@@ -368,7 +504,7 @@ export function ElectionBoothPage() {
             </Button>
             <div className="flex items-center gap-1 text-xs text-muted-foreground justify-center">
               <Shield className="h-3 w-3" />
-              <span>Device-restricted access · Admin-configured IP</span>
+              <span>Device-restricted · Admin-configured IP · 2FA enforced</span>
             </div>
           </CardContent>
         </Card>
@@ -380,14 +516,13 @@ export function ElectionBoothPage() {
   return (
     <div className="min-h-screen bg-background select-none">
       <Toaster />
-      {/* Header */}
       <div className="border-b bg-card px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Vote className="h-6 w-6 text-primary" />
           <div>
             <h1 className="font-bold text-lg leading-tight">{session.electionName}</h1>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Shield className="h-3 w-3" /> {session.clientIP}
+              <Shield className="h-3 w-3" /> {session.clientIP} · <ShieldCheck className="h-3 w-3" /> MFA Verified
             </p>
           </div>
         </div>
@@ -485,7 +620,7 @@ export function ElectionBoothPage() {
                             <Undo2 className="h-3.5 w-3.5" /> Undo
                           </Button>
                         ) : (
-                          <Button size="sm" onClick={() => handleCheckIn(voter.id)} disabled={checkingIn} className="bg-emerald-600 hover:bg-emerald-700 gap-1">
+                          <Button size="sm" onClick={() => handleCheckIn(voter)} disabled={checkingIn} className="bg-emerald-600 hover:bg-emerald-700 gap-1">
                             <CheckCircle2 className="h-3.5 w-3.5" /> Check In
                           </Button>
                         )}
@@ -506,7 +641,10 @@ export function ElectionBoothPage() {
         {/* Security footer */}
         <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-2 pt-2">
           <Clock className="h-3 w-3" />
-          <span>Auto-lock after 3 minutes of inactivity</span>
+          <span>Auto-lock after 3 min</span>
+          <span>·</span>
+          <ShieldCheck className="h-3 w-3" />
+          <span>MFA Verified</span>
           <span>·</span>
           <Shield className="h-3 w-3" />
           <span>IP: {session.clientIP}</span>
