@@ -53,6 +53,7 @@ import { AllPatientsReadOnlyPage } from "./pages/emr/AllPatientsReadOnlyPage";
 
 import ScreeningTestPage from "./pages/ScreeningTestPage";
 import InstallPage from "./pages/InstallPage";
+import { MessagingPage } from "./pages/admin/MessagingPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -109,6 +110,7 @@ const App = () => (
             <Route path="/dashboard/volunteers" element={<ProtectedRoute><VolunteersPage /></ProtectedRoute>} />
             <Route path="/dashboard/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
             <Route path="/dashboard/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/messages" element={<ProtectedRoute><MessagingPage /></ProtectedRoute>} />
 
             {/* Faculty Coordinator Routes */}
             <Route path="/dashboard/faculty-volunteers" element={<ProtectedRoute><FacultyVolunteersPage /></ProtectedRoute>} />

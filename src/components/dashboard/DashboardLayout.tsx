@@ -24,6 +24,7 @@ import {
   IdCard,
   Accessibility,
   HandHeart,
+  Mail,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -54,6 +55,7 @@ const adminNavItems: NavItem[] = [
   { icon: Accessibility, label: 'Disability Exams', href: '/dashboard/disability-exams' },
   { icon: FileText, label: 'EMR Statistics', href: '/dashboard/emr/stats' },
   { icon: BarChart3, label: 'Reports', href: '/dashboard/reports' },
+  { icon: Mail, label: 'Messages', href: '/dashboard/messages' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
 
