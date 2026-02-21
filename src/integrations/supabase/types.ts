@@ -3447,6 +3447,10 @@ export type Database = {
         Args: { _assigned_by: string; _assigned_role: string; _exam_id: string }
         Returns: Json
       }
+      can_patient_book_appointment: {
+        Args: { p_patient_id: string }
+        Returns: Json
+      }
       check_volunteer_exam_conflict: {
         Args: {
           _end_time: string
