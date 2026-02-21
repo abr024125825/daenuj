@@ -51,8 +51,8 @@ import { EMRStatsPage } from "./pages/emr/EMRStatsPage";
 import { FileOpenRequestsPage } from "./pages/emr/FileOpenRequestsPage";
 import { AllPatientsReadOnlyPage } from "./pages/emr/AllPatientsReadOnlyPage";
 
-// Screening
 import ScreeningTestPage from "./pages/ScreeningTestPage";
+import InstallPage from "./pages/InstallPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -86,7 +86,7 @@ const App = () => (
             <Route path="/disability-exam-submit" element={<DisabilityExamSubmission />} />
             <Route path="/book-appointment" element={<BookAppointmentPage />} />
             <Route path="/screening" element={<ScreeningTestPage />} />
-            
+            <Route path="/install" element={<InstallPage />} />
             {/* Settings always accessible (so admin can turn off maintenance) */}
             <Route path="/dashboard/settings" element={<AuthGuard><SettingsPage /></AuthGuard>} />
 
