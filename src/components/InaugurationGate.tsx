@@ -210,7 +210,60 @@ export function InaugurationGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!shouldShowGate && phase !== 'presenting') return <>{children}</>;
+  if (!shouldShowGate && phase !== 'presenting' && phase !== 'done') return <>{children}</>;
+
+  /* ─── Done Phase (Celebratory) ─── */
+  if (phase === 'done') {
+    return (
+      <div className="fixed inset-0 z-[90] bg-gradient-to-br from-background via-background to-primary/5 flex items-center justify-center p-4">
+        <ConfettiOverlay />
+        <div className="absolute top-0 right-0 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-accent/5 blur-3xl" />
+
+        <div className="relative w-full max-w-md text-center">
+          <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-3xl blur-xl" />
+          <div className="relative bg-card rounded-2xl shadow-2xl border border-border/50 p-8 backdrop-blur-sm">
+            <div className="mb-6 flex justify-center">
+              <Logo size="lg" />
+            </div>
+
+            <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+              <PartyPopper className="h-10 w-10 text-primary animate-bounce" />
+            </div>
+
+            <h1 className="text-3xl font-display font-bold text-foreground mb-2">
+              🎉 Website Launched!
+            </h1>
+            <p className="text-muted-foreground text-sm mb-6">
+              Welcome to the Dean of Student Affairs Platform
+            </p>
+
+            <Button
+              variant="hero"
+              size="xl"
+              onClick={() => {
+                if (audioRef.current) {
+                  audioRef.current.pause();
+                  audioRef.current.currentTime = 0;
+                }
+                setPhase('gate');
+                setLocalLaunched(true);
+                localStorage.setItem(LAUNCH_KEY, 'true');
+              }}
+              className="w-full gap-2 group shadow-glow"
+            >
+              <Sparkles className="h-5 w-5 group-hover:scale-110 transition-transform" />
+              Enter the Platform
+            </Button>
+
+            <p className="text-xs text-muted-foreground mt-6">
+              Dean of Student Affairs · University of Jordan
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleLaunch = () => {
     if (password !== LAUNCH_PASSWORD) {
