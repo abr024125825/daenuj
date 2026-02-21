@@ -61,7 +61,6 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
     });
 
     if (code) {
-      console.log('QR Code found:', code.data);
       onScan(code.data);
       stopScanning();
       return;
@@ -93,7 +92,7 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
         setIsScanning(true);
-        console.log('Camera started successfully');
+        
       }
     } catch (err: any) {
       console.error('Camera error:', err);
@@ -159,7 +158,6 @@ export function QRCodeScanner({ onScan, onError }: QRCodeScannerProps) {
         });
 
         if (code) {
-          console.log('QR Code found in image:', code.data);
           onScan(code.data);
         } else {
           setError('No QR code found in the image. Please try another image with a clear QR code.');
