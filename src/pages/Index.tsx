@@ -80,16 +80,16 @@ function FeatureCard({ icon, title, description, delay }: { icon: React.ReactNod
   return (
     <div
       ref={ref}
-      className={`group p-8 rounded-2xl bg-background border border-border transition-all duration-700 hover:shadow-xl hover:-translate-y-2 hover:border-primary/30 ${
+      className={`group p-6 rounded-2xl bg-background border border-border transition-all duration-700 hover:shadow-xl hover:-translate-y-2 hover:border-primary/30 ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
       style={{ transitionDelay: `${delay}ms` }}
     >
-      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-6 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
+    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-4 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
         {icon}
       </div>
-      <h3 className="text-xl font-display font-semibold text-foreground mb-3">{title}</h3>
-      <p className="text-muted-foreground leading-relaxed">{description}</p>
+      <h3 className="text-lg font-display font-semibold text-foreground mb-2">{title}</h3>
+      <p className="text-sm text-muted-foreground leading-relaxed">{description}</p>
     </div>
   );
 }
@@ -105,10 +105,10 @@ function StatCard({ value, suffix, label, delay }: { value: number; suffix: stri
       }`}
       style={{ transitionDelay: `${delay}ms` }}
     >
-      <p className="text-4xl lg:text-5xl font-display font-bold text-primary">
+      <p className="text-3xl lg:text-4xl font-display font-bold text-primary">
         <AnimatedCounter end={value} suffix={suffix} />
       </p>
-      <p className="text-sm text-muted-foreground mt-2">{label}</p>
+      <p className="text-xs text-muted-foreground mt-1.5">{label}</p>
     </div>
   );
 }
@@ -156,29 +156,29 @@ const Index = () => {
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] rounded-full bg-accent/5 blur-3xl translate-y-1/2 -translate-x-1/4" />
           <FloatingParticles />
 
-          <div className="container mx-auto px-4 relative z-10 pt-16">
-            <div className="grid lg:grid-cols-2 gap-16 items-center">
+           <div className="container mx-auto px-4 relative z-10 pt-20">
+            <div className="grid lg:grid-cols-2 gap-10 items-center">
               {/* Left — Text */}
               <div>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 backdrop-blur-sm rounded-full text-primary text-sm font-medium mb-8 animate-fade-in">
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 backdrop-blur-sm rounded-full text-primary text-xs font-medium mb-5 animate-fade-in">
                   <Sparkles className="h-4 w-4" />
                   Dean of Student Affairs · University of Jordan
                 </div>
 
-                <h1 className="text-5xl lg:text-7xl font-display font-bold text-foreground leading-[1.1] mb-8 animate-slide-up">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-display font-bold text-foreground leading-tight mb-5 animate-slide-up">
                   Make a{' '}
                   <span className="relative inline-block">
                     <span className="text-primary">Difference</span>
-                    <span className="absolute -bottom-2 left-0 right-0 h-1 bg-primary/30 rounded-full" />
+                    <span className="absolute -bottom-1 left-0 right-0 h-0.5 bg-primary/30 rounded-full" />
                   </span>
                   <br />in Your Community
                 </h1>
 
-                <p className="text-lg lg:text-xl text-muted-foreground mb-10 max-w-lg leading-relaxed animate-slide-up" style={{ animationDelay: '0.15s' }}>
+                <p className="text-base lg:text-lg text-muted-foreground mb-8 max-w-lg leading-relaxed animate-slide-up" style={{ animationDelay: '0.15s' }}>
                   Join a vibrant community of 2,500+ students volunteering, growing, and earning recognition at the University of Jordan.
                 </p>
 
-                <div className="flex flex-col sm:flex-row gap-4 animate-slide-up" style={{ animationDelay: '0.3s' }}>
+                <div className="flex flex-col sm:flex-row gap-3 animate-slide-up" style={{ animationDelay: '0.3s' }}>
                   <Button
                     variant="hero"
                     size="xl"
@@ -202,11 +202,11 @@ const Index = () => {
               <div className="lg:pl-8 animate-fade-in" style={{ animationDelay: '0.4s' }}>
                 <div className="relative">
                   <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-accent/20 rounded-3xl blur-xl" />
-                  <div className="relative bg-card rounded-2xl shadow-2xl border border-border/50 p-8 max-w-md mx-auto backdrop-blur-sm">
-                    <div className="text-center mb-8">
-                      <Logo size="lg" showText={false} />
-                      <h2 className="text-2xl font-display font-bold text-foreground mt-4">Welcome Back</h2>
-                      <p className="text-muted-foreground mt-2">Sign in to your account</p>
+                  <div className="relative bg-card rounded-2xl shadow-2xl border border-border/50 p-6 max-w-sm mx-auto backdrop-blur-sm">
+                     <div className="text-center mb-6">
+                       <Logo size="md" showText={false} />
+                       <h2 className="text-xl font-display font-bold text-foreground mt-3">Welcome Back</h2>
+                       <p className="text-muted-foreground text-sm mt-1">Sign in to your account</p>
                     </div>
                     <LoginForm />
                   </div>
@@ -222,7 +222,7 @@ const Index = () => {
         </section>
 
         {/* ━━━ Stats ━━━ */}
-        <section id="impact" className="py-20 border-t border-border bg-muted/30">
+        <section id="impact" className="py-14 border-t border-border bg-muted/30">
           <div className="container mx-auto px-4">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
               <StatCard value={2500} suffix="+" label="Active Volunteers" delay={0} />
@@ -234,9 +234,9 @@ const Index = () => {
         </section>
 
         {/* ━━━ Features ━━━ */}
-        <section id="about" className="py-24 bg-card">
+        <section id="about" className="py-16 bg-card">
           <div className="container mx-auto px-4">
-            <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="text-center max-w-2xl mx-auto mb-12">
               <SectionHeader label="Why Us" title="Why Volunteer With Us?" subtitle="Join a vibrant community of students making real impact in Jordan and beyond." />
             </div>
 
@@ -264,9 +264,9 @@ const Index = () => {
         </section>
 
         {/* ━━━ Services ━━━ */}
-        <section id="services" className="py-24 bg-background">
+        <section id="services" className="py-16 bg-background">
           <div className="container mx-auto px-4">
-            <div className="text-center max-w-2xl mx-auto mb-16">
+            <div className="text-center max-w-2xl mx-auto mb-12">
               <SectionHeader label="Services" title="Student Support Services" subtitle="Access mental health support, disability services, and more — all in one place." />
             </div>
 
@@ -312,7 +312,7 @@ const Index = () => {
         </section>
 
         {/* ━━━ CTA ━━━ */}
-        <section id="join" className="relative py-24 overflow-hidden">
+        <section id="join" className="relative py-16 overflow-hidden">
           <div className="absolute inset-0 gradient-primary" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_hsl(0_0%_100%/0.1)_0%,_transparent_70%)]" />
 
@@ -350,8 +350,8 @@ function SectionHeader({ label, title, subtitle }: { label: string; title: strin
       <div className="inline-flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-primary text-xs font-semibold uppercase tracking-wider mb-4">
         {label}
       </div>
-      <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground mb-4">{title}</h2>
-      <p className="text-muted-foreground text-lg">{subtitle}</p>
+      <h2 className="text-2xl lg:text-3xl font-display font-bold text-foreground mb-3">{title}</h2>
+      <p className="text-muted-foreground text-base">{subtitle}</p>
     </div>
   );
 }
@@ -364,16 +364,16 @@ function ServiceCard({ icon, title, description, buttonText, onClick, gradient, 
   return (
     <div
       ref={ref}
-      className={`group relative p-8 rounded-2xl border border-border bg-gradient-to-br ${gradient} transition-all duration-700 hover:shadow-lg hover:border-primary/20 ${
+      className={`group relative p-6 rounded-2xl border border-border bg-gradient-to-br ${gradient} transition-all duration-700 hover:shadow-lg hover:border-primary/20 ${
         visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
       style={{ transitionDelay: `${delay}ms` }}
     >
-      <div className="w-14 h-14 rounded-xl bg-background flex items-center justify-center text-primary mb-5 shadow-sm group-hover:scale-110 transition-transform duration-300">
+      <div className="w-11 h-11 rounded-lg bg-background flex items-center justify-center text-primary mb-4 shadow-sm group-hover:scale-110 transition-transform duration-300">
         {icon}
       </div>
-      <h3 className="text-lg font-display font-semibold text-foreground mb-2">{title}</h3>
-      <p className="text-muted-foreground text-sm leading-relaxed mb-5">{description}</p>
+      <h3 className="text-base font-display font-semibold text-foreground mb-1.5">{title}</h3>
+      <p className="text-muted-foreground text-sm leading-relaxed mb-4">{description}</p>
       <Button variant="outline" size="sm" onClick={onClick} className="gap-1 group/btn">
         {buttonText}
         <ArrowRight className="h-3.5 w-3.5 group-hover/btn:translate-x-1 transition-transform" />
@@ -387,10 +387,10 @@ function CTAContent({ navigate }: { navigate: (path: string) => void }) {
   const { ref, visible } = useScrollReveal();
   return (
     <div ref={ref} className={`transition-all duration-700 ${visible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}>
-      <h2 className="text-3xl lg:text-5xl font-display font-bold mb-6 text-primary-foreground">
+      <h2 className="text-2xl lg:text-4xl font-display font-bold mb-4 text-primary-foreground">
         Ready to Start Your Journey?
       </h2>
-      <p className="text-primary-foreground/80 mb-10 max-w-lg mx-auto text-lg">
+      <p className="text-primary-foreground/80 mb-8 max-w-lg mx-auto text-base">
         Apply now and join thousands of students making a positive impact in our community.
       </p>
       <Button
