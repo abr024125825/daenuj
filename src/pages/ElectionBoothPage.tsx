@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, CheckCircle2, XCircle, Vote, Undo2, ShieldAlert, LogOut, Lock, Shield, Clock, ShieldCheck } from 'lucide-react';
+import { Search, CheckCircle2, XCircle, Vote, Undo2, ShieldAlert, LogOut, Lock, Shield, Clock, ShieldCheck, Key } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
 
@@ -44,10 +44,17 @@ async function getClientIP(): Promise<string> {
 }
 
 export function ElectionBoothPage() {
+  // Token gate state
+  const [tokenInput, setTokenInput] = useState('');
+  const [tokenVerified, setTokenVerified] = useState(false);
+  const [verifiedBoxId, setVerifiedBoxId] = useState<string | null>(null);
+  const [tokenError, setTokenError] = useState('');
+  const [verifyingToken, setVerifyingToken] = useState(false);
+
   const [session, setSession] = useState<BoothSession | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [voters, setVoters] = useState<Voter[]>([]);
   const [search, setSearch] = useState('');
@@ -100,26 +107,62 @@ export function ElectionBoothPage() {
     };
   }, []);
 
-  // Check existing auth session on mount
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) {
-        checkMfaAndSetup(data.session.user.id);
-      } else {
-        setLoading(false);
+  // Verify token
+  const handleTokenVerify = async () => {
+    if (!tokenInput.trim()) return;
+    setVerifyingToken(true);
+    setTokenError('');
+    try {
+      const { data: boxes, error: err } = await supabase
+        .from('voting_boxes')
+        .select('id, name, election_id, supervisor_id, allowed_ip, access_token')
+        .eq('access_token', tokenInput.trim().toUpperCase());
+
+      if (err) throw err;
+      if (!boxes || boxes.length === 0) {
+        setTokenError('Invalid access token. Contact your administrator.');
+        setVerifyingToken(false);
+        return;
       }
-    });
-  }, []);
+
+      const box = boxes[0];
+
+      // Check IP
+      const clientIP = await getClientIP();
+      if (box.allowed_ip && box.allowed_ip !== clientIP) {
+        setTokenError(`ACCESS DENIED: This device is not authorized.\nDetected IP: ${clientIP}\nAuthorized IP: ${box.allowed_ip}`);
+        setVerifyingToken(false);
+        return;
+      }
+
+      // Check election is active
+      const { data: election } = await supabase
+        .from('elections')
+        .select('id, name, status')
+        .eq('id', box.election_id)
+        .single();
+
+      if (!election || election.status !== 'active') {
+        setTokenError('This election is not currently active.');
+        setVerifyingToken(false);
+        return;
+      }
+
+      setVerifiedBoxId(box.id);
+      setTokenVerified(true);
+    } catch (err: any) {
+      setTokenError(err.message);
+    }
+    setVerifyingToken(false);
+  };
 
   const checkMfaAndSetup = async (userId: string) => {
     setLoading(true);
-    // Check if MFA is verified (AAL2)
     const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
     const { data: factors } = await supabase.auth.mfa.listFactors();
     const hasVerifiedTOTP = factors?.totp?.some(f => f.status === 'verified');
 
     if (hasVerifiedTOTP && aalData?.currentLevel === 'aal1') {
-      // Need MFA verification
       setPendingUserId(userId);
       setMfaRequired(true);
       setLoading(false);
@@ -136,7 +179,7 @@ export function ElectionBoothPage() {
     try {
       const { data: factors } = await supabase.auth.mfa.listFactors();
       const totpFactor = factors?.totp?.[0];
-      if (!totpFactor) throw new Error('No authenticator found');
+      if (!totpFactor) throw new Error('No authenticator found. Set up MFA first.');
 
       const { data: challenge, error: challengeErr } = await supabase.auth.mfa.challenge({ factorId: totpFactor.id });
       if (challengeErr) throw challengeErr;
@@ -164,27 +207,27 @@ export function ElectionBoothPage() {
     try {
       const clientIP = await getClientIP();
 
-      const { data: boxes, error: boxErr } = await supabase
+      // Verify user is the supervisor of the token-verified box
+      const { data: box, error: boxErr } = await supabase
         .from('voting_boxes')
         .select('*')
-        .eq('supervisor_id', userId);
-      if (boxErr) throw boxErr;
-      if (!boxes || boxes.length === 0) {
-        setError('ACCESS DENIED: This account is not assigned to any voting box.');
+        .eq('id', verifiedBoxId!)
+        .single();
+
+      if (boxErr || !box) {
+        setError('Box not found.');
         setLoading(false);
         return;
       }
 
-      const box = boxes[0];
-
-      if (!box.allowed_ip) {
-        setError('CONFIGURATION ERROR: No allowed IP has been set for this box. Contact the administrator.');
+      if (box.supervisor_id !== userId) {
+        setError('ACCESS DENIED: Your account is not assigned to this voting box. Only the designated supervisor can access this box.');
         setLoading(false);
         return;
       }
 
-      if (box.allowed_ip !== clientIP) {
-        setError(`ACCESS DENIED: This device is not authorized.\n\nDetected IP: ${clientIP}\nAuthorized IP: ${box.allowed_ip}`);
+      if (box.allowed_ip && box.allowed_ip !== clientIP) {
+        setError(`ACCESS DENIED: This device is not authorized.\nDetected IP: ${clientIP}\nAuthorized IP: ${box.allowed_ip}`);
         setLoading(false);
         return;
       }
@@ -218,7 +261,6 @@ export function ElectionBoothPage() {
   };
 
   const loadVoters = async (electionId: string, boxId: string) => {
-    // Only load voters assigned to THIS box
     const { data } = await supabase
       .from('election_voters')
       .select('id, student_name, student_name_ar, university_id, faculty_name, national_id, has_voted, voted_at, box_id')
@@ -269,6 +311,10 @@ export function ElectionBoothPage() {
     setMfaRequired(false);
     setMfaCode('');
     setPendingUserId(null);
+    // Go back to token screen
+    setTokenVerified(false);
+    setVerifiedBoxId(null);
+    setTokenInput('');
   };
 
   const handleUnlock = async () => {
@@ -293,7 +339,7 @@ export function ElectionBoothPage() {
   const handleCheckIn = async (voter: Voter) => {
     if (!session) return;
 
-    // Prevent duplicate voting - check if university_id already voted in this election
+    // Prevent duplicate voting
     const { data: existingVotes } = await supabase
       .from('election_voters')
       .select('id, has_voted, box_id')
@@ -311,11 +357,10 @@ export function ElectionBoothPage() {
       return;
     }
 
-    // Enforce box assignment - voter must belong to this box
     if (voter.box_id !== session.boxId) {
       toast({
         title: 'WRONG BOX',
-        description: 'This voter is not assigned to this box. Contact the administrator.',
+        description: 'This voter is not assigned to this box.',
         variant: 'destructive',
       });
       return;
@@ -326,8 +371,8 @@ export function ElectionBoothPage() {
       .from('election_voters')
       .update({ has_voted: true, voted_at: new Date().toISOString(), checked_in_by: session.userId })
       .eq('id', voter.id)
-      .eq('box_id', session.boxId) // Extra safety: ensure box match at DB level
-      .eq('has_voted', false); // Extra safety: only update if not already voted
+      .eq('box_id', session.boxId)
+      .eq('has_voted', false);
 
     if (updateErr) {
       toast({ title: 'Error', description: updateErr.message, variant: 'destructive' });
@@ -346,7 +391,7 @@ export function ElectionBoothPage() {
       .from('election_voters')
       .update({ has_voted: false, voted_at: null, checked_in_by: null })
       .eq('id', voterId)
-      .eq('box_id', session.boxId); // Only allow undo for this box's voters
+      .eq('box_id', session.boxId);
     if (!updateErr) {
       toast({ title: 'Check-in undone' });
       loadVoters(session.electionId, session.boxId);
@@ -364,6 +409,48 @@ export function ElectionBoothPage() {
   const totalVoters = voters.length;
   const votedCount = voters.filter(v => v.has_voted).length;
   const percentage = totalVoters > 0 ? Math.round((votedCount / totalVoters) * 100) : 0;
+
+  // TOKEN GATE SCREEN
+  if (!tokenVerified) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Toaster />
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <Key className="h-12 w-12 mx-auto text-primary mb-2" />
+            <CardTitle className="text-xl">Election Booth Access</CardTitle>
+            <p className="text-sm text-muted-foreground">Enter the access token provided by the administrator</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {tokenError && (
+              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex gap-2">
+                <ShieldAlert className="h-5 w-5 shrink-0 mt-0.5" />
+                <pre className="whitespace-pre-wrap text-xs">{tokenError}</pre>
+              </div>
+            )}
+            <div>
+              <Label>Access Token</Label>
+              <Input
+                value={tokenInput}
+                onChange={e => setTokenInput(e.target.value.toUpperCase())}
+                placeholder="XXXX-XXXX-XXXX"
+                className="h-14 text-center text-2xl tracking-[0.3em] font-mono"
+                onKeyDown={e => e.key === 'Enter' && handleTokenVerify()}
+                autoFocus
+              />
+            </div>
+            <Button onClick={handleTokenVerify} disabled={verifyingToken || !tokenInput.trim()} className="w-full">
+              {verifyingToken ? 'Verifying...' : 'Verify Token'}
+            </Button>
+            <div className="flex items-center gap-1 text-xs text-muted-foreground justify-center">
+              <Shield className="h-3 w-3" />
+              <span>Token-gated · IP-bound · MFA enforced</span>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // LOADING
   if (loading && !session && !mfaRequired) {
@@ -387,9 +474,7 @@ export function ElectionBoothPage() {
           <CardHeader className="text-center">
             <ShieldCheck className="h-12 w-12 mx-auto text-primary mb-2" />
             <CardTitle>Two-Factor Authentication</CardTitle>
-            <p className="text-sm text-muted-foreground">
-              Enter the 6-digit code from your authenticator app
-            </p>
+            <p className="text-sm text-muted-foreground">Enter the 6-digit code from your authenticator app</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
@@ -413,15 +498,11 @@ export function ElectionBoothPage() {
                 autoFocus
               />
             </div>
-            <Button
-              onClick={handleMfaVerify}
-              disabled={mfaVerifying || mfaCode.length !== 6}
-              className="w-full"
-            >
+            <Button onClick={handleMfaVerify} disabled={mfaVerifying || mfaCode.length !== 6} className="w-full">
               {mfaVerifying ? 'Verifying...' : 'Verify & Continue'}
             </Button>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full text-muted-foreground">
-              <LogOut className="h-3.5 w-3.5 mr-1" /> Back to Login
+              <LogOut className="h-3.5 w-3.5 mr-1" /> Back
             </Button>
           </CardContent>
         </Card>
@@ -472,7 +553,7 @@ export function ElectionBoothPage() {
     );
   }
 
-  // LOGIN SCREEN
+  // LOGIN SCREEN (after token verified)
   if (!session) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -480,8 +561,8 @@ export function ElectionBoothPage() {
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <Shield className="h-12 w-12 mx-auto text-primary mb-2" />
-            <CardTitle className="text-xl">Election Booth Login</CardTitle>
-            <p className="text-sm text-muted-foreground">Authorized devices only · IP-bound access · MFA required</p>
+            <CardTitle className="text-xl">Supervisor Login</CardTitle>
+            <p className="text-sm text-muted-foreground">Token verified · Sign in with your supervisor account</p>
           </CardHeader>
           <CardContent className="space-y-4">
             {error && (
@@ -492,7 +573,7 @@ export function ElectionBoothPage() {
             )}
             <div>
               <Label>Email</Label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="booth-operator@example.com" />
+              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="supervisor@example.com" />
             </div>
             <div>
               <Label>Password</Label>
@@ -502,9 +583,12 @@ export function ElectionBoothPage() {
             <Button onClick={handleLogin} disabled={loading} className="w-full">
               {loading ? 'Verifying...' : 'Sign In'}
             </Button>
+            <Button variant="ghost" size="sm" onClick={() => { setTokenVerified(false); setTokenInput(''); setVerifiedBoxId(null); }} className="w-full text-muted-foreground">
+              ← Enter different token
+            </Button>
             <div className="flex items-center gap-1 text-xs text-muted-foreground justify-center">
               <Shield className="h-3 w-3" />
-              <span>Device-restricted · Admin-configured IP · 2FA enforced</span>
+              <span>Token-gated · IP-bound · MFA enforced</span>
             </div>
           </CardContent>
         </Card>

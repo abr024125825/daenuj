@@ -3538,9 +3538,11 @@ export type Database = {
       }
       voting_boxes: {
         Row: {
+          access_token: string | null
           allowed_ip: string | null
           created_at: string
           election_id: string
+          faculty_id: string | null
           id: string
           location: string | null
           location_ar: string | null
@@ -3550,9 +3552,11 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          access_token?: string | null
           allowed_ip?: string | null
           created_at?: string
           election_id: string
+          faculty_id?: string | null
           id?: string
           location?: string | null
           location_ar?: string | null
@@ -3562,9 +3566,11 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          access_token?: string | null
           allowed_ip?: string | null
           created_at?: string
           election_id?: string
+          faculty_id?: string | null
           id?: string
           location?: string | null
           location_ar?: string | null
@@ -3579,6 +3585,13 @@ export type Database = {
             columns: ["election_id"]
             isOneToOne: false
             referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voting_boxes_faculty_id_fkey"
+            columns: ["faculty_id"]
+            isOneToOne: false
+            referencedRelation: "faculties"
             referencedColumns: ["id"]
           },
         ]
@@ -3612,6 +3625,7 @@ export type Database = {
       }
       generate_achievement_cert_number: { Args: never; Returns: string }
       generate_badge_code: { Args: never; Returns: string }
+      generate_box_access_token: { Args: never; Returns: string }
       generate_certificate_number: { Args: never; Returns: string }
       generate_file_number: {
         Args: { _first_letter?: string; _semester?: number; _year?: string }
