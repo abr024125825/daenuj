@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,18 +6,20 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, CheckCircle2, XCircle, Vote, Undo2, ShieldAlert, LogOut, Wifi } from 'lucide-react';
+import { Search, CheckCircle2, XCircle, Vote, Undo2, ShieldAlert, LogOut, Lock, Shield, Clock } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { Toaster } from '@/components/ui/toaster';
+
+const INACTIVITY_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutes
+const LOCK_PASSWORD_REQUIRED = true;
 
 interface BoothSession {
   userId: string;
   boxId: string;
   boxName: string;
-  boxNameAr: string | null;
   electionName: string;
-  electionNameAr: string | null;
   electionId: string;
+  clientIP: string;
 }
 
 interface Voter {
@@ -26,7 +28,6 @@ interface Voter {
   student_name_ar: string | null;
   university_id: string;
   faculty_name: string | null;
-  faculty_name_ar: string | null;
   national_id: string | null;
   has_voted: boolean;
   voted_at: string | null;
@@ -46,26 +47,71 @@ export function ElectionBoothPage() {
   const [session, setSession] = useState<BoothSession | null>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [ipError, setIpError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [voters, setVoters] = useState<Voter[]>([]);
   const [search, setSearch] = useState('');
   const [checkingIn, setCheckingIn] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState('');
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const searchRef = useRef<HTMLInputElement>(null);
+  const lastActivityRef = useRef(Date.now());
+  const lockTimerRef = useRef<ReturnType<typeof setInterval>>();
+
+  // Inactivity lock
+  const resetActivity = useCallback(() => {
+    lastActivityRef.current = Date.now();
+  }, []);
+
+  useEffect(() => {
+    if (!session || locked) return;
+    const events = ['mousedown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach(e => window.addEventListener(e, resetActivity));
+    lockTimerRef.current = setInterval(() => {
+      if (Date.now() - lastActivityRef.current > INACTIVITY_TIMEOUT_MS) {
+        setLocked(true);
+      }
+    }, 10000);
+    return () => {
+      events.forEach(e => window.removeEventListener(e, resetActivity));
+      if (lockTimerRef.current) clearInterval(lockTimerRef.current);
+    };
+  }, [session, locked, resetActivity]);
+
+  // Prevent right-click and dev tools
+  useEffect(() => {
+    const preventContext = (e: MouseEvent) => e.preventDefault();
+    const preventDevTools = (e: KeyboardEvent) => {
+      if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'J' || e.key === 'C')) || (e.ctrlKey && e.key === 'u')) {
+        e.preventDefault();
+      }
+    };
+    document.addEventListener('contextmenu', preventContext);
+    document.addEventListener('keydown', preventDevTools);
+    return () => {
+      document.removeEventListener('contextmenu', preventContext);
+      document.removeEventListener('keydown', preventDevTools);
+    };
+  }, []);
 
   // Check existing auth session on mount
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) {
         validateAndSetup(data.session.user.id);
+      } else {
+        setLoading(false);
       }
     });
   }, []);
 
   const validateAndSetup = async (userId: string) => {
     setLoading(true);
-    setIpError('');
+    setError('');
     try {
+      const clientIP = await getClientIP();
+
       // Find box assigned to this user
       const { data: boxes, error: boxErr } = await supabase
         .from('voting_boxes')
@@ -73,59 +119,63 @@ export function ElectionBoothPage() {
         .eq('supervisor_id', userId);
       if (boxErr) throw boxErr;
       if (!boxes || boxes.length === 0) {
-        setIpError('This account is not assigned to any voting box.\nهذا الحساب غير مخصص لأي صندوق تصويت.');
+        setError('ACCESS DENIED: This account is not assigned to any voting box.');
         setLoading(false);
         return;
       }
 
       const box = boxes[0];
 
-      // IP validation
-      const clientIP = await getClientIP();
-      if (box.allowed_ip && box.allowed_ip !== clientIP) {
-        setIpError(`Access denied. This account is bound to a different device.\nتم رفض الوصول. هذا الحساب مرتبط بجهاز آخر.\n\nYour IP: ${clientIP}\nAllowed IP: ${box.allowed_ip}`);
+      // IP validation — admin must set allowed_ip first
+      if (!box.allowed_ip) {
+        setError('CONFIGURATION ERROR: No allowed IP has been set for this box. Contact the administrator to configure the allowed IP address.');
         setLoading(false);
         return;
       }
 
-      // Bind IP on first access
-      if (!box.allowed_ip) {
-        await supabase.from('voting_boxes').update({ allowed_ip: clientIP }).eq('id', box.id);
+      if (box.allowed_ip !== clientIP) {
+        setError(`ACCESS DENIED: This device is not authorized for this voting box.\n\nDetected IP: ${clientIP}\nAuthorized IP: ${box.allowed_ip}\n\nContact the administrator if you believe this is an error.`);
+        setLoading(false);
+        return;
       }
 
       // Get election info
       const { data: election } = await supabase
         .from('elections')
-        .select('id, name, name_ar')
+        .select('id, name, status')
         .eq('id', box.election_id)
         .single();
+
+      if (!election || election.status !== 'active') {
+        setError('This election is not currently active. Check-in is only available during active elections.');
+        setLoading(false);
+        return;
+      }
 
       setSession({
         userId,
         boxId: box.id,
         boxName: box.name,
-        boxNameAr: box.name_ar,
-        electionName: election?.name || '',
-        electionNameAr: election?.name_ar || null,
+        electionName: election.name,
         electionId: box.election_id,
+        clientIP,
       });
 
-      // Load voters
       loadVoters(box.election_id, box.id);
     } catch (err: any) {
-      setIpError(err.message);
+      setError(err.message);
     }
     setLoading(false);
   };
 
   const loadVoters = async (electionId: string, boxId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('election_voters')
-      .select('id, student_name, student_name_ar, university_id, faculty_name, faculty_name_ar, national_id, has_voted, voted_at')
+      .select('id, student_name, student_name_ar, university_id, faculty_name, national_id, has_voted, voted_at')
       .eq('election_id', electionId)
       .eq('box_id', boxId)
       .order('student_name');
-    if (!error && data) setVoters(data);
+    if (data) setVoters(data);
   };
 
   // Realtime
@@ -145,10 +195,10 @@ export function ElectionBoothPage() {
 
   const handleLogin = async () => {
     setLoading(true);
-    setIpError('');
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      setIpError(error.message);
+    setError('');
+    const { data, error: authErr } = await supabase.auth.signInWithPassword({ email, password });
+    if (authErr) {
+      setError(authErr.message);
       setLoading(false);
       return;
     }
@@ -164,19 +214,41 @@ export function ElectionBoothPage() {
     setSearch('');
     setEmail('');
     setPassword('');
+    setLocked(false);
+    setFailedAttempts(0);
+  };
+
+  const handleUnlock = async () => {
+    setError('');
+    const { error: authErr } = await supabase.auth.signInWithPassword({ email: email || '_', password: unlockPassword });
+    if (authErr) {
+      setFailedAttempts(prev => prev + 1);
+      if (failedAttempts + 1 >= 5) {
+        // Force logout after 5 failed unlock attempts
+        toast({ title: 'Too many failed attempts. Logging out.', variant: 'destructive' });
+        handleLogout();
+        return;
+      }
+      setError(`Incorrect password. ${5 - failedAttempts - 1} attempts remaining.`);
+    } else {
+      setLocked(false);
+      setUnlockPassword('');
+      setFailedAttempts(0);
+      resetActivity();
+    }
   };
 
   const handleCheckIn = async (voterId: string) => {
     if (!session) return;
     setCheckingIn(true);
-    const { error } = await supabase
+    const { error: updateErr } = await supabase
       .from('election_voters')
       .update({ has_voted: true, voted_at: new Date().toISOString(), checked_in_by: session.userId })
       .eq('id', voterId);
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    if (updateErr) {
+      toast({ title: 'Error', description: updateErr.message, variant: 'destructive' });
     } else {
-      toast({ title: '✓ تم التأشير / Checked In' });
+      toast({ title: '✓ Voter checked in successfully' });
       setSearch('');
       searchRef.current?.focus();
       loadVoters(session.electionId, session.boxId);
@@ -186,12 +258,12 @@ export function ElectionBoothPage() {
 
   const handleUndo = async (voterId: string) => {
     if (!session) return;
-    const { error } = await supabase
+    const { error: updateErr } = await supabase
       .from('election_voters')
       .update({ has_voted: false, voted_at: null, checked_in_by: null })
       .eq('id', voterId);
-    if (!error) {
-      toast({ title: 'تم التراجع / Undone' });
+    if (!updateErr) {
+      toast({ title: 'Check-in undone' });
       loadVoters(session.electionId, session.boxId);
     }
   };
@@ -200,7 +272,6 @@ export function ElectionBoothPage() {
     if (!search) return true;
     const q = search.toLowerCase();
     return v.student_name.toLowerCase().includes(q) ||
-      (v.student_name_ar || '').includes(q) ||
       v.university_id.toLowerCase().includes(q) ||
       (v.national_id || '').includes(q);
   });
@@ -209,6 +280,62 @@ export function ElectionBoothPage() {
   const votedCount = voters.filter(v => v.has_voted).length;
   const percentage = totalVoters > 0 ? Math.round((votedCount / totalVoters) * 100) : 0;
 
+  // LOADING
+  if (loading && !session) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Toaster />
+        <div className="text-center space-y-3">
+          <Shield className="h-12 w-12 mx-auto text-primary animate-pulse" />
+          <p className="text-muted-foreground">Verifying device authorization...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // LOCK SCREEN
+  if (session && locked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <Toaster />
+        <Card className="w-full max-w-sm">
+          <CardHeader className="text-center">
+            <Lock className="h-12 w-12 mx-auto text-primary mb-2" />
+            <CardTitle>Screen Locked</CardTitle>
+            <p className="text-sm text-muted-foreground">Session locked due to inactivity</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex gap-2">
+                <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </div>
+            )}
+            <div className="text-center text-sm text-muted-foreground">
+              <p className="font-medium">{session.boxName}</p>
+              <p>{session.electionName}</p>
+            </div>
+            <div>
+              <Label>Password to Unlock</Label>
+              <Input
+                type="password"
+                value={unlockPassword}
+                onChange={e => setUnlockPassword(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleUnlock()}
+                placeholder="Enter your password"
+                autoFocus
+              />
+            </div>
+            <Button onClick={handleUnlock} className="w-full">Unlock</Button>
+            <Button variant="ghost" size="sm" onClick={handleLogout} className="w-full text-muted-foreground">
+              <LogOut className="h-3.5 w-3.5 mr-1" /> Sign out instead
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // LOGIN SCREEN
   if (!session) {
     return (
@@ -216,20 +343,20 @@ export function ElectionBoothPage() {
         <Toaster />
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
-            <Vote className="h-12 w-12 mx-auto text-primary mb-2" />
+            <Shield className="h-12 w-12 mx-auto text-primary mb-2" />
             <CardTitle className="text-xl">Election Booth Login</CardTitle>
-            <p className="text-sm text-muted-foreground font-cairo" dir="rtl">تسجيل دخول صندوق التصويت</p>
+            <p className="text-sm text-muted-foreground">Authorized devices only · IP-bound access</p>
           </CardHeader>
           <CardContent className="space-y-4">
-            {ipError && (
+            {error && (
               <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm flex gap-2">
                 <ShieldAlert className="h-5 w-5 shrink-0 mt-0.5" />
-                <pre className="whitespace-pre-wrap text-xs">{ipError}</pre>
+                <pre className="whitespace-pre-wrap text-xs">{error}</pre>
               </div>
             )}
             <div>
               <Label>Email</Label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="supervisor@example.com" />
+              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="booth-operator@example.com" />
             </div>
             <div>
               <Label>Password</Label>
@@ -237,11 +364,11 @@ export function ElectionBoothPage() {
                 onKeyDown={e => e.key === 'Enter' && handleLogin()} />
             </div>
             <Button onClick={handleLogin} disabled={loading} className="w-full">
-              {loading ? 'Checking... / جاري التحقق...' : 'Login / تسجيل الدخول'}
+              {loading ? 'Verifying...' : 'Sign In'}
             </Button>
             <div className="flex items-center gap-1 text-xs text-muted-foreground justify-center">
-              <Wifi className="h-3 w-3" />
-              <span>IP-bound access / وصول مربوط بالجهاز</span>
+              <Shield className="h-3 w-3" />
+              <span>Device-restricted access · Admin-configured IP</span>
             </div>
           </CardContent>
         </Card>
@@ -251,7 +378,7 @@ export function ElectionBoothPage() {
 
   // KIOSK CHECK-IN SCREEN
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background select-none">
       <Toaster />
       {/* Header */}
       <div className="border-b bg-card px-4 py-3 flex items-center justify-between">
@@ -259,15 +386,17 @@ export function ElectionBoothPage() {
           <Vote className="h-6 w-6 text-primary" />
           <div>
             <h1 className="font-bold text-lg leading-tight">{session.electionName}</h1>
-            {session.electionNameAr && <p className="text-xs text-muted-foreground font-cairo" dir="rtl">{session.electionNameAr}</p>}
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Shield className="h-3 w-3" /> {session.clientIP}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <Badge variant="outline" className="gap-1">
-            {session.boxName}
-            {session.boxNameAr && <span className="font-cairo">/ {session.boxNameAr}</span>}
-          </Badge>
-          <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
+          <Badge variant="outline" className="gap-1">{session.boxName}</Badge>
+          <Button variant="ghost" size="icon" onClick={() => setLocked(true)} title="Lock Screen">
+            <Lock className="h-4 w-4" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={handleLogout} title="Sign Out">
             <LogOut className="h-4 w-4" />
           </Button>
         </div>
@@ -279,13 +408,13 @@ export function ElectionBoothPage() {
           <Card>
             <CardContent className="pt-4 text-center">
               <div className="text-3xl font-bold">{totalVoters}</div>
-              <p className="text-xs text-muted-foreground">Total / المجموع</p>
+              <p className="text-xs text-muted-foreground">Total Voters</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="pt-4 text-center">
               <div className="text-3xl font-bold text-emerald-600">{votedCount}</div>
-              <p className="text-xs text-muted-foreground">Checked In / مُؤشَّر</p>
+              <p className="text-xs text-muted-foreground">Checked In</p>
             </CardContent>
           </Card>
           <Card>
@@ -305,7 +434,7 @@ export function ElectionBoothPage() {
             ref={searchRef}
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name or university ID / ابحث بالاسم أو الرقم الجامعي"
+            placeholder="Search by name, university ID, or national ID..."
             className="pl-10 h-14 text-lg"
             autoFocus
           />
@@ -317,18 +446,18 @@ export function ElectionBoothPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name / الاسم</TableHead>
-                  <TableHead>University ID / الرقم الجامعي</TableHead>
-                  <TableHead>Faculty / الكلية</TableHead>
-                  <TableHead>Status / الحالة</TableHead>
-                  <TableHead className="text-right">Action / إجراء</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>University ID</TableHead>
+                  <TableHead>Faculty</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Action</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-12 text-muted-foreground">
-                      {search ? 'No voters found / لم يتم العثور على ناخبين' : 'No voters assigned to this box / لا ناخبين في هذا الصندوق'}
+                      {search ? 'No voters found matching your search.' : 'No voters assigned to this box.'}
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -336,32 +465,28 @@ export function ElectionBoothPage() {
                     <TableRow key={voter.id} className={voter.has_voted ? 'bg-emerald-50/50 dark:bg-emerald-950/10' : ''}>
                       <TableCell>
                         <div className="font-medium">{voter.student_name}</div>
-                        {voter.student_name_ar && <div className="text-xs text-muted-foreground font-cairo" dir="rtl">{voter.student_name_ar}</div>}
                       </TableCell>
                       <TableCell className="font-mono text-sm">{voter.university_id}</TableCell>
-                      <TableCell>
-                        <div className="text-sm">{voter.faculty_name}</div>
-                        {voter.faculty_name_ar && <div className="text-xs text-muted-foreground font-cairo" dir="rtl">{voter.faculty_name_ar}</div>}
-                      </TableCell>
+                      <TableCell className="text-sm">{voter.faculty_name}</TableCell>
                       <TableCell>
                         {voter.has_voted ? (
                           <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-200 gap-1">
-                            <CheckCircle2 className="h-3 w-3" /> Voted / صوّت
+                            <CheckCircle2 className="h-3 w-3" /> Voted
                           </Badge>
                         ) : (
                           <Badge variant="outline" className="gap-1">
-                            <XCircle className="h-3 w-3" /> Pending / بانتظار
+                            <XCircle className="h-3 w-3" /> Pending
                           </Badge>
                         )}
                       </TableCell>
                       <TableCell className="text-right">
                         {voter.has_voted ? (
                           <Button variant="ghost" size="sm" onClick={() => handleUndo(voter.id)} className="text-muted-foreground gap-1">
-                            <Undo2 className="h-3.5 w-3.5" /> Undo / تراجع
+                            <Undo2 className="h-3.5 w-3.5" /> Undo
                           </Button>
                         ) : (
                           <Button size="sm" onClick={() => handleCheckIn(voter.id)} disabled={checkingIn} className="bg-emerald-600 hover:bg-emerald-700 gap-1">
-                            <CheckCircle2 className="h-3.5 w-3.5" /> Check In / تأشير
+                            <CheckCircle2 className="h-3.5 w-3.5" /> Check In
                           </Button>
                         )}
                       </TableCell>
@@ -377,6 +502,15 @@ export function ElectionBoothPage() {
             </div>
           )}
         </Card>
+
+        {/* Security footer */}
+        <div className="text-center text-xs text-muted-foreground flex items-center justify-center gap-2 pt-2">
+          <Clock className="h-3 w-3" />
+          <span>Auto-lock after 3 minutes of inactivity</span>
+          <span>·</span>
+          <Shield className="h-3 w-3" />
+          <span>IP: {session.clientIP}</span>
+        </div>
       </div>
     </div>
   );

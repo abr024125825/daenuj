@@ -13,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useElection, useUpdateElection, useVotingBoxes, useCreateVotingBox, useDeleteVotingBox, useElectionVoters, useUploadVoters, useUpdateVotingBox } from '@/hooks/useElections';
 import { useUsers } from '@/hooks/useUsers';
 import { useAuth } from '@/contexts/AuthContext';
-import { Upload, Plus, Trash2, Box, Users, FileSpreadsheet, Vote } from 'lucide-react';
+import { Upload, Plus, Trash2, Box, Users, FileSpreadsheet, Vote, Shield, Globe } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import * as XLSX from 'xlsx';
 
@@ -32,14 +32,14 @@ export function ElectionDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [showAddBox, setShowAddBox] = useState(false);
-  const [boxForm, setBoxForm] = useState({ name: '', name_ar: '', location: '', location_ar: '', supervisor_id: '' });
+  const [boxForm, setBoxForm] = useState({ name: '', name_ar: '', location: '', location_ar: '', supervisor_id: '', allowed_ip: '' });
   const [assignBoxId, setAssignBoxId] = useState<string | null>(null);
   const [selectedFaculty, setSelectedFaculty] = useState('');
 
   const handleAddBox = () => {
     if (!boxForm.name || !electionId) return;
     createBox.mutate({ ...boxForm, election_id: electionId, supervisor_id: boxForm.supervisor_id || undefined }, {
-      onSuccess: () => { setShowAddBox(false); setBoxForm({ name: '', name_ar: '', location: '', location_ar: '', supervisor_id: '' }); },
+      onSuccess: () => { setShowAddBox(false); setBoxForm({ name: '', name_ar: '', location: '', location_ar: '', supervisor_id: '', allowed_ip: '' }); },
     });
   };
 
@@ -185,6 +185,11 @@ export function ElectionDetailPage() {
                         </SelectContent>
                       </Select>
                     </div>
+                    <div>
+                      <Label>Allowed IP Address</Label>
+                      <Input value={boxForm.allowed_ip} onChange={e => setBoxForm(f => ({ ...f, allowed_ip: e.target.value }))} placeholder="e.g. 192.168.1.100" />
+                      <p className="text-xs text-muted-foreground mt-1">Device will be restricted to this IP only</p>
+                    </div>
                     <Button onClick={handleAddBox} disabled={createBox.isPending} className="w-full">Add Box</Button>
                   </div>
                 </DialogContent>
@@ -208,12 +213,33 @@ export function ElectionDetailPage() {
                         </Button>
                       </div>
                     </CardHeader>
-                    <CardContent>
-                      <div className="text-sm text-muted-foreground mb-2">{box.location || 'No location set'}</div>
+                    <CardContent className="space-y-2">
+                      <div className="text-sm text-muted-foreground">{box.location || 'No location set'}</div>
                       <div className="flex gap-4 text-sm">
                         <span><strong>{boxVoters.length}</strong> voters</span>
                         <span className="text-emerald-600"><strong>{voted}</strong> checked in</span>
                         <span className="text-muted-foreground">{boxVoters.length > 0 ? Math.round((voted / boxVoters.length) * 100) : 0}%</span>
+                      </div>
+                      {/* IP Management */}
+                      <div className="flex items-center gap-2 pt-1 border-t">
+                        <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                        <Input
+                          className="h-7 text-xs flex-1"
+                          placeholder="Set allowed IP (e.g. 192.168.1.100)"
+                          defaultValue={(box as any).allowed_ip || ''}
+                          onBlur={e => {
+                            const newIp = e.target.value.trim();
+                            if (newIp !== ((box as any).allowed_ip || '')) {
+                              updateBox.mutate({ id: box.id, allowed_ip: newIp || null } as any);
+                            }
+                          }}
+                          onKeyDown={e => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                        />
+                        {(box as any).allowed_ip && (
+                          <Badge variant="outline" className="text-xs gap-1 shrink-0">
+                            <Shield className="h-3 w-3" /> Locked
+                          </Badge>
+                        )}
                       </div>
                     </CardContent>
                   </Card>
