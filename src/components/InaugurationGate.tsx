@@ -107,7 +107,7 @@ export function InaugurationGate({ children }: { children: React.ReactNode }) {
 
   const handleLaunch = () => {
     if (password !== LAUNCH_PASSWORD) {
-      setError('كلمة السر غير صحيحة');
+      setError('Incorrect password');
       return;
     }
     setError('');
@@ -133,10 +133,10 @@ export function InaugurationGate({ children }: { children: React.ReactNode }) {
             <Logo size="lg" />
           </div>
           <h1 className="text-4xl md:text-6xl font-display font-bold text-primary mb-4 animate-pulse">
-            🎉 تم تدشين الموقع! 🎉
+            🎉 Website Launched! 🎉
           </h1>
           <p className="text-xl text-muted-foreground animate-fade-in">
-            مرحباً بكم في منصة عمادة شؤون الطلبة
+            Welcome to the Dean of Student Affairs Platform
           </p>
           <div className="mt-6 flex justify-center gap-2">
             {['🎊', '🎆', '🎇', '✨', '🎈', '🎉'].map((emoji, i) => (
@@ -172,17 +172,17 @@ export function InaugurationGate({ children }: { children: React.ReactNode }) {
           </div>
 
           <h1 className="text-2xl font-display font-bold text-foreground mb-2">
-            حفل تدشين الموقع
+            Website Inauguration
           </h1>
           <p className="text-muted-foreground text-sm mb-6">
-            أدخل كلمة السر لتدشين الموقع وإطلاقه رسمياً
+            Enter the password to officially launch the website
           </p>
 
           <div className="space-y-4">
             <div className="relative">
               <Input
                 type="password"
-                placeholder="كلمة السر"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => {
                   setPassword(e.target.value);
@@ -206,12 +206,12 @@ export function InaugurationGate({ children }: { children: React.ReactNode }) {
               className="w-full gap-2 group shadow-glow"
             >
               <PartyPopper className="h-5 w-5 group-hover:scale-110 transition-transform" />
-              🎉 تدشين الموقع
+              🎉 Launch Website
             </Button>
           </div>
 
           <p className="text-xs text-muted-foreground mt-6">
-            عمادة شؤون الطلبة · الجامعة الأردنية
+            Dean of Student Affairs · University of Jordan
           </p>
         </div>
       </div>
