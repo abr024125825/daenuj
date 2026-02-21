@@ -15,6 +15,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { MFASetup } from '@/components/auth/MFASetup';
 import { TherapistAvailabilityManager } from '@/components/therapist/TherapistAvailabilityManager';
+import { AppointmentManagement } from '@/components/therapist/AppointmentManagement';
 import { PatientRegistrationForm } from '@/components/emr/PatientRegistrationForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
@@ -345,6 +346,7 @@ export function PsychologistDashboard() {
             )}
           </TabsTrigger>
           <TabsTrigger value="register">Register Patient</TabsTrigger>
+          <TabsTrigger value="appointments">Appointments</TabsTrigger>
           <TabsTrigger value="availability">Availability</TabsTrigger>
           <TabsTrigger value="security">Security</TabsTrigger>
         </TabsList>
@@ -507,6 +509,10 @@ export function PsychologistDashboard() {
 
         <TabsContent value="register">
           <PatientRegistrationForm />
+        </TabsContent>
+
+        <TabsContent value="appointments">
+          <AppointmentManagement />
         </TabsContent>
 
         <TabsContent value="availability">
