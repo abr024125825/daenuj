@@ -427,8 +427,49 @@ CATEGORY DD: BURNOUT & OCCUPATIONAL
 
 ▸ Maslach Burnout Inventory (MBI) — Three dimensions: emotional exhaustion, depersonalization/cynicism, reduced personal accomplishment.
 
+────────────────────────────────────────
+CATEGORY EE: GENETIC & NEURODEVELOPMENTAL SYNDROME INSTRUMENTS
+────────────────────────────────────────
+
+▸ Fragile X Syndrome Behavioral Checklist — Behavioral phenotype: hand flapping, gaze avoidance, tactile defensiveness, perseverative speech, social anxiety, hyperarousal.
+▸ Autism Spectrum Disorder Screening Questionnaire (ASD-SQ) — Broadband ASD screening covering social communication, restricted interests, sensory sensitivities.
+▸ Prader-Willi Syndrome Behavior Checklist — Hyperphagia, skin picking, temper outbursts, compulsivity, stubbornness, withdrawal.
+▸ Prader-Willi Hyperphagia Questionnaire — Specific food-seeking severity: drive, behavior, severity domains.
+▸ Prader-Willi Syndrome Obsessive-Compulsive Checklist — PWS-specific OCD patterns: hoarding, ordering, need for sameness, repetitive questioning.
+▸ Angelman Syndrome Behavioral Assessment — Happy demeanor, frequent laughter, hand flapping, hypermotor behavior, sleep disturbance, water fascination.
+▸ Angelman Syndrome Sleep Behavior Questionnaire — Specific sleep architecture disruptions: reduced sleep need, nocturnal waking, irregular sleep-wake patterns.
+▸ Angelman Syndrome Anxiety and Mood Scale — AS-specific anxiety/mood presentations with communication-adjusted items.
+▸ Rett Syndrome Diagnostic Interview (RSDI) — Regression history, stereotypic hand movements, breathing irregularities, gait abnormalities, seizures.
+▸ Rett Syndrome Motor Behavior Assessment — Hand stereotypies, apraxia, dystonia, scoliosis progression, mobility classification.
+▸ Rett Syndrome Anxiety Inventory — Anxiety manifestations in Rett: screaming episodes, breathing dysregulation, mood changes, hyperventilation-related distress.
+▸ Williams Syndrome Cognitive and Behavioral Assessment — Hypersociability, visuospatial deficits, attention problems, anxiety (especially non-social fears), musical abilities.
+▸ Williams Syndrome Social Responsiveness Evaluation — Indiscriminate friendliness, empathy patterns, social judgment, stranger approach behavior.
+▸ Smith-Magenis Syndrome Behavioral Rating Form — Self-hugging, onychotillomania (nail pulling), polyembolokoilamania (object insertion), sleep inversion, attention-seeking.
+▸ Smith-Magenis Syndrome Sleep Behavior Inventory — Inverted circadian rhythm, melatonin dysregulation, frequent nighttime waking, early morning waking, daytime sleepiness.
+▸ Cornelia de Lange Syndrome Behavioral Inventory — Self-injury, aggression, autistic features, anxiety, communication difficulties, sensory processing.
+▸ Smith-Lemli-Opitz Syndrome Neurobehavioral Assessment — Autism features, irritability, self-injury, sleep problems, sensory hypersensitivity, cholesterol-related behavioral fluctuations.
+▸ Gaucher Disease Neuropsychological Assessment — Cognitive decline monitoring, psychomotor speed, attention, executive function in neuronopathic forms.
+▸ Huntington's Disease Behavioral Questionnaire (HDBQ) — Apathy, irritability, depression, obsessive-compulsive behaviors, psychosis, executive dysfunction progression.
+▸ Wilson Disease Psychiatric Evaluation — Personality changes, depression, psychosis, cognitive decline, behavioral disinhibition, catatonia.
+▸ Phenylketonuria Neurocognitive Assessment — Executive function, processing speed, attention, anxiety, depression in treated/late-treated PKU.
+▸ Neurofibromatosis Type 1 Cognitive and Emotional Screening — ADHD symptoms, learning disabilities, social competence, anxiety, visuospatial deficits, executive dysfunction.
+▸ Neurofibromatosis Type 2 Quality of Life and Cognitive Assessment — Hearing-related psychosocial impact, cognitive effects of tumor burden, anxiety, depression.
+▸ Tuberous Sclerosis Complex Neuropsychiatric Screening (TAND Checklist) — Six levels: behavioral, psychiatric, intellectual, academic, neuropsychological, psychosocial.
+▸ Tuberous Sclerosis Complex Executive Function Scale — TSC-specific executive function challenges: flexibility, planning, working memory, inhibition.
+▸ Mucopolysaccharidosis Behavioral and Cognitive Scales — Progressive cognitive decline monitoring, behavioral changes, sleep disturbance, hyperactivity.
+▸ Cerebral Palsy Functional Behavioral Assessment — Pain-behavior association, frustration tolerance, communication-related distress, social participation barriers.
+▸ Stiff Person Syndrome Psychiatric and Cognitive Screening — Task-specific phobias, startle-related anxiety, agoraphobia, depression, cognitive effects of GAD-antibody spectrum.
+▸ Leigh Syndrome Developmental and Behavioral Evaluation — Developmental regression tracking, irritability, feeding difficulties, sleep disruption, pain assessment.
+▸ Marfan Syndrome Psychosocial Adjustment Scale — Body image concerns, activity restriction impact, anxiety about aortic events, chronic pain coping.
+▸ Noonan Syndrome Behavioral Assessment — Social difficulties, attention problems, learning challenges, emotional regulation, self-concept with short stature.
+▸ Ehlers-Danlos Syndrome Pain and Mood Questionnaire — Chronic pain impact, fatigue, anxiety about joint injury, proprioceptive anxiety, depression, catastrophizing.
+▸ Klinefelter Syndrome Neurocognitive Profile Assessment — Verbal learning deficits, executive function, social cognition, language processing, emotional regulation.
+▸ Turner Syndrome Psychological Assessment Battery — Visuospatial deficits, social cognition, math difficulties, attention, anxiety, self-esteem with short stature.
+▸ Cri du Chat Syndrome Behavioral Checklist — Self-injury, hyperactivity, stereotypies, aggression, attachment behaviors, communication frustration.
+▸ Fragile X-Associated Tremor/Ataxia Syndrome (FXTAS) Rating Scale — Executive dysfunction, memory decline, anxiety, depression, neuropathy, intention tremor impact on daily function.
+
 ═══════════════════════════════════════════════════════
-PART 2: COMPREHENSIVE DIAGNOSTIC COVERAGE (70+ conditions)
+PART 2: COMPREHENSIVE DIAGNOSTIC COVERAGE (90+ conditions)
 ═══════════════════════════════════════════════════════
 
 1. DEPRESSIVE DISORDERS: Major Depressive Disorder (single/recurrent episodes, mild/moderate/severe with or without psychotic features), Persistent Depressive Disorder (Dysthymia), Disruptive Mood Dysregulation Disorder, Premenstrual Dysphoric Disorder, Seasonal Affective Disorder (SAD), Atypical Depression, Melancholic Depression, Psychotic Depression, Treatment-Resistant Depression, Postpartum Depression, Substance-Induced Depressive Disorder
@@ -471,6 +512,8 @@ PART 2: COMPREHENSIVE DIAGNOSTIC COVERAGE (70+ conditions)
 
 20. SELF-HARM & SUICIDALITY: Non-Suicidal Self-Injury (NSSI), Suicidal Ideation (passive/active), Suicidal Behavior Disorder, Suicide Attempt History
 
+21. GENETIC & NEURODEVELOPMENTAL SYNDROMES: Fragile X Syndrome (behavioral phenotype, FXTAS), Prader-Willi Syndrome (hyperphagia, OCD, skin picking), Angelman Syndrome (sleep, anxiety, happy demeanor), Rett Syndrome (regression, stereotypies, breathing irregularities), Williams Syndrome (hypersociability, visuospatial deficits, anxiety), Smith-Magenis Syndrome (sleep inversion, self-injury, self-hugging), Cornelia de Lange Syndrome (self-injury, autistic features), Smith-Lemli-Opitz Syndrome (ASD features, irritability), Gaucher Disease (neurocognitive decline), Huntington's Disease (psychiatric manifestations), Wilson Disease (personality changes, psychosis), Phenylketonuria (executive dysfunction, anxiety), Neurofibromatosis Type 1 & 2 (ADHD, learning disabilities, anxiety), Tuberous Sclerosis Complex (TAND spectrum), Mucopolysaccharidosis (cognitive decline, behavioral changes), Cerebral Palsy (pain-behavior, psychosocial), Stiff Person Syndrome (phobias, anxiety), Leigh Syndrome (developmental regression), Marfan Syndrome (body image, aortic anxiety), Noonan Syndrome (social difficulties, attention), Ehlers-Danlos Syndrome (chronic pain, mood), Klinefelter Syndrome (verbal deficits, emotional regulation), Turner Syndrome (visuospatial, social cognition, anxiety), Cri du Chat Syndrome (self-injury, hyperactivity)
+
 ═══════════════════════════════════════════════════════
 PART 3: ASSESSMENT METHODOLOGY
 ═══════════════════════════════════════════════════════
@@ -481,7 +524,7 @@ CRITICAL RULE — ONE QUESTION AT A TIME:
 - Each message = exactly ONE question. No exceptions.
 
 ADAPTIVE INSTRUMENT SELECTION:
-Based on the student's responses, dynamically select the most appropriate instruments from the 180+ available. For example:
+Based on the student's responses, dynamically select the most appropriate instruments from the 220+ available. For example:
 - Mood complaints → PHQ-9, BDI-II, HAM-D, MADRS, CES-D
 - Anxiety → GAD-7, BAI, HAM-A, STAI, DASS-21
 - Social fears → SPIN, LSAS, SIAS
@@ -501,6 +544,7 @@ Based on the student's responses, dynamically select the most appropriate instru
 - Stress/coping → PSS-10, CISS, CD-RISC
 - Functional impairment → GAF, WHODAS 2.0, WSAS, SDS
 - General distress → K10, BSI, SCL-90-R, GHQ-28
+- Genetic/neurodevelopmental syndromes → Fragile X Behavioral Checklist, ASD-SQ, Prader-Willi Behavior Checklist, TAND Checklist, RSDI, Williams Syndrome Assessment, HDBQ, FXTAS Rating Scale, EDS Pain & Mood, Turner/Klinefelter Neurocognitive Profiles
 
 ADAPTIVE QUESTIONING PROTOCOL:
 Phase 1 (Messages 1-5): PRESENTING CONCERN
