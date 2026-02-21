@@ -19,7 +19,7 @@ export function AvailabilityHeatmap() {
   );
 
   const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
-  const hours = Array.from({ length: 12 }, (_, i) => i + 8);
+  const hours = Array.from({ length: 13 }, (_, i) => i + 8); // 8AM to 8PM (Bug #6 fix)
 
   const getColor = (percentage: number) => {
     if (percentage >= 80) return 'bg-green-500';
@@ -120,7 +120,7 @@ export function AvailabilityHeatmap() {
             <div className="overflow-x-auto">
               <div className="min-w-[600px]">
                 {/* Header Row */}
-                <div className="grid grid-cols-[100px_repeat(12,1fr)] gap-1 mb-1">
+                <div className="grid grid-cols-[100px_repeat(13,1fr)] gap-1 mb-1">
                   <div /> {/* Empty corner cell */}
                   {hours.map(hour => (
                     <div 
@@ -135,7 +135,7 @@ export function AvailabilityHeatmap() {
                 {/* Day Rows */}
                 <TooltipProvider>
                   {days.map(day => (
-                    <div key={day} className="grid grid-cols-[100px_repeat(12,1fr)] gap-1 mb-1">
+                    <div key={day} className="grid grid-cols-[100px_repeat(13,1fr)] gap-1 mb-1">
                       <div className="text-sm font-medium py-2 flex items-center">
                         {day}
                       </div>
