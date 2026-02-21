@@ -1236,6 +1236,7 @@ export type Database = {
           encounter_number: number
           id: string
           location: string | null
+          next_booking_after_days: number | null
           patient_id: string
           provider_id: string
           provider_name: string
@@ -1253,6 +1254,7 @@ export type Database = {
           encounter_number?: number
           id?: string
           location?: string | null
+          next_booking_after_days?: number | null
           patient_id: string
           provider_id: string
           provider_name: string
@@ -1270,6 +1272,7 @@ export type Database = {
           encounter_number?: number
           id?: string
           location?: string | null
+          next_booking_after_days?: number | null
           patient_id?: string
           provider_id?: string
           provider_name?: string
