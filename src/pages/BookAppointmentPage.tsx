@@ -10,7 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import {
   Calendar, Clock, Loader2, CheckCircle, ArrowLeft, AlertCircle,
-  Shield, User, CalendarDays, Download, Printer
+  Shield, User, CalendarDays, Printer
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, addDays, getDay } from 'date-fns';
@@ -30,7 +30,6 @@ interface AvailableSlot {
 }
 
 const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const DAY_NAMES_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
 
 function formatTime12(time: string) {
   const [h, m] = time.split(':').map(Number);
@@ -57,7 +56,7 @@ export default function BookAppointmentPage() {
 
   const handleVerify = async () => {
     if (!fileNumber || !dateOfBirth) {
-      toast({ title: 'خطأ', description: 'الرجاء إدخال رقم الملف وتاريخ الميلاد', variant: 'destructive' });
+      toast({ title: 'Error', description: 'Please enter both your file number and date of birth', variant: 'destructive' });
       return;
     }
 
@@ -73,7 +72,7 @@ export default function BookAppointmentPage() {
 
       if (error) throw error;
       if (!data) {
-        toast({ title: 'غير موجود', description: 'لم يتم العثور على مريض بهذا الرقم وتاريخ الميلاد.', variant: 'destructive' });
+        toast({ title: 'Not Found', description: 'No patient found with the provided file number and date of birth.', variant: 'destructive' });
         return;
       }
 
@@ -188,7 +187,7 @@ export default function BookAppointmentPage() {
       setAvailableSlots(generatedSlots);
       setStep('slots');
     } catch (error: any) {
-      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setIsVerifying(false);
     }
@@ -209,7 +208,7 @@ export default function BookAppointmentPage() {
         .maybeSingle();
 
       if (conflict) {
-        toast({ title: 'الموعد محجوز', description: 'تم حجز هذا الموعد من قبل مريض آخر. اختر موعداً آخر.', variant: 'destructive' });
+        toast({ title: 'Slot Taken', description: 'This slot has been booked by another patient. Please choose a different time.', variant: 'destructive' });
         setAvailableSlots(prev => prev.filter(s => !(s.date === slot.date && s.start_time === slot.start_time && s.provider_id === slot.provider_id)));
         return;
       }
@@ -224,7 +223,7 @@ export default function BookAppointmentPage() {
         .maybeSingle();
 
       if (patientConflict) {
-        toast({ title: 'موعد موجود', description: 'لديك موعد محجوز مسبقاً.', variant: 'destructive' });
+        toast({ title: 'Existing Appointment', description: 'You already have a scheduled appointment.', variant: 'destructive' });
         return;
       }
 
@@ -243,11 +242,11 @@ export default function BookAppointmentPage() {
 
       if (error) {
         if (error.message?.includes('already has an active appointment')) {
-          toast({ title: 'موعد موجود', description: 'لديك موعد محجوز مسبقاً. يسمح بحجز موعد واحد فقط.', variant: 'destructive' });
+          toast({ title: 'Existing Appointment', description: 'You already have a scheduled appointment. Only one appointment is allowed at a time.', variant: 'destructive' });
           return;
         }
         if (error.message?.includes('already booked')) {
-          toast({ title: 'الموعد محجوز', description: 'تم حجز هذا الموعد. اختر موعداً آخر.', variant: 'destructive' });
+          toast({ title: 'Slot Taken', description: 'This slot has been booked. Please choose a different time.', variant: 'destructive' });
           setAvailableSlots(prev => prev.filter(s => !(s.date === slot.date && s.start_time === slot.start_time && s.provider_id === slot.provider_id)));
           return;
         }
@@ -258,7 +257,7 @@ export default function BookAppointmentPage() {
       setBookedSlot(slot);
       setStep('success');
     } catch (error: any) {
-      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
     } finally {
       setIsBooking(false);
       setConfirmSlot(null);
@@ -271,11 +270,11 @@ export default function BookAppointmentPage() {
       const printWindow = window.open('', '_blank');
       if (printWindow) {
         printWindow.document.write(`
-          <html dir="rtl">
+          <html>
           <head>
-            <title>تأكيد الموعد</title>
+            <title>Appointment Confirmation</title>
             <style>
-              body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; direction: rtl; color: #1a1a1a; }
+              body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; color: #1a1a1a; }
               .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #0ea5e9; padding-bottom: 20px; }
               .header h1 { font-size: 24px; color: #0ea5e9; margin: 0; }
               .header p { color: #666; margin: 5px 0 0; }
@@ -290,13 +289,13 @@ export default function BookAppointmentPage() {
           </head>
           <body>
             <div class="header">
-              <h1>🏥 مركز الإرشاد النفسي</h1>
-              <p>تأكيد حجز موعد</p>
+              <h1>🏥 Psychological Counseling Center</h1>
+              <p>Appointment Confirmation</p>
             </div>
             ${printContents}
             <div class="footer">
-              <p>تم الطباعة بتاريخ ${format(new Date(), 'yyyy/MM/dd - hh:mm a')}</p>
-              <p>هذا التأكيد لا يحل محل التأكيد الرسمي من المركز</p>
+              <p>Printed on ${format(new Date(), 'yyyy/MM/dd - hh:mm a')}</p>
+              <p>This confirmation does not replace the official confirmation from the center</p>
             </div>
           </body>
           </html>
@@ -328,7 +327,7 @@ export default function BookAppointmentPage() {
           <Logo size="sm" />
           <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            العودة للرئيسية
+            Back to Home
           </Button>
         </div>
       </header>
@@ -343,9 +342,9 @@ export default function BookAppointmentPage() {
               <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <CalendarDays className="h-8 w-8 text-primary" />
               </div>
-              <h1 className="text-2xl font-bold text-foreground">حجز موعد</h1>
+              <h1 className="text-2xl font-bold text-foreground">Book an Appointment</h1>
               <p className="text-muted-foreground text-sm max-w-md mx-auto">
-                أدخل رقم ملفك الطبي وتاريخ ميلادك لعرض المواعيد المتاحة
+                Enter your medical file number and date of birth to view available appointment slots
               </p>
             </div>
 
@@ -354,20 +353,19 @@ export default function BookAppointmentPage() {
                 <div className="space-y-2">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <Shield className="h-3.5 w-3.5 text-primary" />
-                    رقم الملف الطبي
+                    Medical File Number
                   </Label>
                   <Input
-                    placeholder="مثال: A-2026-1-00001"
+                    placeholder="e.g., A-2026-1-00001"
                     value={fileNumber}
                     onChange={(e) => setFileNumber(e.target.value)}
                     className="h-11 text-base"
-                    dir="ltr"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label className="text-sm font-medium flex items-center gap-2">
                     <User className="h-3.5 w-3.5 text-primary" />
-                    تاريخ الميلاد
+                    Date of Birth
                   </Label>
                   <Input
                     type="date"
@@ -378,13 +376,13 @@ export default function BookAppointmentPage() {
                 </div>
                 <Button className="w-full h-11 text-base font-semibold" onClick={handleVerify} disabled={isVerifying}>
                   {isVerifying ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Calendar className="h-5 w-5 mr-2" />}
-                  تحقق وعرض المواعيد
+                  Verify & View Appointments
                 </Button>
               </CardContent>
             </Card>
 
             <p className="text-center text-xs text-muted-foreground">
-              يُسمح بحجز موعد واحد فقط في كل مرة
+              Only one appointment can be booked at a time
             </p>
           </div>
         )}
@@ -393,7 +391,7 @@ export default function BookAppointmentPage() {
         {step === 'slots' && (
           <div className="space-y-4">
             <Button variant="ghost" size="sm" onClick={() => { setStep('verify'); setExistingAppointment(null); setSelectedDay(null); }}>
-              <ArrowLeft className="h-4 w-4 mr-2" /> رجوع
+              <ArrowLeft className="h-4 w-4 mr-2" /> Back
             </Button>
 
             {/* Patient info bar */}
@@ -403,7 +401,7 @@ export default function BookAppointmentPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">{patient?.full_name}</p>
-                <p className="text-xs text-muted-foreground" dir="ltr">File #: {patient?.file_number}</p>
+                <p className="text-xs text-muted-foreground">File #: {patient?.file_number}</p>
               </div>
             </div>
 
@@ -414,14 +412,14 @@ export default function BookAppointmentPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-lg">
                     <AlertCircle className="h-5 w-5" />
-                    {existingAppointment.status === 'in_session' ? 'جلسة نشطة حالياً' : 'لديك موعد محجوز مسبقاً'}
+                    {existingAppointment.status === 'in_session' ? 'Active Session in Progress' : 'You Already Have a Scheduled Appointment'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {existingAppointment.status === 'in_session'
-                      ? 'لديك جلسة نشطة حالياً. لا يمكنك حجز موعد آخر حتى ينهي المعالج الجلسة الحالية ويتم توقيعها.'
-                      : 'لا يمكنك حجز أكثر من موعد واحد. يجب أن تكتمل جلستك الحالية ويتم توقيعها من قبل المعالج قبل حجز موعد جديد.'}
+                      ? 'You currently have an active session. You cannot book another appointment until your therapist completes and signs the current session.'
+                      : 'You cannot book more than one appointment. Your current session must be completed and signed by the therapist before booking a new one.'}
                   </p>
 
                   {existingAppointment.status !== 'in_session' && (
@@ -437,7 +435,7 @@ export default function BookAppointmentPage() {
                         </div>
                         <div>
                           <p className="font-semibold text-foreground">
-                            {DAY_NAMES_AR[getDay(new Date(existingAppointment.appointment_date + 'T00:00:00'))]}
+                            {DAY_NAMES_EN[getDay(new Date(existingAppointment.appointment_date + 'T00:00:00'))]}
                           </p>
                           <p className="text-sm text-muted-foreground">
                             {format(new Date(existingAppointment.appointment_date + 'T00:00:00'), 'yyyy/MM/dd')}
@@ -448,10 +446,10 @@ export default function BookAppointmentPage() {
                       <div className="flex items-center justify-between text-sm">
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium" dir="ltr">{formatTime12(existingAppointment.appointment_time)}</span>
+                          <span className="font-medium">{formatTime12(existingAppointment.appointment_time)}</span>
                         </div>
                         <Badge variant="secondary" className="capitalize">
-                          {existingAppointment.status === 'scheduled' ? 'مجدول' : existingAppointment.status === 'confirmed' ? 'مؤكد' : existingAppointment.status}
+                          {existingAppointment.status === 'scheduled' ? 'Scheduled' : existingAppointment.status === 'confirmed' ? 'Confirmed' : existingAppointment.status}
                         </Badge>
                       </div>
                     </div>
@@ -459,7 +457,7 @@ export default function BookAppointmentPage() {
 
                   <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground flex items-start gap-2">
                     <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
-                    <span>إذا كنت بحاجة لتغيير موعدك، يرجى التواصل مع مركز الإرشاد النفسي مباشرة.</span>
+                    <span>If you need to change your appointment, please contact the Psychological Counseling Center directly.</span>
                   </div>
                 </CardContent>
               </Card>
@@ -469,10 +467,10 @@ export default function BookAppointmentPage() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <CalendarDays className="h-5 w-5 text-primary" />
-                    المواعيد المتاحة
+                    Available Appointments
                   </CardTitle>
                   <CardDescription>
-                    اختر اليوم ثم الوقت المناسب لحجز موعدك (الأيام السبعة القادمة)
+                    Select a day and then choose a convenient time to book your appointment (next 7 days)
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-5">
@@ -481,8 +479,8 @@ export default function BookAppointmentPage() {
                       <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
                         <Calendar className="h-8 w-8 text-muted-foreground/50" />
                       </div>
-                      <p className="font-medium text-foreground">لا توجد مواعيد متاحة حالياً</p>
-                      <p className="text-sm text-muted-foreground mt-1">يرجى المحاولة مرة أخرى لاحقاً</p>
+                      <p className="font-medium text-foreground">No appointments available at this time</p>
+                      <p className="text-sm text-muted-foreground mt-1">Please try again later</p>
                     </div>
                   ) : (
                     <>
@@ -490,7 +488,7 @@ export default function BookAppointmentPage() {
                       <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {availableDates.map(dateStr => {
                           const date = new Date(dateStr + 'T00:00:00');
-                          const dayNameAr = DAY_NAMES_AR[getDay(date)];
+                          const dayName = DAY_NAMES_EN[getDay(date)];
                           const isSelected = selectedDay === dateStr;
                           const slotCount = slotsByDate[dateStr].length;
                           return (
@@ -506,7 +504,7 @@ export default function BookAppointmentPage() {
                               `}
                             >
                               <span className={`text-xs font-medium ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
-                                {dayNameAr}
+                                {dayName.slice(0, 3)}
                               </span>
                               <span className={`text-lg font-bold mt-0.5 ${isSelected ? 'text-primary' : 'text-foreground'}`}>
                                 {date.getDate()}
@@ -530,7 +528,7 @@ export default function BookAppointmentPage() {
                         <div className="space-y-3">
                           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                             <Clock className="h-4 w-4 text-primary" />
-                            الأوقات المتاحة - {DAY_NAMES_AR[getDay(new Date(selectedDay + 'T00:00:00'))]}، {format(new Date(selectedDay + 'T00:00:00'), 'yyyy/MM/dd')}
+                            Available Times — {DAY_NAMES_EN[getDay(new Date(selectedDay + 'T00:00:00'))]}, {format(new Date(selectedDay + 'T00:00:00'), 'yyyy/MM/dd')}
                           </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {displayedSlots.map((slot, i) => (
@@ -540,11 +538,11 @@ export default function BookAppointmentPage() {
                                 disabled={isBooking}
                                 className="group relative flex flex-col items-center gap-1 py-3.5 px-3 rounded-xl border-2 border-border/50 bg-card hover:border-primary hover:bg-primary/5 hover:shadow-md hover:shadow-primary/5 transition-all duration-200 disabled:opacity-50"
                               >
-                                <span className="font-bold text-base text-foreground group-hover:text-primary transition-colors" dir="ltr">
+                                <span className="font-bold text-base text-foreground group-hover:text-primary transition-colors">
                                   {formatTime12(slot.start_time)}
                                 </span>
                                 <span className="text-[11px] text-muted-foreground">
-                                  {slot.slot_duration_minutes} دقيقة
+                                  {slot.slot_duration_minutes} min
                                 </span>
                               </button>
                             ))}
@@ -553,7 +551,7 @@ export default function BookAppointmentPage() {
                       ) : (
                         <div className="text-center py-6 text-muted-foreground">
                           <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                          <p className="text-sm">اختر يوماً لعرض الأوقات المتاحة</p>
+                          <p className="text-sm">Select a day to view available times</p>
                         </div>
                       )}
                     </>
@@ -574,36 +572,36 @@ export default function BookAppointmentPage() {
                   <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">تم حجز الموعد بنجاح!</h2>
-                  <p className="text-muted-foreground text-sm mt-1">يرجى الحضور في الموعد المحدد</p>
+                  <h2 className="text-2xl font-bold text-foreground">Appointment Booked Successfully!</h2>
+                  <p className="text-muted-foreground text-sm mt-1">Please make sure to attend at the scheduled time</p>
                 </div>
 
                 {/* Printable section */}
                 <div ref={printRef}>
                   <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', margin: '0 auto', maxWidth: '400px' }}>
                     <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
-                      <p className="text-xs text-muted-foreground mb-1">اليوم</p>
-                      <p className="font-bold text-foreground">{DAY_NAMES_AR[bookedSlot.day_of_week]}</p>
+                      <p className="text-xs text-muted-foreground mb-1">Day</p>
+                      <p className="font-bold text-foreground">{DAY_NAMES_EN[bookedSlot.day_of_week]}</p>
                     </div>
                     <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
-                      <p className="text-xs text-muted-foreground mb-1">التاريخ</p>
+                      <p className="text-xs text-muted-foreground mb-1">Date</p>
                       <p className="font-bold text-foreground">{format(new Date(bookedSlot.date + 'T00:00:00'), 'yyyy/MM/dd')}</p>
                     </div>
                     <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
-                      <p className="text-xs text-muted-foreground mb-1">الوقت</p>
-                      <p className="font-bold text-foreground" dir="ltr">{formatTime12(bookedSlot.start_time)}</p>
+                      <p className="text-xs text-muted-foreground mb-1">Time</p>
+                      <p className="font-bold text-foreground">{formatTime12(bookedSlot.start_time)}</p>
                     </div>
                     <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
-                      <p className="text-xs text-muted-foreground mb-1">المدة</p>
-                      <p className="font-bold text-foreground">{bookedSlot.slot_duration_minutes} دقيقة</p>
+                      <p className="text-xs text-muted-foreground mb-1">Duration</p>
+                      <p className="font-bold text-foreground">{bookedSlot.slot_duration_minutes} min</p>
                     </div>
                   </div>
                   <div className="info-box" style={{ textAlign: 'center', marginTop: '12px' }}>
-                    <p className="text-xs text-muted-foreground">رقم الملف</p>
-                    <p className="font-bold text-foreground" dir="ltr">{patient?.file_number}</p>
+                    <p className="text-xs text-muted-foreground">File Number</p>
+                    <p className="font-bold text-foreground">{patient?.file_number}</p>
                   </div>
                   <div className="info-box" style={{ textAlign: 'center', marginTop: '8px' }}>
-                    <p className="text-xs text-muted-foreground">اسم المريض</p>
+                    <p className="text-xs text-muted-foreground">Patient Name</p>
                     <p className="font-bold text-foreground">{patient?.full_name}</p>
                   </div>
                 </div>
@@ -611,18 +609,18 @@ export default function BookAppointmentPage() {
                 <div className="flex flex-col sm:flex-row gap-2 pt-4 justify-center">
                   <Button variant="outline" onClick={handlePrint} className="gap-2">
                     <Printer className="h-4 w-4" />
-                    طباعة التأكيد
+                    Print Confirmation
                   </Button>
                   <Button onClick={() => navigate('/')} className="gap-2">
                     <ArrowLeft className="h-4 w-4" />
-                    العودة للرئيسية
+                    Back to Home
                   </Button>
                 </div>
               </CardContent>
             </Card>
 
             <p className="text-center text-xs text-muted-foreground">
-              في حال الرغبة بتغيير الموعد، يرجى التواصل مع مركز الإرشاد النفسي
+              If you need to change your appointment, please contact the Psychological Counseling Center
             </p>
           </div>
         )}
@@ -632,24 +630,24 @@ export default function BookAppointmentPage() {
       <AlertDialog open={!!confirmSlot} onOpenChange={(open) => !open && setConfirmSlot(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-center">تأكيد حجز الموعد</AlertDialogTitle>
+            <AlertDialogTitle className="text-center">Confirm Appointment Booking</AlertDialogTitle>
             <AlertDialogDescription asChild>
               <div className="space-y-3 text-center">
-                <p>هل أنت متأكد من حجز الموعد التالي؟</p>
+                <p>Are you sure you want to book the following appointment?</p>
                 {confirmSlot && (
                   <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-2 text-foreground">
                     <p className="font-bold text-lg">
-                      {DAY_NAMES_AR[confirmSlot.day_of_week]}
+                      {DAY_NAMES_EN[confirmSlot.day_of_week]}
                     </p>
                     <p className="text-sm">
                       {format(new Date(confirmSlot.date + 'T00:00:00'), 'yyyy/MM/dd')}
                     </p>
                     <Separator />
-                    <p className="font-semibold text-primary" dir="ltr">
+                    <p className="font-semibold text-primary">
                       {formatTime12(confirmSlot.start_time)}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      مدة الجلسة: {confirmSlot.slot_duration_minutes} دقيقة
+                      Session duration: {confirmSlot.slot_duration_minutes} min
                     </p>
                   </div>
                 )}
@@ -657,13 +655,13 @@ export default function BookAppointmentPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:justify-center gap-2">
-            <AlertDialogCancel disabled={isBooking}>إلغاء</AlertDialogCancel>
+            <AlertDialogCancel disabled={isBooking}>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => confirmSlot && handleBook(confirmSlot)}
               disabled={isBooking}
             >
               {isBooking && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              تأكيد الحجز
+              Confirm Booking
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
