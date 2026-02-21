@@ -3,13 +3,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useReferrals, useCreateReferral, useUpdateReferral, usePatient, useICDCodes } from '@/hooks/useEMR';
+import { useReferrals, useCreateReferral, useUpdateReferral, useDeleteReferral, usePatient, useICDCodes } from '@/hooks/useEMR';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Loader2, Printer, Search, Lock } from 'lucide-react';
+import { Plus, Loader2, Printer, Search, Lock, Trash2 } from 'lucide-react';
+import { logAudit } from '@/lib/auditHelper';
 
 interface ReferralsTabProps {
   patientId: string;
@@ -25,25 +31,22 @@ function printReferralReport(referral: any, patient: any, icdCode?: string, icdD
     <style>
       body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; color: #1a1a1a; }
       .header { text-align: center; border-bottom: 3px solid #1e3a5f; padding-bottom: 20px; margin-bottom: 25px; }
-      .header h1 { font-size: 22px; margin: 0; color: #1e3a5f; letter-spacing: 1px; }
+      .header h1 { font-size: 22px; margin: 0; color: #1e3a5f; }
       .header h2 { font-size: 14px; color: #4a6fa5; margin: 5px 0 0; font-weight: normal; }
-      .logo-text { font-size: 12px; color: #888; margin-top: 5px; }
       .field { margin-bottom: 12px; }
-      .field label { font-weight: 600; display: block; font-size: 11px; color: #4a6fa5; text-transform: uppercase; letter-spacing: 0.5px; }
+      .field label { font-weight: 600; display: block; font-size: 11px; color: #4a6fa5; text-transform: uppercase; }
       .field p { margin: 4px 0; font-size: 14px; }
       .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
       .section-title { font-size: 13px; font-weight: 700; color: #1e3a5f; border-bottom: 1px solid #ddd; padding-bottom: 5px; margin: 20px 0 10px; }
-      .footer { margin-top: 40px; border-top: 2px solid #1e3a5f; padding-top: 15px; font-size: 10px; color: #888; text-align: center; }
-      .stamp { margin-top: 40px; }
-      .stamp-line { border-bottom: 1px solid #333; width: 250px; display: inline-block; margin-bottom: 5px; }
       .icd-box { background: #f0f4f8; border: 1px solid #c0d0e0; padding: 10px; border-radius: 6px; margin: 10px 0; }
       .icd-code { font-family: monospace; font-size: 16px; font-weight: bold; color: #1e3a5f; }
+      .stamp-line { border-bottom: 1px solid #333; width: 250px; display: inline-block; }
+      .footer { margin-top: 40px; border-top: 2px solid #1e3a5f; padding-top: 15px; font-size: 10px; color: #888; text-align: center; }
       @media print { body { padding: 20px; } }
     </style></head><body>
     <div class="header">
       <h1>الجامعة الأردنية — University of Jordan</h1>
       <h2>Psychological Services Unit — Referral Report</h2>
-      <p class="logo-text">Student Health & Wellness Center</p>
     </div>
     <div class="grid">
       <div class="field"><label>Patient Name</label><p>${patient?.full_name || 'N/A'}</p></div>
@@ -51,12 +54,7 @@ function printReferralReport(referral: any, patient: any, icdCode?: string, icdD
       <div class="field"><label>National ID</label><p>${patient?.national_id || 'N/A'}</p></div>
       <div class="field"><label>Date</label><p>${new Date().toLocaleDateString()}</p></div>
     </div>
-    ${icdCode ? `
-    <div class="icd-box">
-      <label style="font-size:11px;color:#4a6fa5;font-weight:600">DIAGNOSIS (ICD-10)</label>
-      <p><span class="icd-code">${icdCode}</span> — ${icdDescription || ''}</p>
-    </div>
-    ` : ''}
+    ${icdCode ? `<div class="icd-box"><label style="font-size:11px;color:#4a6fa5;font-weight:600">DIAGNOSIS (ICD-10)</label><p><span class="icd-code">${icdCode}</span> — ${icdDescription || ''}</p></div>` : ''}
     <p class="section-title">Referral Details</p>
     <div class="field"><label>Referred To</label><p>${referral.referred_to}</p></div>
     <div class="grid">
@@ -65,14 +63,11 @@ function printReferralReport(referral: any, patient: any, icdCode?: string, icdD
     </div>
     <div class="field"><label>Specialty</label><p>${referral.specialty || 'N/A'}</p></div>
     <div class="field"><label>Reason for Referral</label><p>${referral.reason}</p></div>
-    <div class="stamp">
+    <div style="margin-top:40px">
       <p>Referring Provider: <span class="stamp-line"></span></p>
-      <p style="margin-top:15px">Signature: <span class="stamp-line"></span> &nbsp;&nbsp; Date: ${new Date().toLocaleDateString()}</p>
+      <p style="margin-top:15px">Signature: <span class="stamp-line"></span> &nbsp; Date: ${new Date().toLocaleDateString()}</p>
     </div>
-    <div class="footer">
-      <p>University of Jordan — Psychological Services Unit — Confidential Medical Document</p>
-      <p>Generated: ${new Date().toLocaleString()}</p>
-    </div>
+    <div class="footer"><p>University of Jordan — Confidential Medical Document — ${new Date().toLocaleString()}</p></div>
     </body></html>
   `);
   win.document.close();
@@ -80,35 +75,61 @@ function printReferralReport(referral: any, patient: any, icdCode?: string, icdD
 }
 
 export function ReferralsTab({ patientId, encounterId, isSigned = false }: ReferralsTabProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const userName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim();
   const { data: referrals, isLoading } = useReferrals(patientId);
   const { data: patient } = usePatient(patientId);
   const createRef = useCreateReferral();
   const updateRef = useUpdateReferral();
+  const deleteRef = useDeleteReferral();
   const [isOpen, setIsOpen] = useState(false);
   const [icdSearch, setIcdSearch] = useState('');
   const { data: icdCodes } = useICDCodes(icdSearch);
   const [selectedICD, setSelectedICD] = useState<{ code: string; description: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [form, setForm] = useState({
     referral_type: 'internal', referred_to: 'University Student Health Clinic', specialty: '', reason: '', urgency: 'routine',
   });
 
   const handleCreate = async () => {
     if (!form.referred_to || !form.reason) return;
-    await createRef.mutateAsync({ 
+    const result = await createRef.mutateAsync({
       patient_id: patientId, referred_by: user?.id, ...form,
       encounter_id: encounterId || null,
+    });
+    await logAudit({
+      patientId, action: 'create', entityType: 'referral', entityId: result.id, encounterId,
+      performedBy: user?.id!, performedByName: userName,
+      newValue: { referred_to: form.referred_to, urgency: form.urgency },
     });
     setIsOpen(false);
     setForm({ referral_type: 'internal', referred_to: 'University Student Health Clinic', specialty: '', reason: '', urgency: 'routine' });
     setSelectedICD(null);
   };
 
+  const handleComplete = async (r: any) => {
+    await updateRef.mutateAsync({ id: r.id, status: 'completed', completed_at: new Date().toISOString() });
+    await logAudit({
+      patientId, action: 'update', entityType: 'referral', entityId: r.id, encounterId,
+      performedBy: user?.id!, performedByName: userName,
+      oldValue: { status: 'pending' }, newValue: { status: 'completed' },
+    });
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await logAudit({
+      patientId, action: 'delete', entityType: 'referral', entityId: deleteTarget.id, encounterId,
+      performedBy: user?.id!, performedByName: userName,
+      oldValue: { referred_to: deleteTarget.referred_to, reason: deleteTarget.reason },
+    });
+    await deleteRef.mutateAsync(deleteTarget.id);
+    setDeleteTarget(null);
+  };
+
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
 
-  const filteredReferrals = encounterId
-    ? referrals?.filter(r => r.encounter_id === encounterId)
-    : referrals;
+  const filteredReferrals = encounterId ? referrals?.filter(r => r.encounter_id === encounterId) : referrals;
 
   return (
     <div className="space-y-4">
@@ -123,7 +144,6 @@ export function ReferralsTab({ patientId, encounterId, isSigned = false }: Refer
             <DialogContent className="max-w-lg">
               <DialogHeader><DialogTitle>Create Referral</DialogTitle></DialogHeader>
               <div className="space-y-4">
-                {/* ICD Code Selection */}
                 <div>
                   <Label>Diagnosis (ICD-10)</Label>
                   <div className="relative">
@@ -140,11 +160,7 @@ export function ReferralsTab({ patientId, encounterId, isSigned = false }: Refer
                       ))}
                     </div>
                   )}
-                  {selectedICD && (
-                    <div className="mt-1 p-2 bg-primary/5 rounded text-xs">
-                      <span className="font-semibold">{selectedICD.code}</span> — {selectedICD.description}
-                    </div>
-                  )}
+                  {selectedICD && <div className="mt-1 p-2 bg-primary/5 rounded text-xs"><span className="font-semibold">{selectedICD.code}</span> — {selectedICD.description}</div>}
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -200,8 +216,12 @@ export function ReferralsTab({ patientId, encounterId, isSigned = false }: Refer
                     <Printer className="h-4 w-4" />
                   </Button>
                   {!isSigned && r.status === 'pending' && (
-                    <Button variant="ghost" size="sm" onClick={() => updateRef.mutate({ id: r.id, status: 'completed', completed_at: new Date().toISOString() })}>
-                      Complete
+                    <Button variant="ghost" size="sm" onClick={() => handleComplete(r)}>Complete</Button>
+                  )}
+                  {!isSigned && (
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => setDeleteTarget(r)}>
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   )}
                 </div>
@@ -210,6 +230,21 @@ export function ReferralsTab({ patientId, encounterId, isSigned = false }: Refer
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Referral?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Delete referral to {deleteTarget?.referred_to}? This action is logged in the audit trail.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

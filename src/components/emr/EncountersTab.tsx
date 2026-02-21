@@ -3,37 +3,63 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useEncounters, useCreateEncounter } from '@/hooks/useEMR';
+import { useEncounters, useCreateEncounter, useDeleteEncounter } from '@/hooks/useEMR';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Loader2, Calendar, User, MapPin } from 'lucide-react';
+import { Plus, Loader2, Calendar, User, MapPin, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { logAudit } from '@/lib/auditHelper';
 
 export function EncountersTab({ patientId }: { patientId: string }) {
   const { user, profile } = useAuth();
   const navigate = useNavigate();
   const { data: encounters, isLoading } = useEncounters(patientId);
   const createEncounter = useCreateEncounter();
+  const deleteEncounter = useDeleteEncounter();
   const [isOpen, setIsOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [form, setForm] = useState({
     clinic_type: 'psychiatry', visit_type: 'new', location: '', chief_complaint: '',
   });
 
+  const userName = `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim();
+
   const handleCreate = async () => {
-    await createEncounter.mutateAsync({
+    const result = await createEncounter.mutateAsync({
       patient_id: patientId,
       clinic_type: form.clinic_type,
       visit_type: form.visit_type,
       location: form.location || null,
       chief_complaint: form.chief_complaint || null,
       provider_id: user?.id,
-      provider_name: `${profile?.first_name || ''} ${profile?.last_name || ''}`.trim(),
+      provider_name: userName,
+    });
+    await logAudit({
+      patientId, action: 'create', entityType: 'encounter', entityId: result.id,
+      performedBy: user?.id!, performedByName: userName,
+      newValue: { clinic_type: form.clinic_type, visit_type: form.visit_type },
     });
     setIsOpen(false);
     setForm({ clinic_type: 'psychiatry', visit_type: 'new', location: '', chief_complaint: '' });
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    await logAudit({
+      patientId, action: 'delete', entityType: 'encounter', entityId: deleteTarget.id,
+      performedBy: user?.id!, performedByName: userName,
+      oldValue: { encounter_number: deleteTarget.encounter_number, clinic_type: deleteTarget.clinic_type, date: deleteTarget.encounter_date },
+    });
+    await deleteEncounter.mutateAsync(deleteTarget.id);
+    setDeleteTarget(null);
   };
 
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>;
@@ -91,10 +117,10 @@ export function EncountersTab({ patientId }: { patientId: string }) {
       ) : (
         <div className="space-y-3">
           {encounters.map((enc) => (
-            <Card key={enc.id} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => navigate(`/dashboard/emr/encounter/${enc.id}`)}>
+            <Card key={enc.id} className="hover:border-primary/50 transition-colors">
               <CardContent className="py-4">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 cursor-pointer flex-1" onClick={() => navigate(`/dashboard/emr/encounter/${enc.id}`)}>
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
                       #{enc.encounter_number}
                     </div>
@@ -111,15 +137,40 @@ export function EncountersTab({ patientId }: { patientId: string }) {
                       {enc.chief_complaint && <p className="text-xs text-muted-foreground mt-1 line-clamp-1">CC: {enc.chief_complaint}</p>}
                     </div>
                   </div>
-                  <Badge variant={enc.status === 'completed' ? 'default' : enc.status === 'signed' ? 'secondary' : 'outline'} className="text-xs">
-                    {enc.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={enc.status === 'completed' ? 'default' : enc.status === 'signed' ? 'secondary' : 'outline'} className="text-xs">
+                      {enc.status}
+                    </Badge>
+                    {enc.status !== 'signed' && (
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(enc); }}>
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Encounter #{deleteTarget?.encounter_number}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this encounter and all associated data. This action is logged in the audit trail.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
