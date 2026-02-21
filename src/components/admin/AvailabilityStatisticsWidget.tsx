@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Users, Clock, Calendar, TrendingUp, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAcademicSemesters } from '@/hooks/useAcademicSemesters';
+import { timeRangesOverlap } from '@/lib/timeUtils';
 
 const DAYS_OF_WEEK = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday'];
 const TIME_PERIODS = [
@@ -43,32 +44,25 @@ export function AvailabilityStatisticsWidget() {
       const volunteersWithSchedules = new Set(courses?.map(c => c.volunteer_id) || []);
       const volunteersWithScheduleCount = volunteersWithSchedules.size;
 
-      // Calculate availability by day
+      // Bug #2 fix: Calculate availability by day AND time period together
+      // A volunteer with a 10-11 lecture is only busy during that slot, not all day
       const availabilityByDay: Record<string, number> = {};
-      const busySlotsByDay: Record<string, Set<string>> = {};
 
       DAYS_OF_WEEK.forEach(day => {
-        busySlotsByDay[day] = new Set();
         const dayCourses = courses?.filter(c => c.day_of_week === day) || [];
-        
-        dayCourses.forEach(course => {
-          busySlotsByDay[day].add(course.volunteer_id);
-        });
-
-        // Volunteers available = total - those with courses on this day
-        const busyCount = busySlotsByDay[day].size;
-        availabilityByDay[day] = totalVolunteers - busyCount;
+        // Count unique volunteers who have ANY course on this day
+        const busyVolunteers = new Set(dayCourses.map(c => c.volunteer_id));
+        availabilityByDay[day] = totalVolunteers - busyVolunteers.size;
       });
 
-      // Calculate availability by time period
+      // Bug #3 fix: Use numeric time comparison via timeRangesOverlap
       const availabilityByPeriod: Record<string, number> = {};
       
       TIME_PERIODS.forEach(period => {
         let busyDuringPeriod = new Set<string>();
         
         courses?.forEach(course => {
-          // Check if course overlaps with this period
-          if (course.start_time < period.end && course.end_time > period.start) {
+          if (timeRangesOverlap(course.start_time, course.end_time, period.start, period.end)) {
             busyDuringPeriod.add(course.volunteer_id);
           }
         });

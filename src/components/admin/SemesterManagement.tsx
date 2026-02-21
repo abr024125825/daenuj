@@ -60,6 +60,12 @@ export function SemesterManagement() {
   const handleSubmit = async () => {
     if (!user?.id) return;
 
+    // Bug #5 fix: validate end_date > start_date
+    if (formData.end_date <= formData.start_date) {
+      alert('End date must be after start date.');
+      return;
+    }
+
     await createSemester.mutateAsync({
       name: formData.name,
       academic_year: formData.academic_year,
@@ -94,10 +100,10 @@ export function SemesterManagement() {
     });
   };
 
-  // Generate academic year options (current year and next 5 years)
+  // Bug #4 fix: include current academic year (start from previous year)
   const currentYear = new Date().getFullYear();
-  const academicYearOptions = Array.from({ length: 6 }, (_, i) => {
-    const startYear = currentYear + i;
+  const academicYearOptions = Array.from({ length: 7 }, (_, i) => {
+    const startYear = currentYear - 1 + i;
     return `${startYear}-${startYear + 1}`;
   });
 

@@ -5,14 +5,16 @@ import { Badge } from '@/components/ui/badge';
 import { Accessibility, ArrowRight, Calendar, Clock, User, Loader2 } from 'lucide-react';
 import { useDisabilityExams } from '@/hooks/useDisabilityExams';
 import { format } from 'date-fns';
+import { combineDateAndTime } from '@/lib/timeUtils';
 
 export function DisabilityExamsWidget() {
   const { exams, isLoading } = useDisabilityExams();
 
-  // Get upcoming exams (scheduled status, future date)
+  // Get upcoming exams — compare date+end_time so a 9AM exam disappears after it ends
+  const now = new Date();
   const upcomingExams = exams?.filter((exam: any) => {
-    const examDate = new Date(exam.exam_date);
-    return exam.status === 'scheduled' && examDate >= new Date();
+    const examEnd = combineDateAndTime(exam.exam_date, exam.end_time);
+    return exam.status === 'scheduled' && examEnd > now;
   }).slice(0, 3) || [];
 
   // Get exams needing assignments
