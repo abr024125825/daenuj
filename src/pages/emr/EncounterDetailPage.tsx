@@ -1,4 +1,10 @@
 import { useState } from 'react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
 import { useParams, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -57,6 +63,8 @@ export function EncounterDetailPage() {
   const [mseForm, setMseForm] = useState<Record<string, string>>({});
   const [historyForms, setHistoryForms] = useState<Record<string, string>>({});
   const [addendumText, setAddendumText] = useState('');
+  const [nextBookingDays, setNextBookingDays] = useState<number>(7);
+  const [showSignDialog, setShowSignDialog] = useState(false);
 
   useState(() => {
     if (encounter?.chief_complaint) setChiefComplaint(encounter.chief_complaint);
@@ -97,7 +105,14 @@ export function EncounterDetailPage() {
   };
 
   const handleSign = () => {
-    updateEncounter.mutate({ id: encounter.id, status: 'signed', signed_at: new Date().toISOString(), signed_by: user?.id });
+    updateEncounter.mutate({
+      id: encounter.id,
+      status: 'signed',
+      signed_at: new Date().toISOString(),
+      signed_by: user?.id,
+      next_booking_after_days: nextBookingDays,
+    });
+    setShowSignDialog(false);
     toast({ title: 'Encounter signed and locked' });
   };
 
@@ -126,7 +141,7 @@ export function EncounterDetailPage() {
               {encounter.status}
             </Badge>
             {!isSigned && (
-              <Button size="sm" variant="destructive" onClick={handleSign}>
+              <Button size="sm" variant="destructive" onClick={() => setShowSignDialog(true)}>
                 <Lock className="h-4 w-4 mr-1" /> Sign & Lock
               </Button>
             )}
@@ -269,6 +284,40 @@ export function EncounterDetailPage() {
             ))}
           </TabsContent>
         </Tabs>
+
+        {/* Sign Dialog with next booking days */}
+        <AlertDialog open={showSignDialog} onOpenChange={setShowSignDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Sign & Lock Encounter</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action is permanent. The encounter will be locked and can only be updated via addendums.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="space-y-3 py-2">
+              <Label className="text-sm font-medium">
+                Number of days before the patient can book a new appointment
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                max={365}
+                value={nextBookingDays}
+                onChange={(e) => setNextBookingDays(parseInt(e.target.value) || 0)}
+                className="w-32"
+              />
+              <p className="text-xs text-muted-foreground">
+                The patient will only see available appointments after {nextBookingDays} days from signing.
+              </p>
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleSign} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Sign & Lock
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </DashboardLayout>
   );

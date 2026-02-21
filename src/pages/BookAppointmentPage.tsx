@@ -106,6 +106,10 @@ export default function BookAppointmentPage() {
         return;
       }
 
+      // Extract earliest booking date from RPC response
+      const earliestDate = check?.earliest_booking_date || format(new Date(), 'yyyy-MM-dd');
+      const waitDays = check?.wait_days || 0;
+
       // Fetch available slots
       const { data: slots, error: slotsError } = await supabase
         .from('therapist_availability_slots')
@@ -126,17 +130,22 @@ export default function BookAppointmentPage() {
 
       const todayDate = new Date();
       const generatedSlots: AvailableSlot[] = [];
+      // Search up to 30 days ahead to accommodate wait periods
+      const searchDays = Math.max(14, waitDays + 14);
 
       for (const slot of (slots || [])) {
         const maxDailyPatients = (slot as any).max_daily_patients || 8;
 
-        for (let d = 1; d <= 7; d++) {
+        for (let d = 1; d <= searchDays; d++) {
           const date = addDays(todayDate, d);
           const dayOfWeek = getDay(date);
 
           if (dayOfWeek !== slot.day_of_week) continue;
 
           const dateStr = format(date, 'yyyy-MM-dd');
+
+          // Skip dates before the earliest allowed booking date
+          if (dateStr < earliestDate) continue;
 
           const isOnLeave = (leaves || []).some(
             (l: any) => l.provider_id === slot.provider_id && dateStr >= l.start_date && dateStr <= l.end_date
