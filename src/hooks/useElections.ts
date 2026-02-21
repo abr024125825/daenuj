@@ -126,7 +126,7 @@ export function useVotingBoxes(electionId: string | undefined) {
 export function useCreateVotingBox() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (box: { election_id: string; name: string; name_ar?: string; location?: string; location_ar?: string; supervisor_id?: string }) => {
+    mutationFn: async (box: { election_id: string; name: string; name_ar?: string; location?: string; location_ar?: string; supervisor_id?: string; allowed_ip?: string }) => {
       const { data, error } = await supabase.from('voting_boxes').insert(box).select().single();
       if (error) throw error;
       return data;
