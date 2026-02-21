@@ -158,7 +158,7 @@ export function FacultyManagement() {
       setSelectedFacultyId(null);
     },
     onError: (error: Error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: getFriendlyError(error), variant: 'destructive' });
     },
   });
 
@@ -173,7 +173,7 @@ export function FacultyManagement() {
       setEditMajor(null);
     },
     onError: (error: Error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: getFriendlyError(error), variant: 'destructive' });
     },
   });
 
@@ -187,7 +187,7 @@ export function FacultyManagement() {
       toast({ title: 'Success', description: 'Major deleted successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: getFriendlyError(error), variant: 'destructive' });
     },
   });
 

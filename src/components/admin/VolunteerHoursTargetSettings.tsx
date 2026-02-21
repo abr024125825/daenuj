@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { getFriendlyError } from '@/lib/errorUtils';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -85,7 +86,7 @@ export function VolunteerHoursTargetSettings() {
       setEditDialogOpen(false);
     },
     onError: (error: any) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: getFriendlyError(error), variant: 'destructive' });
     },
   });
 
