@@ -468,6 +468,66 @@ CATEGORY EE: GENETIC & NEURODEVELOPMENTAL SYNDROME INSTRUMENTS
 ▸ Cri du Chat Syndrome Behavioral Checklist — Self-injury, hyperactivity, stereotypies, aggression, attachment behaviors, communication frustration.
 ▸ Fragile X-Associated Tremor/Ataxia Syndrome (FXTAS) Rating Scale — Executive dysfunction, memory decline, anxiety, depression, neuropathy, intention tremor impact on daily function.
 
+────────────────────────────────────────
+CATEGORY EE-2: EXTENDED GENETIC SYNDROME INSTRUMENTS
+────────────────────────────────────────
+
+▸ Smith-Lemli-Opitz Syndrome Behavioral Checklist — Irritability, self-injury, sensory hypersensitivity, autistic features, sleep disturbance, feeding difficulties.
+▸ Cri du Chat Syndrome Cognitive and Behavioral Assessment — Cognitive profiling, adaptive skills, stereotypies, aggression, communication frustration, social engagement.
+▸ Phelan-McDermid Syndrome Developmental Profile — Developmental milestones, regression patterns, ASD features, hypotonia impact, communication level, sensory processing.
+▸ Phelan-McDermid Syndrome Communication and Social Skills Test — Receptive/expressive language, social reciprocity, joint attention, nonverbal communication.
+▸ Rett Syndrome Anxiety and Mood Inventory — Screaming episodes, mood lability, breathing-related distress, autonomic anxiety, social withdrawal patterns.
+▸ Rett Syndrome Communication and Motor Function Scale — Hand function, ambulation, communication modality, eye gaze, purposeful hand use.
+▸ Rett Syndrome Behavioral Observation Scale — Stereotypies frequency/intensity, mood states, social engagement, response to stimuli, self-regulation.
+▸ Angelman Syndrome Communication Questionnaire — Communication modality assessment, comprehension level, AAC use, social communication, receptive language.
+▸ Angelman Syndrome Anxiety and Sleep Questionnaire — Sleep architecture, nocturnal behaviors, anxiety triggers, separation responses, environmental sensitivities.
+▸ Angelman Syndrome Cognitive Function Assessment — Nonverbal cognitive profiling, problem-solving, memory, adaptive reasoning, learning style.
+▸ Prader-Willi Syndrome Temperament and Character Inventory — Novelty seeking, harm avoidance, reward dependence, persistence, self-directedness, cooperativeness.
+▸ Prader-Willi Syndrome Obsessive-Compulsive Behavior Scale — Hoarding, ordering, skin picking, repetitive questioning, insistence on sameness, rigidity.
+▸ Prader-Willi Syndrome Food-Related Behavior Checklist — Food-seeking severity, stealing food, foraging, satiety awareness, mealtime behaviors.
+▸ Fragile X Syndrome Sensory Sensitivity Scale — Tactile defensiveness, auditory hypersensitivity, visual stimulation response, olfactory sensitivity, vestibular responses.
+▸ Fragile X Syndrome ADHD Rating Scale — Inattention in Fragile X context, hyperactivity, impulsivity, perseverative behaviors, executive function.
+▸ Fragile X Syndrome Anxiety and Sensory Questionnaire — Social anxiety, performance anxiety, gaze avoidance, hyperarousal, sensory overload patterns.
+▸ Williams-Beuren Syndrome Adaptive Behavior Inventory — Daily living skills, socialization patterns, communication, motor skills, community participation.
+▸ Williams Syndrome Sociability and Anxiety Scale — Indiscriminate friendliness, stranger approach, non-social anxiety (specific phobias, hyperacusis), social judgment.
+▸ Williams-Beuren Syndrome Emotional and Social Inventory — Emotional expressivity, empathy, social disinhibition, anxiety domains, music responsiveness.
+▸ Neurofibromatosis Type 1 Executive Function Rating — Cognitive flexibility, planning, working memory, inhibition, organization, attention shifting.
+▸ Neurofibromatosis Type 1 Learning and Executive Function Test — Academic achievement, processing speed, visuospatial skills, reading, mathematics.
+▸ Neurofibromatosis Type 2 Quality of Life and Cognition Inventory — Hearing loss impact, tinnitus distress, cognitive effects, social isolation, depression.
+▸ Tuberous Sclerosis Complex Behavioral Checklist (TAND) — Overactivity, impulsivity, aggression, self-injury, sleep problems, repetitive behaviors, mood fluctuations.
+▸ Tuberous Sclerosis Complex Learning and Behavior Scale — Academic skills, cognitive profile, attention, memory, language, adaptive behavior.
+▸ Stiff Person Syndrome Anxiety and Depression Scale — Task-specific phobias, anticipatory anxiety, startle responses, agoraphobia severity, depression, functional limitation.
+▸ Leigh Syndrome Neuropsychological Evaluation — Developmental trajectory, regression monitoring, cognitive functioning, irritability, pain expression, feeding.
+▸ Marfan Syndrome Emotional Well-Being Questionnaire — Body image, activity restriction distress, cardiovascular anxiety, chronic pain impact, social functioning.
+▸ Marfan Syndrome Social Anxiety and Functioning Scale — Height-related self-consciousness, physical appearance concerns, social avoidance, peer relationships.
+▸ Noonan Syndrome Social Skills Assessment — Social cognition, peer interaction, assertiveness, emotional understanding, friendship skills.
+▸ Noonan Syndrome Cognitive and Emotional Inventory — Verbal/nonverbal cognitive profile, attention, emotional regulation, self-concept, academic functioning.
+▸ Ehlers-Danlos Syndrome Pain Catastrophizing Scale — Pain rumination, magnification, helplessness, kinesiophobia, pain-related fear, functional disability.
+▸ Klinefelter Syndrome Self-Concept Questionnaire — Body image, masculinity perception, fertility-related distress, social confidence, academic self-concept.
+▸ Klinefelter Syndrome Neuropsychological Profile — Verbal processing, executive function, social cognition, language processing speed, emotional regulation.
+▸ Turner Syndrome Mood and Behavior Inventory — Anxiety, depression, social difficulties, attention, visuospatial challenges, self-esteem.
+▸ Turner Syndrome Self-Esteem and Mood Questionnaire — Height-related self-esteem, body image, social comparison, mood stability, peer acceptance.
+▸ Smith-Magenis Syndrome Emotional Regulation Scale — Emotional lability, tantrums, self-injury patterns, attention-seeking intensity, frustration tolerance.
+▸ Smith-Magenis Syndrome Sleep Disturbance Inventory — Circadian rhythm inversion, melatonin cycle, sleep onset latency, nighttime waking frequency, daytime somnolence.
+▸ Mucopolysaccharidosis Cognitive and Behavioral Test — Progressive cognitive monitoring, behavioral changes, hyperactivity, sleep quality, communication decline.
+▸ Huntington Disease Depression and Irritability Inventory — Apathy progression, irritability episodes, depressive symptoms, suicidal ideation, obsessive-compulsive features.
+▸ Wilson Disease Psychiatric Symptom Checklist — Personality changes, psychosis features, cognitive decline, behavioral disinhibition, depression, catatonic features.
+▸ Phenylketonuria Behavioral and Cognitive Assessment — Executive function, processing speed, anxiety, depression, ADHD symptoms, dietary compliance impact.
+▸ Gaucher Disease Quality of Life and Emotional Screening — Fatigue impact, pain burden, emotional well-being, social functioning, bone crisis-related distress.
+▸ Pompe Disease Psychological Evaluation Scale — Respiratory anxiety, mobility limitation impact, depression, fatigue-related distress, social participation, body image.
+▸ Maple Syrup Urine Disease Neurobehavioral Assessment — Cognitive monitoring, executive function, anxiety, dietary restriction burden, metabolic crisis-related PTSD.
+▸ Homocystinuria Cognitive and Emotional Rating — Cognitive profile, psychiatric symptoms (anxiety, depression, psychosis risk), behavioral changes, social functioning.
+▸ Adrenoleukodystrophy Behavioral Checklist — Behavioral regression, attention decline, emotional lability, aggression, adaptive skill loss, school performance.
+▸ Fabry Disease Neurocognitive Assessment — Pain-related cognitive impact, depression, anxiety, cerebrovascular effects, quality of life, neuropathic pain coping.
+▸ Cystinosis Emotional and Social Functioning Scale — Chronic illness adjustment, growth-related self-esteem, fatigue impact, social participation, treatment burden.
+▸ Alström Syndrome Behavioral Rating Inventory — Vision/hearing loss psychosocial impact, obesity-related distress, social isolation, adaptive functioning, mood.
+▸ Cockayne Syndrome Mood and Behavior Checklist — Developmental monitoring, irritability, sleep patterns, social responsiveness, sensory responses, pain indicators.
+▸ Ataxia-Telangiectasia Neurobehavioral Assessment — Cerebellar cognitive affective syndrome, executive function, speech/language, emotional processing, adaptive behavior.
+▸ Cornelia de Lange Syndrome Sleep and Anxiety Inventory — Sleep onset difficulties, nighttime waking, anxiety manifestations, self-injury correlation with anxiety, sensory processing.
+▸ Smith-Lemli-Opitz Syndrome Mood and Attention Inventory — Mood instability, attention deficits, cholesterol-related behavioral fluctuations, irritability cycles, sensory responses.
+▸ Cri du Chat Syndrome Adaptive Behavior Scale — Self-care skills, communication level, socialization, motor abilities, community participation, behavioral challenges.
+
+
 ═══════════════════════════════════════════════════════
 PART 2: COMPREHENSIVE DIAGNOSTIC COVERAGE (90+ conditions)
 ═══════════════════════════════════════════════════════
