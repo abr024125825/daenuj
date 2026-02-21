@@ -55,6 +55,10 @@ import { AllPatientsReadOnlyPage } from "./pages/emr/AllPatientsReadOnlyPage";
 import ScreeningTestPage from "./pages/ScreeningTestPage";
 import InstallPage from "./pages/InstallPage";
 import { MessagingPage } from "./pages/admin/MessagingPage";
+import { ElectionsPage } from "./pages/admin/ElectionsPage";
+import { ElectionDetailPage } from "./pages/admin/ElectionDetailPage";
+import { ElectionCheckInPage } from "./pages/admin/ElectionCheckInPage";
+import { ElectionResultsPage } from "./pages/admin/ElectionResultsPage";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -113,6 +117,12 @@ const App = () => (
             <Route path="/dashboard/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
             <Route path="/dashboard/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
             <Route path="/dashboard/messages" element={<ProtectedRoute><MessagingPage /></ProtectedRoute>} />
+
+            {/* Elections Routes */}
+            <Route path="/dashboard/elections" element={<ProtectedRoute><ElectionsPage /></ProtectedRoute>} />
+            <Route path="/dashboard/elections/:electionId" element={<ProtectedRoute><ElectionDetailPage /></ProtectedRoute>} />
+            <Route path="/dashboard/elections/:electionId/checkin" element={<ProtectedRoute><ElectionCheckInPage /></ProtectedRoute>} />
+            <Route path="/dashboard/elections/:electionId/results" element={<ProtectedRoute><ElectionResultsPage /></ProtectedRoute>} />
 
             {/* Faculty Coordinator Routes */}
             <Route path="/dashboard/faculty-volunteers" element={<ProtectedRoute><FacultyVolunteersPage /></ProtectedRoute>} />

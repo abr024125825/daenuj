@@ -25,6 +25,7 @@ import {
   Accessibility,
   HandHeart,
   Mail,
+  Vote,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -56,6 +57,7 @@ const adminNavItems: NavItem[] = [
   { icon: FileText, label: 'EMR Statistics', href: '/dashboard/emr/stats' },
   { icon: BarChart3, label: 'Reports', href: '/dashboard/reports' },
   { icon: Mail, label: 'Messages', href: '/dashboard/messages' },
+  { icon: Vote, label: 'Elections', href: '/dashboard/elections' },
   { icon: Settings, label: 'Settings', href: '/dashboard/settings' },
 ];
 
