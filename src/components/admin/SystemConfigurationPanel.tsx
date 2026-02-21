@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Settings, Mail, UserCheck, GraduationCap, Shield } from 'lucide-react';
+import { Loader2, Settings, Mail, UserCheck, GraduationCap, Shield, PartyPopper } from 'lucide-react';
 import { useSystemSettings } from '@/hooks/useSystemSettings';
 
 export function SystemConfigurationPanel() {
@@ -43,6 +43,15 @@ export function SystemConfigurationPanel() {
       enabled: settings?.exam_schedule_enabled ?? false,
       badgeText: 'Schedule',
       badgeColor: 'bg-purple-500',
+    },
+    {
+      key: 'inauguration_enabled',
+      label: 'Website Inauguration Gate',
+      description: 'When enabled, the entire website is locked behind an inauguration screen requiring a password to launch. Disable to remove the gate.',
+      icon: PartyPopper,
+      enabled: settings?.inauguration_enabled ?? false,
+      badgeText: 'Launch',
+      badgeColor: 'bg-amber-500',
     },
   ];
 
