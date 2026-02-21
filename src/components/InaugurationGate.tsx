@@ -144,7 +144,7 @@ function PresentationSlide({ slide, active }: { slide: typeof slides[0]; active:
   );
 }
 
-/* ─── Main Gate ─── */
+/* ─── Main Gate Component ─── */
 export function InaugurationGate({ children }: { children: React.ReactNode }) {
   const [localLaunched, setLocalLaunched] = useState(() => {
     return localStorage.getItem(LAUNCH_KEY) === 'true';
