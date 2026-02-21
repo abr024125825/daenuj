@@ -330,10 +330,28 @@ export function useConversations() {
     },
   });
 
+  const deleteConversation = useMutation({
+    mutationFn: async (conversationId: string) => {
+      // Delete messages first, then participants, then conversation
+      await supabase.from('messages').delete().eq('conversation_id', conversationId);
+      await supabase.from('conversation_participants').delete().eq('conversation_id', conversationId);
+      const { error } = await supabase.from('conversations').delete().eq('id', conversationId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['conversations'] });
+      toast({ title: 'Conversation deleted successfully' });
+    },
+    onError: (error) => {
+      toast({ title: 'Failed to delete conversation', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
     conversations,
     isLoading,
     createConversation,
+    deleteConversation,
     totalUnread: conversations?.reduce((sum, c) => sum + (c.unread_count || 0), 0) || 0,
   };
 }
