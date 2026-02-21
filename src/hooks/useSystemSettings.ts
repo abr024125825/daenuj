@@ -6,6 +6,7 @@ export interface SystemSettings {
   auto_approve_registrations: boolean;
   email_notifications: boolean;
   exam_schedule_enabled: boolean;
+  inauguration_enabled: boolean;
 }
 
 export function useSystemSettings() {
@@ -25,6 +26,7 @@ export function useSystemSettings() {
         auto_approve_registrations: false,
         email_notifications: true,
         exam_schedule_enabled: false,
+        inauguration_enabled: false,
       };
 
       data?.forEach(item => {
@@ -35,6 +37,8 @@ export function useSystemSettings() {
           settingsMap.email_notifications = value.enabled ?? true;
         } else if (item.setting_key === 'exam_schedule_enabled') {
           settingsMap.exam_schedule_enabled = value.enabled ?? false;
+        } else if (item.setting_key === 'inauguration_enabled') {
+          settingsMap.inauguration_enabled = value.enabled ?? false;
         }
       });
 
