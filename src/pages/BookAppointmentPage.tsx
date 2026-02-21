@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Logo } from '@/components/Logo';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -6,8 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Clock, Loader2, CheckCircle, ArrowLeft, AlertCircle } from 'lucide-react';
+import {
+  Calendar, Clock, Loader2, CheckCircle, ArrowLeft, AlertCircle,
+  Shield, User, CalendarDays, Download, Printer
+} from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { format, addDays, getDay } from 'date-fns';
 import {
@@ -25,7 +29,15 @@ interface AvailableSlot {
   provider_id: string;
 }
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_NAMES_EN = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const DAY_NAMES_AR = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+function formatTime12(time: string) {
+  const [h, m] = time.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${ampm}`;
+}
 
 export default function BookAppointmentPage() {
   const { toast } = useToast();
@@ -41,10 +53,11 @@ export default function BookAppointmentPage() {
   const [existingAppointment, setExistingAppointment] = useState<any>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [confirmSlot, setConfirmSlot] = useState<AvailableSlot | null>(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   const handleVerify = async () => {
     if (!fileNumber || !dateOfBirth) {
-      toast({ title: 'Error', description: 'Please enter your file number and date of birth', variant: 'destructive' });
+      toast({ title: 'خطأ', description: 'الرجاء إدخال رقم الملف وتاريخ الميلاد', variant: 'destructive' });
       return;
     }
 
@@ -60,7 +73,7 @@ export default function BookAppointmentPage() {
 
       if (error) throw error;
       if (!data) {
-        toast({ title: 'Not Found', description: 'No patient found with the provided file number and date of birth.', variant: 'destructive' });
+        toast({ title: 'غير موجود', description: 'لم يتم العثور على مريض بهذا الرقم وتاريخ الميلاد.', variant: 'destructive' });
         return;
       }
 
@@ -83,7 +96,7 @@ export default function BookAppointmentPage() {
         return;
       }
 
-      // Also check if there's an encounter from today that is not signed yet
+      // Check unsigned encounter
       const today = new Date().toISOString().split('T')[0];
       const { data: unsignedEnc } = await supabase
         .from('encounters')
@@ -123,11 +136,11 @@ export default function BookAppointmentPage() {
 
       for (const slot of (slots || [])) {
         const maxDailyPatients = (slot as any).max_daily_patients || 8;
-        
+
         for (let d = 1; d <= 7; d++) {
           const date = addDays(todayDate, d);
           const dayOfWeek = getDay(date);
-          
+
           if (dayOfWeek !== slot.day_of_week) continue;
 
           const dateStr = format(date, 'yyyy-MM-dd');
@@ -175,7 +188,7 @@ export default function BookAppointmentPage() {
       setAvailableSlots(generatedSlots);
       setStep('slots');
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
     } finally {
       setIsVerifying(false);
     }
@@ -185,7 +198,7 @@ export default function BookAppointmentPage() {
     if (!patient) return;
     setIsBooking(true);
     try {
-      // Double-check no one else booked this slot (unique index will also prevent it)
+      // Double-check no one else booked this slot
       const { data: conflict } = await supabase
         .from('appointments')
         .select('id')
@@ -196,12 +209,12 @@ export default function BookAppointmentPage() {
         .maybeSingle();
 
       if (conflict) {
-        toast({ title: 'Slot taken', description: 'This slot was just booked by another patient. Please choose another.', variant: 'destructive' });
+        toast({ title: 'الموعد محجوز', description: 'تم حجز هذا الموعد من قبل مريض آخر. اختر موعداً آخر.', variant: 'destructive' });
         setAvailableSlots(prev => prev.filter(s => !(s.date === slot.date && s.start_time === slot.start_time && s.provider_id === slot.provider_id)));
         return;
       }
 
-      // Also re-check that this patient doesn't already have an active appointment
+      // Re-check patient doesn't have active appointment
       const { data: patientConflict } = await supabase
         .from('appointments')
         .select('id')
@@ -211,7 +224,7 @@ export default function BookAppointmentPage() {
         .maybeSingle();
 
       if (patientConflict) {
-        toast({ title: 'Already booked', description: 'You already have an active appointment.', variant: 'destructive' });
+        toast({ title: 'موعد موجود', description: 'لديك موعد محجوز مسبقاً.', variant: 'destructive' });
         return;
       }
 
@@ -230,26 +243,67 @@ export default function BookAppointmentPage() {
 
       if (error) {
         if (error.message?.includes('already has an active appointment')) {
-          toast({ title: 'Already booked', description: 'You already have an active appointment. Only one at a time is allowed.', variant: 'destructive' });
+          toast({ title: 'موعد موجود', description: 'لديك موعد محجوز مسبقاً. يسمح بحجز موعد واحد فقط.', variant: 'destructive' });
           return;
         }
         if (error.message?.includes('already booked')) {
-          toast({ title: 'Slot taken', description: 'This slot was just booked. Please choose another.', variant: 'destructive' });
+          toast({ title: 'الموعد محجوز', description: 'تم حجز هذا الموعد. اختر موعداً آخر.', variant: 'destructive' });
           setAvailableSlots(prev => prev.filter(s => !(s.date === slot.date && s.start_time === slot.start_time && s.provider_id === slot.provider_id)));
           return;
         }
         throw error;
       }
 
-      // Remove the booked slot from the list so it cannot appear again
       setAvailableSlots(prev => prev.filter(s => !(s.date === slot.date && s.start_time === slot.start_time && s.provider_id === slot.provider_id)));
       setBookedSlot(slot);
       setStep('success');
     } catch (error: any) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'خطأ', description: error.message, variant: 'destructive' });
     } finally {
       setIsBooking(false);
       setConfirmSlot(null);
+    }
+  };
+
+  const handlePrint = () => {
+    if (printRef.current) {
+      const printContents = printRef.current.innerHTML;
+      const printWindow = window.open('', '_blank');
+      if (printWindow) {
+        printWindow.document.write(`
+          <html dir="rtl">
+          <head>
+            <title>تأكيد الموعد</title>
+            <style>
+              body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 40px; direction: rtl; color: #1a1a1a; }
+              .header { text-align: center; margin-bottom: 30px; border-bottom: 2px solid #0ea5e9; padding-bottom: 20px; }
+              .header h1 { font-size: 24px; color: #0ea5e9; margin: 0; }
+              .header p { color: #666; margin: 5px 0 0; }
+              .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+              .info-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; }
+              .info-box .label { font-size: 12px; color: #64748b; margin-bottom: 4px; }
+              .info-box .value { font-size: 16px; font-weight: 600; }
+              .notice { background: #fef3c7; border: 1px solid #fbbf24; border-radius: 8px; padding: 16px; margin-top: 24px; font-size: 14px; }
+              .footer { text-align: center; margin-top: 40px; font-size: 12px; color: #94a3b8; }
+              @media print { body { padding: 20px; } }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>🏥 مركز الإرشاد النفسي</h1>
+              <p>تأكيد حجز موعد</p>
+            </div>
+            ${printContents}
+            <div class="footer">
+              <p>تم الطباعة بتاريخ ${format(new Date(), 'yyyy/MM/dd - hh:mm a')}</p>
+              <p>هذا التأكيد لا يحل محل التأكيد الرسمي من المركز</p>
+            </div>
+          </body>
+          </html>
+        `);
+        printWindow.document.close();
+        printWindow.print();
+      }
     }
   };
 
@@ -267,143 +321,240 @@ export default function BookAppointmentPage() {
   const displayedSlots = selectedDay ? (slotsByDate[selectedDay] || []) : [];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted/30">
+      {/* Header */}
+      <header className="border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <Logo size="sm" />
           <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Home
+            العودة للرئيسية
           </Button>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-12 max-w-2xl">
+      <main className="container mx-auto px-4 py-8 max-w-2xl">
+
+        {/* ───── Step 1: Verify ───── */}
         {step === 'verify' && (
-          <Card>
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl">Book an Appointment</CardTitle>
-              <CardDescription>Enter your medical file number and date of birth to view available slots</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label>Medical File Number</Label>
-                <Input placeholder="e.g. A-2026-1-00001" value={fileNumber} onChange={(e) => setFileNumber(e.target.value)} />
+          <div className="space-y-6">
+            {/* Hero */}
+            <div className="text-center space-y-2 py-4">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                <CalendarDays className="h-8 w-8 text-primary" />
               </div>
-              <div className="space-y-2">
-                <Label>Date of Birth</Label>
-                <Input type="date" value={dateOfBirth} onChange={(e) => setDateOfBirth(e.target.value)} />
-              </div>
-              <Button className="w-full" onClick={handleVerify} disabled={isVerifying}>
-                {isVerifying && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Verify & View Slots
-              </Button>
-            </CardContent>
-          </Card>
+              <h1 className="text-2xl font-bold text-foreground">حجز موعد</h1>
+              <p className="text-muted-foreground text-sm max-w-md mx-auto">
+                أدخل رقم ملفك الطبي وتاريخ ميلادك لعرض المواعيد المتاحة
+              </p>
+            </div>
+
+            <Card className="border-border/50 shadow-lg">
+              <CardContent className="pt-6 space-y-5">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <Shield className="h-3.5 w-3.5 text-primary" />
+                    رقم الملف الطبي
+                  </Label>
+                  <Input
+                    placeholder="مثال: A-2026-1-00001"
+                    value={fileNumber}
+                    onChange={(e) => setFileNumber(e.target.value)}
+                    className="h-11 text-base"
+                    dir="ltr"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium flex items-center gap-2">
+                    <User className="h-3.5 w-3.5 text-primary" />
+                    تاريخ الميلاد
+                  </Label>
+                  <Input
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    className="h-11"
+                  />
+                </div>
+                <Button className="w-full h-11 text-base font-semibold" onClick={handleVerify} disabled={isVerifying}>
+                  {isVerifying ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <Calendar className="h-5 w-5 mr-2" />}
+                  تحقق وعرض المواعيد
+                </Button>
+              </CardContent>
+            </Card>
+
+            <p className="text-center text-xs text-muted-foreground">
+              يُسمح بحجز موعد واحد فقط في كل مرة
+            </p>
+          </div>
         )}
 
+        {/* ───── Step 2: Slots / Existing Appointment ───── */}
         {step === 'slots' && (
           <div className="space-y-4">
             <Button variant="ghost" size="sm" onClick={() => { setStep('verify'); setExistingAppointment(null); setSelectedDay(null); }}>
-              <ArrowLeft className="h-4 w-4 mr-2" /> Back
+              <ArrowLeft className="h-4 w-4 mr-2" /> رجوع
             </Button>
 
+            {/* Patient info bar */}
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border/50">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                <User className="h-5 w-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">{patient?.full_name}</p>
+                <p className="text-xs text-muted-foreground" dir="ltr">File #: {patient?.file_number}</p>
+              </div>
+            </div>
+
             {existingAppointment ? (
-              <Card className="border-accent/30">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <AlertCircle className="h-5 w-5 text-accent" />
-                    {existingAppointment.status === 'in_session' ? 'Active Session' : 'Existing Appointment'}
+              /* ── Existing Appointment Block ── */
+              <Card className="border-amber-300/50 bg-amber-50/30 dark:bg-amber-950/10 shadow-lg overflow-hidden">
+                <div className="h-1 bg-amber-400" />
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-amber-700 dark:text-amber-400 text-lg">
+                    <AlertCircle className="h-5 w-5" />
+                    {existingAppointment.status === 'in_session' ? 'جلسة نشطة حالياً' : 'لديك موعد محجوز مسبقاً'}
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
                     {existingAppointment.status === 'in_session'
-                      ? 'You have an active session in progress. You cannot book another until your provider signs and closes the current session.'
-                      : 'You already have a scheduled appointment. You cannot book another until your current session is completed and signed by the provider.'}
+                      ? 'لديك جلسة نشطة حالياً. لا يمكنك حجز موعد آخر حتى ينهي المعالج الجلسة الحالية ويتم توقيعها.'
+                      : 'لا يمكنك حجز أكثر من موعد واحد. يجب أن تكتمل جلستك الحالية ويتم توقيعها من قبل المعالج قبل حجز موعد جديد.'}
                   </p>
+
                   {existingAppointment.status !== 'in_session' && (
-                    <div className="p-4 border rounded-lg space-y-2 bg-muted/30">
-                      <div className="flex items-center gap-2 font-medium">
-                        <Calendar className="h-4 w-4 text-primary" />
-                        {format(new Date(existingAppointment.appointment_date + 'T00:00:00'), 'EEEE, MMMM dd, yyyy')}
+                    <div className="p-4 rounded-xl bg-card border border-border shadow-sm space-y-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex flex-col items-center justify-center shrink-0">
+                          <span className="text-lg font-bold text-primary leading-none">
+                            {new Date(existingAppointment.appointment_date + 'T00:00:00').getDate()}
+                          </span>
+                          <span className="text-[10px] text-primary/70 uppercase">
+                            {format(new Date(existingAppointment.appointment_date + 'T00:00:00'), 'MMM')}
+                          </span>
+                        </div>
+                        <div>
+                          <p className="font-semibold text-foreground">
+                            {DAY_NAMES_AR[getDay(new Date(existingAppointment.appointment_date + 'T00:00:00'))]}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            {format(new Date(existingAppointment.appointment_date + 'T00:00:00'), 'yyyy/MM/dd')}
+                          </p>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Clock className="h-4 w-4" />
-                        {existingAppointment.appointment_time} ({existingAppointment.duration_minutes} min)
+                      <Separator />
+                      <div className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          <Clock className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium" dir="ltr">{formatTime12(existingAppointment.appointment_time)}</span>
+                        </div>
+                        <Badge variant="secondary" className="capitalize">
+                          {existingAppointment.status === 'scheduled' ? 'مجدول' : existingAppointment.status === 'confirmed' ? 'مؤكد' : existingAppointment.status}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary" className="capitalize">{existingAppointment.status}</Badge>
                     </div>
                   )}
+
+                  <div className="p-3 rounded-lg bg-muted/50 text-xs text-muted-foreground flex items-start gap-2">
+                    <AlertCircle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+                    <span>إذا كنت بحاجة لتغيير موعدك، يرجى التواصل مع مركز الإرشاد النفسي مباشرة.</span>
+                  </div>
                 </CardContent>
               </Card>
             ) : (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Available Appointments</CardTitle>
+              /* ── Available Slots ── */
+              <Card className="shadow-lg border-border/50">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <CalendarDays className="h-5 w-5 text-primary" />
+                    المواعيد المتاحة
+                  </CardTitle>
                   <CardDescription>
-                    Welcome back, {patient?.full_name}. Select a day to see available time slots (next 7 days).
+                    اختر اليوم ثم الوقت المناسب لحجز موعدك (الأيام السبعة القادمة)
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-4">
+                <CardContent className="space-y-5">
                   {availableDates.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                      <p>No available appointment slots at this time.</p>
-                      <p className="text-sm mt-1">Please check back later.</p>
+                    <div className="text-center py-10">
+                      <div className="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+                        <Calendar className="h-8 w-8 text-muted-foreground/50" />
+                      </div>
+                      <p className="font-medium text-foreground">لا توجد مواعيد متاحة حالياً</p>
+                      <p className="text-sm text-muted-foreground mt-1">يرجى المحاولة مرة أخرى لاحقاً</p>
                     </div>
                   ) : (
                     <>
-                      <div className="flex flex-wrap gap-2">
+                      {/* Day selector */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                         {availableDates.map(dateStr => {
                           const date = new Date(dateStr + 'T00:00:00');
-                          const dayName = DAY_NAMES[getDay(date)];
+                          const dayNameAr = DAY_NAMES_AR[getDay(date)];
                           const isSelected = selectedDay === dateStr;
                           const slotCount = slotsByDate[dateStr].length;
                           return (
-                            <Button
+                            <button
                               key={dateStr}
-                              variant={isSelected ? 'default' : 'outline'}
-                              className="flex-col h-auto py-3 px-4 min-w-[100px]"
                               onClick={() => setSelectedDay(dateStr)}
+                              className={`
+                                relative flex flex-col items-center py-3 px-2 rounded-xl border-2 transition-all duration-200
+                                ${isSelected
+                                  ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
+                                  : 'border-border/50 bg-card hover:border-primary/30 hover:bg-muted/30'
+                                }
+                              `}
                             >
-                              <span className="text-xs font-medium">{dayName}</span>
-                              <span className="text-sm font-bold">{format(date, 'MMM dd')}</span>
-                              <Badge variant={isSelected ? 'secondary' : 'outline'} className="text-xs mt-1">
-                                {slotCount} slot{slotCount !== 1 ? 's' : ''}
+                              <span className={`text-xs font-medium ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>
+                                {dayNameAr}
+                              </span>
+                              <span className={`text-lg font-bold mt-0.5 ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                                {date.getDate()}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {format(date, 'MMM')}
+                              </span>
+                              <Badge
+                                variant={isSelected ? 'default' : 'secondary'}
+                                className="text-[10px] px-1.5 h-4 mt-1.5"
+                              >
+                                {slotCount}
                               </Badge>
-                            </Button>
+                            </button>
                           );
                         })}
                       </div>
 
-                      {selectedDay && (
-                        <div className="space-y-2 mt-4">
-                          <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                      {/* Time slots */}
+                      {selectedDay ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                             <Clock className="h-4 w-4 text-primary" />
-                            Available times for {DAY_NAMES[getDay(new Date(selectedDay + 'T00:00:00'))]}, {format(new Date(selectedDay + 'T00:00:00'), 'MMMM dd, yyyy')}
-                          </h4>
+                            الأوقات المتاحة - {DAY_NAMES_AR[getDay(new Date(selectedDay + 'T00:00:00'))]}، {format(new Date(selectedDay + 'T00:00:00'), 'yyyy/MM/dd')}
+                          </div>
                           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                             {displayedSlots.map((slot, i) => (
-                              <Button
+                              <button
                                 key={i}
-                                variant="outline"
-                                className="h-auto py-3 flex-col gap-1 hover:border-primary hover:bg-primary/5"
                                 onClick={() => setConfirmSlot(slot)}
                                 disabled={isBooking}
+                                className="group relative flex flex-col items-center gap-1 py-3.5 px-3 rounded-xl border-2 border-border/50 bg-card hover:border-primary hover:bg-primary/5 hover:shadow-md hover:shadow-primary/5 transition-all duration-200 disabled:opacity-50"
                               >
-                                <span className="font-semibold text-sm">{slot.start_time}</span>
-                                <span className="text-xs text-muted-foreground">{slot.slot_duration_minutes} min</span>
-                              </Button>
+                                <span className="font-bold text-base text-foreground group-hover:text-primary transition-colors" dir="ltr">
+                                  {formatTime12(slot.start_time)}
+                                </span>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {slot.slot_duration_minutes} دقيقة
+                                </span>
+                              </button>
                             ))}
                           </div>
                         </div>
-                      )}
-
-                      {!selectedDay && (
-                        <p className="text-sm text-muted-foreground text-center py-4">
-                          ← Select a day above to see available time slots
-                        </p>
+                      ) : (
+                        <div className="text-center py-6 text-muted-foreground">
+                          <CalendarDays className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                          <p className="text-sm">اختر يوماً لعرض الأوقات المتاحة</p>
+                        </div>
                       )}
                     </>
                   )}
@@ -413,50 +564,106 @@ export default function BookAppointmentPage() {
           </div>
         )}
 
+        {/* ───── Step 3: Success ───── */}
         {step === 'success' && bookedSlot && (
-          <Card>
-            <CardContent className="py-12 text-center space-y-4">
-              <CheckCircle className="h-16 w-16 text-primary mx-auto" />
-              <h2 className="text-2xl font-bold">Appointment Booked!</h2>
-              <div className="space-y-2 text-muted-foreground">
-                <p><strong>Date:</strong> {DAY_NAMES[bookedSlot.day_of_week]}, {format(new Date(bookedSlot.date + 'T00:00:00'), 'MMMM dd, yyyy')}</p>
-                <p><strong>Time:</strong> {bookedSlot.start_time}</p>
-                <p><strong>Duration:</strong> {bookedSlot.slot_duration_minutes} minutes</p>
-              </div>
-              <Badge variant="secondary">File #: {patient?.file_number}</Badge>
-              <div className="pt-4">
-                <Button onClick={() => navigate('/')}>Back to Home</Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            <Card className="shadow-lg border-border/50 overflow-hidden">
+              <div className="h-1.5 bg-gradient-to-r from-green-400 to-emerald-500" />
+              <CardContent className="py-10 text-center space-y-5">
+                <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center mx-auto">
+                  <CheckCircle className="h-10 w-10 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-foreground">تم حجز الموعد بنجاح!</h2>
+                  <p className="text-muted-foreground text-sm mt-1">يرجى الحضور في الموعد المحدد</p>
+                </div>
+
+                {/* Printable section */}
+                <div ref={printRef}>
+                  <div className="info-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', margin: '0 auto', maxWidth: '400px' }}>
+                    <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
+                      <p className="text-xs text-muted-foreground mb-1">اليوم</p>
+                      <p className="font-bold text-foreground">{DAY_NAMES_AR[bookedSlot.day_of_week]}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
+                      <p className="text-xs text-muted-foreground mb-1">التاريخ</p>
+                      <p className="font-bold text-foreground">{format(new Date(bookedSlot.date + 'T00:00:00'), 'yyyy/MM/dd')}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
+                      <p className="text-xs text-muted-foreground mb-1">الوقت</p>
+                      <p className="font-bold text-foreground" dir="ltr">{formatTime12(bookedSlot.start_time)}</p>
+                    </div>
+                    <div className="p-4 rounded-xl bg-muted/50 border border-border text-center">
+                      <p className="text-xs text-muted-foreground mb-1">المدة</p>
+                      <p className="font-bold text-foreground">{bookedSlot.slot_duration_minutes} دقيقة</p>
+                    </div>
+                  </div>
+                  <div className="info-box" style={{ textAlign: 'center', marginTop: '12px' }}>
+                    <p className="text-xs text-muted-foreground">رقم الملف</p>
+                    <p className="font-bold text-foreground" dir="ltr">{patient?.file_number}</p>
+                  </div>
+                  <div className="info-box" style={{ textAlign: 'center', marginTop: '8px' }}>
+                    <p className="text-xs text-muted-foreground">اسم المريض</p>
+                    <p className="font-bold text-foreground">{patient?.full_name}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2 pt-4 justify-center">
+                  <Button variant="outline" onClick={handlePrint} className="gap-2">
+                    <Printer className="h-4 w-4" />
+                    طباعة التأكيد
+                  </Button>
+                  <Button onClick={() => navigate('/')} className="gap-2">
+                    <ArrowLeft className="h-4 w-4" />
+                    العودة للرئيسية
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <p className="text-center text-xs text-muted-foreground">
+              في حال الرغبة بتغيير الموعد، يرجى التواصل مع مركز الإرشاد النفسي
+            </p>
+          </div>
         )}
       </main>
 
-      {/* Confirmation Dialog */}
+      {/* ── Confirmation Dialog ── */}
       <AlertDialog open={!!confirmSlot} onOpenChange={(open) => !open && setConfirmSlot(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Appointment</AlertDialogTitle>
-            <AlertDialogDescription className="space-y-2">
-              <p>Are you sure you want to book this appointment?</p>
-              {confirmSlot && (
-                <div className="p-3 rounded-lg bg-muted/50 border mt-2 space-y-1">
-                  <p className="font-medium text-foreground">
-                    {DAY_NAMES[confirmSlot.day_of_week]}, {format(new Date(confirmSlot.date + 'T00:00:00'), 'MMMM dd, yyyy')}
-                  </p>
-                  <p className="text-sm">Time: {confirmSlot.start_time} · Duration: {confirmSlot.slot_duration_minutes} min</p>
-                </div>
-              )}
+            <AlertDialogTitle className="text-center">تأكيد حجز الموعد</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-center">
+                <p>هل أنت متأكد من حجز الموعد التالي؟</p>
+                {confirmSlot && (
+                  <div className="p-4 rounded-xl bg-muted/50 border border-border space-y-2 text-foreground">
+                    <p className="font-bold text-lg">
+                      {DAY_NAMES_AR[confirmSlot.day_of_week]}
+                    </p>
+                    <p className="text-sm">
+                      {format(new Date(confirmSlot.date + 'T00:00:00'), 'yyyy/MM/dd')}
+                    </p>
+                    <Separator />
+                    <p className="font-semibold text-primary" dir="ltr">
+                      {formatTime12(confirmSlot.start_time)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      مدة الجلسة: {confirmSlot.slot_duration_minutes} دقيقة
+                    </p>
+                  </div>
+                )}
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isBooking}>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="sm:justify-center gap-2">
+            <AlertDialogCancel disabled={isBooking}>إلغاء</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => confirmSlot && handleBook(confirmSlot)}
               disabled={isBooking}
             >
               {isBooking && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Confirm Booking
+              تأكيد الحجز
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
