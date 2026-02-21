@@ -83,7 +83,7 @@ export default function BookAppointmentPage() {
         .from('appointments')
         .select('*')
         .eq('patient_id', data.id)
-        .in('status', ['scheduled', 'confirmed'])
+        .in('status', ['scheduled', 'confirmed', 'in_progress'])
         .gte('appointment_date', new Date().toISOString().split('T')[0])
         .order('appointment_date', { ascending: true })
         .limit(1);
@@ -96,19 +96,25 @@ export default function BookAppointmentPage() {
         return;
       }
 
-      // Check unsigned encounter
-      const today = new Date().toISOString().split('T')[0];
+      // Check ANY unsigned/open encounter (not yet signed by provider)
       const { data: unsignedEnc } = await supabase
         .from('encounters')
-        .select('id')
+        .select('id, encounter_date, status')
         .eq('patient_id', data.id)
         .is('signed_at', null)
-        .gte('encounter_date', today + 'T00:00:00')
-        .limit(1)
-        .maybeSingle();
+        .in('status', ['in_progress', 'draft'])
+        .limit(1);
 
-      if (unsignedEnc) {
-        setExistingAppointment({ status: 'in_session', appointment_date: today, appointment_time: '--', duration_minutes: 0 });
+      const openEnc = unsignedEnc?.[0] || null;
+
+      if (openEnc) {
+        setExistingAppointment({
+          status: 'in_session',
+          appointment_date: openEnc.encounter_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+          appointment_time: '--',
+          duration_minutes: 0,
+          _message: 'Your previous session has not been signed yet by the provider. You can book a new appointment once it is completed and signed.'
+        });
         setStep('slots');
         return;
       }
@@ -420,9 +426,11 @@ export default function BookAppointmentPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    {existingAppointment.status === 'in_session'
-                      ? 'You currently have an active session. You cannot book another appointment until your therapist completes and signs the current session.'
-                      : 'You cannot book more than one appointment. Your current session must be completed and signed by the therapist before booking a new one.'}
+                    {existingAppointment._message
+                      ? existingAppointment._message
+                      : existingAppointment.status === 'in_session'
+                        ? 'You currently have an active session. You cannot book another appointment until your therapist completes and signs the current session.'
+                        : 'You cannot book more than one appointment. Your current session must be completed and signed by the therapist before booking a new one.'}
                   </p>
 
                   {existingAppointment.status !== 'in_session' && (
