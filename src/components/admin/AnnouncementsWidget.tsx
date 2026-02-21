@@ -11,8 +11,14 @@ import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAnnouncements, useRealtimeAnnouncements } from '@/hooks/useMessaging';
 import { useFaculties } from '@/hooks/useFaculties';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Megaphone, Plus, Trash2, Edit, Pin, Loader2, ChevronRight } from 'lucide-react';
 import { format } from 'date-fns';
+import { getFriendlyError } from '@/lib/errorUtils';
 
 type Priority = 'low' | 'normal' | 'high' | 'urgent';
 type TargetAudience = 'all' | 'active_only' | 'faculty_specific';
@@ -69,6 +75,7 @@ function AnnouncementsSection() {
   const { data: faculties } = useFaculties();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingAnnouncement, setEditingAnnouncement] = useState<any>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({
     title: '',
     content: '',
@@ -280,7 +287,7 @@ function AnnouncementsSection() {
                       variant="ghost" 
                       size="icon" 
                       className="h-7 w-7 text-destructive hover:text-destructive"
-                      onClick={() => deleteAnnouncement.mutate(announcement.id)}
+                      onClick={() => setDeleteTarget(announcement.id)}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -291,6 +298,29 @@ function AnnouncementsSection() {
           )}
         </div>
       </ScrollArea>
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete this announcement? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTarget) deleteAnnouncement.mutate(deleteTarget);
+                setDeleteTarget(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

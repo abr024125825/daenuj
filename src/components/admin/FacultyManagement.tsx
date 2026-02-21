@@ -31,11 +31,17 @@ import {
   GraduationCap, Search, Loader2, Plus, Edit, Trash2, 
   Users, BookOpen, Clock, Award, Building2, ListTree
 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useFaculties, useMajors, Faculty, Major } from '@/hooks/useFaculties';
 import { useVolunteers } from '@/hooks/useVolunteers';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { getFriendlyError } from '@/lib/errorUtils';
 
 export function FacultyManagement() {
   const { data: faculties, isLoading: facultiesLoading } = useFaculties();
@@ -51,6 +57,8 @@ export function FacultyManagement() {
   const [newMajorName, setNewMajorName] = useState('');
   const [editFaculty, setEditFaculty] = useState<Faculty | null>(null);
   const [editMajor, setEditMajor] = useState<Major | null>(null);
+  const [deleteFacultyTarget, setDeleteFacultyTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteMajorTarget, setDeleteMajorTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Fetch all majors at once for the view
   const { data: allMajors, isLoading: majorsLoading } = useQuery({
@@ -104,7 +112,7 @@ export function FacultyManagement() {
       setNewFacultyName('');
     },
     onError: (error: Error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: getFriendlyError(error), variant: 'destructive' });
     },
   });
 
@@ -119,7 +127,7 @@ export function FacultyManagement() {
       setEditFaculty(null);
     },
     onError: (error: Error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: getFriendlyError(error), variant: 'destructive' });
     },
   });
 
@@ -133,7 +141,7 @@ export function FacultyManagement() {
       toast({ title: 'Success', description: 'Faculty deleted successfully' });
     },
     onError: (error: Error) => {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+      toast({ title: 'Error', description: getFriendlyError(error), variant: 'destructive' });
     },
   });
 
@@ -406,7 +414,7 @@ export function FacultyManagement() {
                                       <Button
                                         size="icon"
                                         variant="ghost"
-                                        onClick={() => deleteMajorMutation.mutate(major.id)}
+                                        onClick={() => setDeleteMajorTarget({ id: major.id, name: major.name })}
                                         className="text-destructive hover:text-destructive"
                                       >
                                         <Trash2 className="h-4 w-4" />
@@ -454,7 +462,7 @@ export function FacultyManagement() {
                               });
                               return;
                             }
-                            deleteFacultyMutation.mutate(faculty.id);
+                            setDeleteFacultyTarget({ id: faculty.id, name: faculty.name });
                           }}
                         >
                           <Trash2 className="h-4 w-4 mr-1" />
@@ -600,6 +608,54 @@ export function FacultyManagement() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Faculty Confirmation */}
+      <AlertDialog open={!!deleteFacultyTarget} onOpenChange={(open) => !open && setDeleteFacultyTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Faculty</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteFacultyTarget?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteFacultyTarget) deleteFacultyMutation.mutate(deleteFacultyTarget.id);
+                setDeleteFacultyTarget(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Major Confirmation */}
+      <AlertDialog open={!!deleteMajorTarget} onOpenChange={(open) => !open && setDeleteMajorTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Major</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{deleteMajorTarget?.name}"? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteMajorTarget) deleteMajorMutation.mutate(deleteMajorTarget.id);
+                setDeleteMajorTarget(null);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
