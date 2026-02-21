@@ -78,43 +78,30 @@ export default function BookAppointmentPage() {
 
       setPatient(data);
 
-      // Check if patient already has a scheduled/confirmed appointment
-      const { data: activeAppts } = await supabase
-        .from('appointments')
-        .select('*')
-        .eq('patient_id', data.id)
-        .in('status', ['scheduled', 'confirmed', 'in_progress'])
-        .gte('appointment_date', new Date().toISOString().split('T')[0])
-        .order('appointment_date', { ascending: true })
-        .limit(1);
+      // Use secure RPC to check if patient can book
+      const { data: bookCheck, error: checkError } = await supabase
+        .rpc('can_patient_book_appointment', { p_patient_id: data.id });
 
-      const activeAppt = activeAppts?.[0] || null;
+      if (checkError) throw checkError;
 
-      if (activeAppt) {
-        setExistingAppointment(activeAppt);
-        setStep('slots');
-        return;
-      }
-
-      // Check ANY unsigned/open encounter (not yet signed by provider)
-      const { data: unsignedEnc } = await supabase
-        .from('encounters')
-        .select('id, encounter_date, status')
-        .eq('patient_id', data.id)
-        .is('signed_at', null)
-        .in('status', ['in_progress', 'draft'])
-        .limit(1);
-
-      const openEnc = unsignedEnc?.[0] || null;
-
-      if (openEnc) {
-        setExistingAppointment({
-          status: 'in_session',
-          appointment_date: openEnc.encounter_date?.split('T')[0] || new Date().toISOString().split('T')[0],
-          appointment_time: '--',
-          duration_minutes: 0,
-          _message: 'Your previous session has not been signed yet by the provider. You can book a new appointment once it is completed and signed.'
-        });
+      const check = bookCheck as any;
+      if (check && !check.can_book) {
+        if (check.reason === 'active_appointment') {
+          setExistingAppointment({
+            status: check.appointment.status,
+            appointment_date: check.appointment.date,
+            appointment_time: check.appointment.time,
+            duration_minutes: check.appointment.duration,
+          });
+        } else if (check.reason === 'unsigned_encounter') {
+          setExistingAppointment({
+            status: 'in_session',
+            appointment_date: new Date().toISOString().split('T')[0],
+            appointment_time: '--',
+            duration_minutes: 0,
+            _message: check.message,
+          });
+        }
         setStep('slots');
         return;
       }
@@ -220,19 +207,16 @@ export default function BookAppointmentPage() {
         return;
       }
 
-      // Re-check patient doesn't have active appointment
-      const { data: patientConflicts } = await supabase
-        .from('appointments')
-        .select('id')
-        .eq('patient_id', patient.id)
-        .in('status', ['scheduled', 'confirmed'])
-        .gte('appointment_date', new Date().toISOString().split('T')[0])
-        .limit(1);
+      // Re-check patient eligibility via RPC
+      const { data: reCheck } = await supabase
+        .rpc('can_patient_book_appointment', { p_patient_id: patient.id });
 
-      const patientConflict = patientConflicts?.[0] || null;
-
-      if (patientConflict) {
-        toast({ title: 'Existing Appointment', description: 'You already have a scheduled appointment.', variant: 'destructive' });
+      const rc = reCheck as any;
+      if (rc && !rc.can_book) {
+        const msg = rc.reason === 'unsigned_encounter'
+          ? 'Your previous session has not been signed by the provider yet.'
+          : 'You already have a scheduled appointment.';
+        toast({ title: 'Cannot Book', description: msg, variant: 'destructive' });
         return;
       }
 
