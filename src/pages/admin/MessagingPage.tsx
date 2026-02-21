@@ -4,6 +4,7 @@ import { useConversations, useMessages } from '@/hooks/useMessaging';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
@@ -13,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import {
-  MessageSquare, Send, Plus, Search, Users, ArrowLeft, Clock, CheckCheck
+  MessageSquare, Send, Plus, Search, Users, ArrowLeft, Clock, CheckCheck, Trash2
 } from 'lucide-react';
 import { format, isToday, isYesterday } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -127,10 +128,12 @@ function ChatView({
   conversationId,
   conversationTitle,
   onBack,
+  onDelete,
 }: {
   conversationId: string;
   conversationTitle: string;
   onBack: () => void;
+  onDelete: () => void;
 }) {
   const { user } = useAuth();
   const { messages, isLoading, sendMessage, markAsRead } = useMessages(conversationId);
@@ -176,9 +179,30 @@ function ChatView({
         <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
           <Users className="h-4 w-4 text-primary" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground truncate">{conversationTitle}</p>
         </div>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete Conversation</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete this conversation and all its messages. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={onDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {/* Messages */}
@@ -397,11 +421,18 @@ function NewConversationDialog({ onCreated }: { onCreated: (id: string) => void 
 
 /* ─── Main Page ─── */
 export function MessagingPage() {
-  const { conversations, isLoading } = useConversations();
+  const { conversations, isLoading, deleteConversation } = useConversations();
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const selectedConv = conversations?.find(c => c.id === selectedConvId);
+
+  const handleDelete = () => {
+    if (!selectedConvId) return;
+    deleteConversation.mutate(selectedConvId, {
+      onSuccess: () => setSelectedConvId(null),
+    });
+  };
 
   return (
     <DashboardLayout title="Messages">
@@ -435,6 +466,7 @@ export function MessagingPage() {
               conversationId={selectedConvId}
               conversationTitle={selectedConv.title || 'Conversation'}
               onBack={() => setSelectedConvId(null)}
+              onDelete={handleDelete}
             />
           ) : (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
