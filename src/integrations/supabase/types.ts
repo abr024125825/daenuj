@@ -3538,6 +3538,7 @@ export type Database = {
       }
       voting_boxes: {
         Row: {
+          allowed_ip: string | null
           created_at: string
           election_id: string
           id: string
@@ -3549,6 +3550,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          allowed_ip?: string | null
           created_at?: string
           election_id: string
           id?: string
@@ -3560,6 +3562,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          allowed_ip?: string | null
           created_at?: string
           election_id?: string
           id?: string
